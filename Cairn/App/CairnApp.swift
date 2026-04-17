@@ -7,16 +7,9 @@ struct CairnApp: App {
 
     private let container: ModelContainer = {
         do {
-            return try PersistenceController.makeContainer(.cloud)
+            return try PersistenceController.makeContainer(.localOnly)
         } catch {
-            // Fall back to local-only storage so the app stays usable if CloudKit init fails
-            // (e.g. missing entitlement during early development).
-            // TODO: surface a diagnostic to the user in M6.
-            do {
-                return try PersistenceController.makeContainer(.localOnly)
-            } catch {
-                fatalError("Failed to initialize persistence: \(error)")
-            }
+            fatalError("Failed to initialize persistence: \(error)")
         }
     }()
 
