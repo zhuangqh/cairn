@@ -1,0 +1,104 @@
+{
+  "sourceLanguage" : "en",
+  "version" : "1.0",
+  "strings" : {
+    "account.kind.cash" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cash" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "现金" } }
+      }
+    },
+    "account.kind.device" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Device" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "电子设备" } }
+      }
+    },
+    "account.kind.realEstate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Real estate" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "不动产" } }
+      }
+    },
+    "account.kind.stock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Equity" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "股票" } }
+      }
+    },
+    "accounts.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Accounts" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "账户" } }
+      }
+    },
+    "app.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cairn" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Cairn" } }
+      }
+    },
+    "common.placeholder.comingSoon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "即将推出" } }
+      }
+    },
+    "overview.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Overview" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "总览" } }
+      }
+    },
+    "settings.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Settings" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } }
+      }
+    },
+    "settings.section.general" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "General" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通用" } }
+      }
+    },
+    "settings.language.english" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "English" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "English" } }
+      }
+    },
+    "settings.language.followSystem" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Follow system" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "跟随系统" } }
+      }
+    },
+    "settings.language.simplifiedChinese" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "简体中文" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "简体中文" } }
+      }
+    },
+    "settings.language.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Language" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "语言" } }
+      }
+    }
+  }
+}
