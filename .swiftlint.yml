@@ -17,6 +17,11 @@ excluded:
   - build
   - DerivedData
 
+identifier_name:
+  excluded:
+    - to
+    - id
+
 # Custom rules to enforce i18n discipline from day one (see PRD §5.5).
 custom_rules:
   localization_key_only_in_text:
