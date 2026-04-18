@@ -8,6 +8,15 @@ struct SettingsView: View {
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
 
+    @AppStorage(AppSettingsKeys.reminderEnabled)
+    private var reminderEnabled: Bool = false
+
+    @AppStorage(AppSettingsKeys.reminderHour)
+    private var reminderHour: Int = AppSettingsKeys.defaultReminderHour
+
+    @AppStorage(AppSettingsKeys.reminderMinute)
+    private var reminderMinute: Int = AppSettingsKeys.defaultReminderMinute
+
     @State private var exportDocument: BackupDocument?
     @State private var isExporting: Bool = false
     @State private var isImporting: Bool = false
@@ -69,6 +78,32 @@ struct SettingsView: View {
                     Text("settings.section.backup")
                 } footer: {
                     Text("settings.backup.footer")
+                }
+
+                Section {
+                    Toggle(isOn: $reminderEnabled) {
+                        Text("settings.reminder.toggle")
+                    }
+                    if reminderEnabled {
+                        DatePicker(
+                            "settings.reminder.time",
+                            selection: reminderTimeBinding,
+                            displayedComponents: [.hourAndMinute]
+                        )
+                    }
+                } header: {
+                    Text("settings.section.reminder")
+                } footer: {
+                    Text("settings.reminder.footer")
+                }
+                .onChange(of: reminderEnabled) { _, newValue in
+                    Task { await applyReminder(enabled: newValue) }
+                }
+                .onChange(of: reminderHour) { _, _ in
+                    Task { await applyReminder(enabled: reminderEnabled) }
+                }
+                .onChange(of: reminderMinute) { _, _ in
+                    Task { await applyReminder(enabled: reminderEnabled) }
                 }
             }
             .navigationTitle("settings.title")
@@ -190,6 +225,38 @@ struct SettingsView: View {
                 .font(.body.monospaced())
             Text(verbatim: CurrencyCatalog.displayName(code))
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: - Reminder
+
+    private var reminderTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                var components = DateComponents()
+                components.hour = reminderHour
+                components.minute = reminderMinute
+                return Calendar.current.date(from: components) ?? .now
+            },
+            set: { newValue in
+                let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+                reminderHour = components.hour ?? AppSettingsKeys.defaultReminderHour
+                reminderMinute = components.minute ?? AppSettingsKeys.defaultReminderMinute
+            }
+        )
+    }
+
+    private func applyReminder(enabled: Bool) async {
+        if enabled {
+            let granted = await ReminderService.requestAuthorization()
+            if granted {
+                await ReminderService.schedule(hour: reminderHour, minute: reminderMinute)
+            } else {
+                reminderEnabled = false
+                resultMessage = "settings.reminder.denied"
+            }
+        } else {
+            ReminderService.cancel()
         }
     }
 }

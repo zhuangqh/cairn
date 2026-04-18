@@ -716,6 +716,125 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "备份" } }
       }
     },
+    "settings.section.reminder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reminder" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "提醒" } }
+      }
+    },
+    "settings.reminder.toggle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Monthly reminder" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "月度提醒" } }
+      }
+    },
+    "settings.reminder.time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Time" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "时间" } }
+      }
+    },
+    "settings.reminder.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cairn will send a local notification on the 1st of each month to remind you to record your snapshot." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Cairn 会在每月 1 号向你发送本地通知，提醒你录入快照。" } }
+      }
+    },
+    "settings.reminder.denied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Notification permission denied. Enable it in System Settings to receive reminders." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通知权限被拒绝，请到系统设置中开启以接收提醒。" } }
+      }
+    },
+    "reminder.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Time for your monthly check-up" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "到了每月资产盘点时间" } }
+      }
+    },
+    "reminder.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Record this month's snapshot in Cairn." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在 Cairn 中记录本月资产快照。" } }
+      }
+    },
+    "onboarding.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Welcome" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "欢迎" } }
+      }
+    },
+    "onboarding.welcome.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Welcome to Cairn" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "欢迎使用 Cairn" } }
+      }
+    },
+    "onboarding.welcome.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "A monthly net-worth check-up for your family. Record a snapshot each month, and Cairn will chart the trail." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为家庭做月度净资产盘点。每月记录一次快照，Cairn 会为你绘制净资产曲线。" } }
+      }
+    },
+    "onboarding.homeCurrency.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pick your home currency" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择本币" } }
+      }
+    },
+    "onboarding.homeCurrency.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "All totals and charts will be shown in this currency. You can change it later in Settings." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所有汇总与图表都会以此货币展示，可随时在设置中更改。" } }
+      }
+    },
+    "onboarding.firstMember.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add your first family member" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加第一位家庭成员" } }
+      }
+    },
+    "onboarding.firstMember.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cairn groups assets by family member. You can add more — and accounts, holdings, snapshots — later." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Cairn 按家庭成员组织资产，之后可以继续添加成员、账户、持仓和快照。" } }
+      }
+    },
+    "onboarding.continue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Continue" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "继续" } }
+      }
+    },
+    "onboarding.finish" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Get started" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开始使用" } }
+      }
+    },
+    "onboarding.skip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Skip for now" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "暂时跳过" } }
+      }
+    },
     "settings.backup.export" : {
       "extractionState" : "manual",
       "localizations" : {
