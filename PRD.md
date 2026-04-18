@@ -1,8 +1,9 @@
 # Cairn — Family Asset Management App PRD
 
-> Version: v0.1 (Draft)
+> Version: v0.2 (Draft)
 > Author: (you)
-> Target platforms: iOS / iPadOS / macOS (SwiftUI multi-platform)
+> Target platforms: **macOS primary**; iOS / iPadOS sources stay buildable but are not supported for distribution
+> Distribution: open-source (Apache-2.0). No Apple Developer account is assumed — builds are ad-hoc signed, the shipped entitlements are sandbox + user-selected files only, and there is no App Store release pipeline.
 > Last updated: 2026-04-18
 > Working language: English. All code identifiers, comments, commit messages, and documentation are in English. All user-facing strings MUST go through `String(localized:)` / String Catalogs from day one (see §5.5).
 > Name origin: a *cairn* is a stack of stones left as a trail marker by hikers; each monthly snapshot in the app is one more stone on your family's financial trail.
@@ -29,11 +30,12 @@ One-liner: **A monthly net-worth check-up app for families.**
 - Users willing to enter data manually in exchange for privacy and simplicity
 
 ### 1.4 Design Principles
-1. **Privacy first** — data stays on-device by default; iCloud sync is optional; no account-aggregation integrations.
+1. **Privacy first** — data stays on-device; no cloud sync, no third-party analytics, no account-aggregation integrations.
 2. **Low entry cost** — monthly update completes in a few minutes; primary path ≤ 3 taps.
-3. **Apple-native** — SwiftUI + SwiftData + CloudKit; leverage system components (Charts, Widgets, Siri).
-4. **Consistent across platforms** — one codebase for iPhone / iPad / Mac; adaptive UI.
+3. **Apple-native** — SwiftUI + SwiftData; leverage system components (Charts, Widgets, Siri).
+4. **Mac-first, sources portable** — one codebase primarily targets macOS; iPad/iPhone targets still compile but are unsupported.
 5. **Localization-ready from day one** — no hardcoded user-facing strings; ship `en` and `zh-Hans` at launch.
+6. **Open-source friendly** — no capabilities that require a paid Apple Developer account. Users move data between Macs via a JSON backup file.
 
 ---
 
@@ -44,7 +46,7 @@ One-liner: **A monthly net-worth check-up app for families.**
 - Cash & equity positions (total value, not per-ticker)
 - Multi-currency support + live FX rates
 - Monthly snapshots + net-worth chart
-- Local storage + iCloud sync
+- Local storage + manual JSON backup export/import (drop the file in iCloud Drive / Dropbox for cross-Mac transfer)
 
 ### 2.2 v1.1 — Physical Assets
 - Real estate (houses, cars, etc.)
@@ -73,7 +75,7 @@ One-liner: **A monthly net-worth check-up app for families.**
 | `Snapshot` | Valuation record of a `Holding` for a given month (amount in the holding's native currency) |
 | `Asset` (v1.1) | Physical asset (house, car, device) with acquisition/sale/valuation metadata |
 | `FXRate` | FX rate cache (base → quote, by day) |
-| `Settings` | User settings (home currency / theme / sync switch / language override) |
+| `Settings` | User settings (home currency / theme / language override / backup) |
 
 > **Key design**: An Account can contain multiple Holdings of different currencies. Example: Member = "Me" / Account = "Primary Cash" may contain Holdings in CNY, AUD, USD at once; Member = "Me" / Account = "Futu" may contain Holdings in USD and HKD.
 
@@ -294,10 +296,10 @@ enum AccountKind: String, Codable { case cash, stock, realEstate, device }
 ### 4.6 Settings
 
 - Home currency.
-- iCloud sync toggle (on by default).
 - Monthly reminder toggle + time.
 - Language override (follow system / `en` / `zh-Hans`).
-- Data export: JSON / CSV (v1.1).
+- Backup: **Export** current store to a `.cairn` JSON file; **Import** replaces the entire store with a backup file (destructive, confirmed).
+- Data export: CSV (v1.1).
 - About, privacy policy.
 
 ---
@@ -334,10 +336,11 @@ enum AccountKind: String, Codable { case cash, stock, realEstate, device }
 - At 10 years × 12 months × 50 accounts ≈ 6000 snapshots, chart rendering < 300ms.
 
 ### 5.2 Privacy & Security
-- Data stays on-device by default; iCloud sync uses the user's private CloudKit database.
+- Data stays on-device in the sandboxed Application Support directory. No cloud sync.
+- The only network egress is FX rate fetches; those carry no user data.
+- Backup files are plain JSON and remain wherever the user puts them (local disk / iCloud Drive / Dropbox / Git).
 - No third-party analytics SDK; no ad SDK.
 - App-level Face ID / Touch ID lock (v1.1).
-- FX API calls carry no user data.
 
 ### 5.3 Accessibility
 - Dynamic Type and VoiceOver support.
@@ -390,9 +393,9 @@ Keys are namespaced by feature, lowerCamelCase segments separated by dots.
 ### 6.1 Stack
 | Layer | Choice |
 |---|---|
-| UI | SwiftUI (multi-platform) |
-| Persistence | SwiftData |
-| Cloud sync | CloudKit (via SwiftData's built-in support) |
+| UI | SwiftUI (multi-platform; macOS primary) |
+| Persistence | SwiftData (local-only store; `cloudKitDatabase: .none`) |
+| Cross-device transfer | JSON backup file (`BackupService`) |
 | Charts | Swift Charts |
 | Networking | URLSession + async/await |
 | Architecture | SwiftUI-native MV + `@Observable` view models |
@@ -413,7 +416,8 @@ Cairn/
 │  ├─ Models/           # SwiftData @Model
 │  ├─ FX/               # FXService, FXRateStore
 │  ├─ Aggregation/      # NetWorthCalculator
-│  └─ Persistence/      # ModelContainer + CloudKit config
+│  ├─ Persistence/      # ModelContainer (local-only)
+│  └─ Services/         # HoldingService, SnapshotService, BackupService
 ├─ Shared/
 │  ├─ Formatters/       # CurrencyFormatter, DateFormatter wrappers
 │  ├─ L10n/             # LocalizationService, LocalizedStringResource helpers
@@ -449,7 +453,7 @@ Cairn/
 | S4 | Account list | Grouping + create |
 | S5 | Account detail | Holding list + per-Holding trend |
 | S6 | **Spreadsheet batch entry** | Excel-style grid, keyboard nav, live totals (§4.3.5 / §4.3.6) |
-| S7 | Settings | Home currency, sync, reminder, language override |
+| S7 | Settings | Home currency, reminder, language override, backup export/import |
 
 ### 7.3 Primary Journey — Monthly Update
 1. Notification on the 1st → open app.
@@ -473,9 +477,9 @@ Cairn/
 | Risk | Mitigation |
 |---|---|
 | Free FX API downtime | Dual-source fallback (Frankfurter → exchangerate.host); allow manual rate override. |
-| CloudKit sync conflicts | `(holdingID, periodMonth)` uniqueness + last-write-wins. |
+| Lossy restore from an older backup | `BackupPayload.version` is stamped and checked on import; forward-compat migrations live in `BackupService`. |
 | Missed monthly entry → curve gaps | Backfill supported; chart marks missing months explicitly rather than silently interpolating. |
-| SwiftData + CloudKit early-stage bugs | Retry critical writes; keep a local audit log. |
+| SwiftData early-stage bugs | Retry critical writes; keep a local audit log. |
 | Missing localization keys shipping to prod | String Catalog `stale` warnings treated as CI errors; pseudolocale UI test. |
 
 ### 9.2 Confirmed Decisions
@@ -494,7 +498,7 @@ None at this time.
 
 ## 10. Milestones (ordered; no time estimates)
 
-- **M1 Skeleton** — multi-platform Xcode project, SwiftData models, CloudKit pipeline, String Catalog wired in, localization lint in CI.
+- **M1 Skeleton** — multi-platform Xcode project (macOS primary), SwiftData models with a local-only store, String Catalog wired in, localization lint in CI, JSON backup export/import.
 - **M2 Core CRUD** — Member / Account / Holding / Snapshot.
 - **M3 FX & Aggregation** — `FXService`, `NetWorthCalculator`.
 - **M4 Visualization** — Swift Charts trend + dimensional stacking.
