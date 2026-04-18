@@ -442,6 +442,83 @@
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit snapshot" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑快照" } }
       }
+    },
+    "settings.section.backup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Backup" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "备份" } }
+      }
+    },
+    "settings.backup.export" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Export backup…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导出备份…" } }
+      }
+    },
+    "settings.backup.import" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Import from backup…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "从备份恢复…" } }
+      }
+    },
+    "settings.backup.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cairn stores data locally. Export a backup to move it between Macs (drop the file into iCloud Drive, Dropbox, etc.)." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Cairn 的数据保存在本地。导出备份后可通过 iCloud Drive、Dropbox 等方式在不同 Mac 间迁移。" } }
+      }
+    },
+    "settings.backup.export.success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Backup exported." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "备份已导出。" } }
+      }
+    },
+    "settings.backup.export.failure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Export failed." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导出失败。" } }
+      }
+    },
+    "settings.backup.import.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Replace all data?" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "替换全部数据？" } }
+      }
+    },
+    "settings.backup.import.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Importing will erase everything currently on this Mac and replace it with the backup file. This cannot be undone." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导入将清除当前 Mac 上的全部数据并替换为备份文件中的内容，操作无法撤销。" } }
+      }
+    },
+    "settings.backup.import.confirm.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Replace" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "替换" } }
+      }
+    },
+    "settings.backup.import.success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Backup imported." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "备份已导入。" } }
+      }
+    },
+    "settings.backup.import.failure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Import failed. The file may be invalid." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导入失败，备份文件可能无效。" } }
+      }
     }
   }
 }
