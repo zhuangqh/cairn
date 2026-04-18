@@ -15,6 +15,7 @@ struct OverviewView: View {
 
     @State private var isRefreshing: Bool = false
     @State private var refreshError: String?
+    @State private var isUpdating: Bool = false
 
     private var totals: NetWorthCalculator.Totals {
         _ = snapshots.count + rates.count + holdings.count
@@ -39,6 +40,21 @@ struct OverviewView: View {
                     List {
                         totalSection
                         Section {
+                            Button {
+                                isUpdating = true
+                            } label: {
+                                Label {
+                                    Text("overview.updateThisMonth")
+                                } icon: {
+                                    Image(systemName: "square.and.pencil")
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        }
+                        Section {
                             TrendChartView()
                         }
                         if !memberTotals.isEmpty {
@@ -48,6 +64,9 @@ struct OverviewView: View {
                 }
             }
             .navigationTitle("overview.title")
+            .sheet(isPresented: $isUpdating) {
+                BatchEntryView()
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {

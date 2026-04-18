@@ -457,6 +457,132 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "刷新汇率" } }
       }
     },
+    "overview.updateThisMonth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update this month" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更新本月" } }
+      }
+    },
+    "overview.missingRates.short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No rate" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "缺汇率" } }
+      }
+    },
+    "batch.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update — {month}" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更新 — {month}" } }
+      }
+    },
+    "batch.month" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Month" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "月份" } }
+      }
+    },
+    "batch.save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save all" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部保存" } }
+      }
+    },
+    "batch.save.failure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save failed" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存失败" } }
+      }
+    },
+    "batch.fillFromLast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fill from last month" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "沿用上月" } }
+      }
+    },
+    "batch.clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear all" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部清空" } }
+      }
+    },
+    "batch.clear.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear all entries?" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "清空所有输入？" } }
+      }
+    },
+    "batch.clear.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unsaved values in every row will be removed." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所有尚未保存的行将被清空。" } }
+      }
+    },
+    "batch.clear.confirm.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "清空" } }
+      }
+    },
+    "batch.discard.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Discard changes?" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "放弃修改？" } }
+      }
+    },
+    "batch.discard.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You have unsaved values. Leaving now discards them." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "当前有未保存的修改，现在离开将会丢弃。" } }
+      }
+    },
+    "batch.discard.confirm.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Discard" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "放弃" } }
+      }
+    },
+    "batch.total" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Total" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "合计" } }
+      }
+    },
+    "batch.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No holdings yet" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有持仓" } }
+      }
+    },
+    "batch.empty.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Create accounts and holdings first, then come back to record a monthly snapshot." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请先创建账户和持仓，再回到这里录入月度快照。" } }
+      }
+    },
+    "common.action.more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "More" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更多" } }
+      }
+    },
     "overview.refresh.failure" : {
       "extractionState" : "manual",
       "localizations" : {

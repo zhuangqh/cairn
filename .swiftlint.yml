@@ -22,6 +22,14 @@ identifier_name:
     - to
     - id
 
+type_body_length:
+  warning: 400
+  error: 500
+
+file_length:
+  warning: 500
+  error: 700
+
 # Custom rules to enforce i18n discipline from day one (see PRD §5.5).
 custom_rules:
   localization_key_only_in_text:
