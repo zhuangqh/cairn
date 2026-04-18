@@ -5,6 +5,9 @@ struct SettingsView: View {
     @Environment(LocalizationService.self) private var localization
     @Environment(\.modelContext) private var context
 
+    @AppStorage(AppSettingsKeys.homeCurrency)
+    private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
+
     @State private var exportDocument: BackupDocument?
     @State private var isExporting: Bool = false
     @State private var isImporting: Bool = false
@@ -24,6 +27,21 @@ struct SettingsView: View {
                         }
                     } label: {
                         Text("settings.language.title")
+                    }
+
+                    Picker(selection: $homeCurrency) {
+                        Section("currency.picker.pinned") {
+                            ForEach(CurrencyCatalog.pinned, id: \.self) { code in
+                                currencyRow(code).tag(code)
+                            }
+                        }
+                        Section("currency.picker.other") {
+                            ForEach(CurrencyCatalog.rest, id: \.self) { code in
+                                currencyRow(code).tag(code)
+                            }
+                        }
+                    } label: {
+                        Text("settings.homeCurrency.title")
                     }
                 }
 
@@ -162,6 +180,16 @@ struct SettingsView: View {
             resultMessage = "settings.backup.import.success"
         } catch {
             resultMessage = "settings.backup.import.failure"
+        }
+    }
+
+    @ViewBuilder
+    private func currencyRow(_ code: String) -> some View {
+        HStack {
+            Text(verbatim: code)
+                .font(.body.monospaced())
+            Text(verbatim: CurrencyCatalog.displayName(code))
+                .foregroundStyle(.secondary)
         }
     }
 }

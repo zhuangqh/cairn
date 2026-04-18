@@ -345,6 +345,76 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "总览" } }
       }
     },
+    "overview.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No assets yet" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有资产记录" } }
+      }
+    },
+    "overview.empty.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add a member and their accounts from the Accounts tab to see your family's net worth here." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在账户标签页中添加成员和账户，这里将显示家庭净资产。" } }
+      }
+    },
+    "overview.netWorth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Net worth" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "净资产" } }
+      }
+    },
+    "overview.byMember" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "By member" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "按成员" } }
+      }
+    },
+    "overview.homeCurrency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home currency" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本币" } }
+      }
+    },
+    "overview.refreshRates" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Refresh rates" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "刷新汇率" } }
+      }
+    },
+    "overview.refresh.failure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Failed to refresh rates" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "汇率刷新失败" } }
+      }
+    },
+    "overview.missingRates" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Missing rates for: {currencies}. Tap refresh." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "缺少汇率：{currencies}，请点击刷新。" } }
+      }
+    },
+    "overview.ratesAsOf" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Rates as of {date}" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "汇率日期：{date}" } }
+      }
+    },
+    "settings.homeCurrency.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home currency" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本币" } }
+      }
+    },
     "settings.language.english" : {
       "extractionState" : "manual",
       "localizations" : {
