@@ -38,6 +38,9 @@ struct OverviewView: View {
                 } else {
                     List {
                         totalSection
+                        Section {
+                            TrendChartView()
+                        }
                         if !memberTotals.isEmpty {
                             membersSection
                         }

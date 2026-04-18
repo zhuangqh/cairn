@@ -373,6 +373,76 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "按成员" } }
       }
     },
+    "overview.trend" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Trend" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "趋势" } }
+      }
+    },
+    "overview.trend.range" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Range" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "区间" } }
+      }
+    },
+    "overview.trend.range.6m" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "6M" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "6个月" } }
+      }
+    },
+    "overview.trend.range.1y" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "1Y" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "1年" } }
+      }
+    },
+    "overview.trend.range.2y" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "2Y" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "2年" } }
+      }
+    },
+    "overview.trend.range.5y" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "5Y" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "5年" } }
+      }
+    },
+    "overview.trend.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No trend yet" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "暂无趋势数据" } }
+      }
+    },
+    "overview.trend.empty.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Record at least one monthly snapshot to see the curve." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "至少记录一个月度快照后，将会显示净资产曲线。" } }
+      }
+    },
+    "overview.trend.axis.month" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Month" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "月份" } }
+      }
+    },
+    "overview.trend.axis.amount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Amount" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "金额" } }
+      }
+    },
     "overview.homeCurrency" : {
       "extractionState" : "manual",
       "localizations" : {
