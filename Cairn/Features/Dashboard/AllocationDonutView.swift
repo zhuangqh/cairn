@@ -14,11 +14,19 @@ struct AllocationDonutView: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 24) {
-            chart
-                .frame(width: 180, height: 180)
-            legend
-            Spacer(minLength: 0)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 24) {
+                chart
+                    .frame(width: 180, height: 180)
+                legend
+                Spacer(minLength: 0)
+            }
+            VStack(alignment: .leading, spacing: 16) {
+                chart
+                    .frame(width: 160, height: 160)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                legend
+            }
         }
     }
 
@@ -64,15 +72,14 @@ struct AllocationDonutView: View {
                         .frame(width: 10, height: 10)
                     Text(LocalizedStringKey(entry.kind.localizationKey))
                         .font(.callout)
-                    Spacer(minLength: 12)
-                    Text(
-                        entry.amount,
-                        format: .currency(code: homeCurrency)
-                            .locale(locale)
-                            .precision(.fractionLength(0))
-                    )
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Spacer(minLength: 8)
+                    Text(percentage(for: entry), format: .percent.precision(.fractionLength(0)))
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
             }
         }

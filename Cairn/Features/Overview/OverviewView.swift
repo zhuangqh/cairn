@@ -44,68 +44,40 @@ struct OverviewView: View {
     @State private var selectedYear: Int? = nil
     @State private var selectedTab: Tab = .financial
 
-    private var totals: NetWorthCalculator.Totals {
-        _ = snapshots.count + rates.count + holdings.count
-        return NetWorthCalculator.total(homeCurrency: homeCurrency, context: context)
+    /// One-shot derivation for the financial tab. Replaces what used to be
+    /// two independent computed properties (`totals` + `memberTotals`),
+    /// each of which performed its own holdings fetch and FX-rate
+    /// resolution per body render.
+    private struct FinancialDerivation {
+        var totals: NetWorthCalculator.Totals
+        var memberTotals: [NetWorthCalculator.MemberTotal]
     }
 
-    private var memberTotals: [NetWorthCalculator.MemberTotal] {
+    private func deriveFinancial() -> FinancialDerivation {
         _ = snapshots.count + rates.count + holdings.count + members.count
-        return NetWorthCalculator.totalsByMember(homeCurrency: homeCurrency, context: context)
+        let bundle = NetWorthCalculator.bundle(
+            homeCurrency: homeCurrency,
+            includeMemberBreakdown: true,
+            context: context
+        )
+        return FinancialDerivation(totals: bundle.totals, memberTotals: bundle.byMember)
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                #if !os(macOS)
-                // On iOS the nav bar is narrow; host the segmented
-                // control in the scroll content instead of the toolbar.
-                GlassSegmentedControl(
-                    selection: $selectedTab,
-                    options: Tab.allCases,
-                    title: { $0.titleKey },
-                    icon: { $0.iconName }
-                )
-                .frame(maxWidth: 420)
-                #endif
-                switch selectedTab {
-                case .financial:
-                    financialTab
-                case .assets:
-                    AssetsView()
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 20)
-            .frame(maxWidth: 1100)
-            .frame(maxWidth: .infinity)
+        Group {
+            #if os(iOS)
+            iosBody
+            #else
+            macBody
+            #endif
         }
-        // Avoid right-edge jitter: when the system scrollbar style is
-        // "Always show", the vertical scroller toggles as content height
-        // crosses the viewport, shifting card right-edges by ~15pt.
-        // Hiding the indicator keeps layout stable; trackpad scroll and
-        // keyboard navigation still work.
-        .scrollIndicators(.hidden)
         .ambientBackground()
         .navigationTitle("overview.title")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
-            #if os(macOS)
-            // Float the tab switcher in the toolbar so it stays visible
-            // while the content scrolls, and sits on the same row as the
-            // window's navigation chrome.
-            ToolbarItem(placement: .principal) {
-                GlassSegmentedControl(
-                    selection: $selectedTab,
-                    options: Tab.allCases,
-                    title: { $0.titleKey },
-                    icon: { $0.iconName }
-                )
-                .frame(minWidth: 260, idealWidth: 320, maxWidth: 420)
-            }
-            #else
+            #if os(iOS)
             // Plain "+" style action in the nav bar on iOS, matching
             // the Accounts screen.
             ToolbarItem(placement: .primaryAction) {
@@ -137,6 +109,97 @@ struct OverviewView: View {
         }
     }
 
+    #if os(macOS)
+    /// macOS body: native segmented `Picker` above a single ScrollView that
+    /// swaps between the financial and assets tabs. Matches the iOS shape
+    /// for consistency; horizontal swipe-to-switch is iOS only because
+    /// paged `TabView` is unavailable on macOS.
+    private var macBody: some View {
+        VStack(spacing: 0) {
+            tabPicker
+                .frame(maxWidth: 420)
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+
+            ScrollView {
+                VStack(spacing: 20) {
+                    switch selectedTab {
+                    case .financial:
+                        financialTab
+                    case .assets:
+                        AssetsView()
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 20)
+                .frame(maxWidth: 1100)
+                .frame(maxWidth: .infinity)
+            }
+            // Avoid right-edge jitter: when the system scrollbar style is
+            // "Always show", the vertical scroller toggles as content height
+            // crosses the viewport, shifting card right-edges by ~15pt.
+            // Hiding the indicator keeps layout stable; trackpad scroll and
+            // keyboard navigation still work.
+            .scrollIndicators(.hidden)
+        }
+    }
+    #endif
+
+    #if os(iOS)
+    /// iOS body uses a native segmented `Picker` (cheap to render, no
+    /// custom gradients/backdrops) and a paged `TabView` so the user can
+    /// swipe horizontally between Financial and Assets. This replaces a
+    /// custom glass segmented control that was janky on iOS.
+    private var iosBody: some View {
+        VStack(spacing: 0) {
+            tabPicker
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+            TabView(selection: $selectedTab) {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        financialTab
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: 1100)
+                    .frame(maxWidth: .infinity)
+                }
+                .scrollIndicators(.hidden)
+                .tag(Tab.financial)
+
+                ScrollView {
+                    VStack(spacing: 20) {
+                        AssetsView()
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: 1100)
+                    .frame(maxWidth: .infinity)
+                }
+                .scrollIndicators(.hidden)
+                .tag(Tab.assets)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .animation(.easeInOut(duration: 0.2), value: selectedTab)
+        }
+    }
+    #endif
+
+    /// Shared segmented picker used by both platforms.
+    private var tabPicker: some View {
+        Picker("overview.tab.title", selection: $selectedTab) {
+            ForEach(Tab.allCases, id: \.self) { tab in
+                Text(tab.titleKey).tag(tab)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
+
     // MARK: - Financial (holdings-based) tab
 
     @ViewBuilder
@@ -149,11 +212,12 @@ struct OverviewView: View {
             )
             .padding(.top, 64)
         } else {
+            let derivation = deriveFinancial()
             VStack(spacing: 20) {
-                heroCard
+                heroCard(derivation: derivation)
                 trendCard
-                if !memberTotals.isEmpty {
-                    membersCard
+                if !derivation.memberTotals.isEmpty {
+                    membersCard(derivation: derivation)
                 }
                 snapshotsCard
             }
@@ -162,16 +226,16 @@ struct OverviewView: View {
 
     // MARK: - Cards
 
-    private var heroCard: some View {
+    private func heroCard(derivation: FinancialDerivation) -> some View {
         #if os(macOS)
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .center, spacing: 16) {
-                heroTextBlock
+                heroTextBlock(derivation: derivation)
                 Spacer()
                 addSnapshotButton
             }
             VStack(alignment: .leading, spacing: 16) {
-                heroTextBlock
+                heroTextBlock(derivation: derivation)
                 addSnapshotButton
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -181,13 +245,13 @@ struct OverviewView: View {
         // On iOS the "Add snapshot" action lives in a floating action
         // button overlaid on the ScrollView, so the hero only carries
         // the total and the contextual badges.
-        heroTextBlock
+        heroTextBlock(derivation: derivation)
             .frame(maxWidth: .infinity, alignment: .leading)
             .glassCard()
         #endif
     }
 
-    private var heroTextBlock: some View {
+    private func heroTextBlock(derivation: FinancialDerivation) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Text("overview.netWorth")
@@ -202,7 +266,7 @@ struct OverviewView: View {
                     .background(.secondary.opacity(0.15), in: Capsule())
             }
             Text(
-                totals.amount,
+                derivation.totals.amount,
                 format: .currency(code: homeCurrency)
                     .locale(locale)
                     .precision(.fractionLength(0))
@@ -212,16 +276,16 @@ struct OverviewView: View {
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
 
-            if !totals.missingCurrencies.isEmpty {
+            if !derivation.totals.missingCurrencies.isEmpty {
                 Label {
-                    Text(missingRatesMessage)
+                    Text(missingRatesMessage(derivation.totals.missingCurrencies))
                 } icon: {
                     Image(systemName: "exclamationmark.triangle.fill")
                 }
                 .foregroundStyle(.orange)
                 .font(.footnote)
             }
-            if let latest = rates.map(\.date).max(), totals.missingCurrencies.isEmpty {
+            if let latest = rates.map(\.date).max(), derivation.totals.missingCurrencies.isEmpty {
                 Text(latestRatesFootnote(date: latest))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -248,20 +312,21 @@ struct OverviewView: View {
             .glassCard()
     }
 
-    private var membersCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private func membersCard(derivation: FinancialDerivation) -> some View {
+        let memberTotals = derivation.memberTotals
+        let membersById = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0) })
+        return VStack(alignment: .leading, spacing: 12) {
             Text("overview.byMember")
                 .font(.headline)
             VStack(spacing: 0) {
                 ForEach(Array(memberTotals.enumerated()), id: \.element.id) { index, entry in
                     HStack {
-                        Circle()
-                            .fill(Color.accentColor.opacity(0.18))
-                            .frame(width: 32, height: 32)
-                            .overlay(
-                                Image(systemName: "person.fill")
-                                    .foregroundStyle(Color.accentColor)
-                            )
+                        MemberAvatarView(
+                            name: entry.memberName,
+                            avatarData: membersById[entry.memberId]?.avatarData,
+                            seed: entry.memberId,
+                            size: 32
+                        )
                         Text(verbatim: entry.memberName)
                             .font(.callout)
                         Spacer()
@@ -390,7 +455,7 @@ struct OverviewView: View {
         HStack(spacing: 12) {
             GlyphBadge(systemName: "camera.aperture", tint: .accentColor)
             VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: snapshot.periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
+                Text(verbatim: snapshot.periodMonth.formatted(.dateTime.year().month(.abbreviated).locale(Locale(identifier: "en"))))
                     .font(.callout.weight(.medium))
                 HStack(spacing: 6) {
                     Text(verbatim: snapshot.homeCurrency)
@@ -409,7 +474,7 @@ struct OverviewView: View {
             Spacer()
             Text(
                 snapshot.totalAmount,
-                format: .currency(code: snapshot.homeCurrency).locale(locale)
+                format: .number.precision(.fractionLength(0)).locale(locale)
             )
             .monospacedDigit()
             .font(.callout.weight(.semibold))
@@ -421,8 +486,8 @@ struct OverviewView: View {
         .contentShape(Rectangle())
     }
 
-    private var missingRatesMessage: String {
-        let list = totals.missingCurrencies.joined(separator: ", ")
+    private func missingRatesMessage(_ currencies: [String]) -> String {
+        let list = currencies.joined(separator: ", ")
         let template = String(localized: "overview.missingRates")
         return template.replacingOccurrences(of: "{currencies}", with: list)
     }

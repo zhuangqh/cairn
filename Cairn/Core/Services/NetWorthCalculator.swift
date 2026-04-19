@@ -40,6 +40,116 @@ public enum NetWorthCalculator {
         public let amount: Decimal
     }
 
+    /// One-shot bundle of every aggregate the UI typically asks for in the
+    /// same render pass — total, per-member, per-kind, missing currencies,
+    /// and the month-over-month delta — computed from a single holdings
+    /// fetch + a single FX-rate cache. Designed to be the only entry point
+    /// the dashboards / overview screens need.
+    public struct Bundle: Sendable, Equatable {
+        public var totals: Totals
+        public var byKind: [KindTotal]
+        public var byMember: [MemberTotal]
+        /// Percentage change vs the previous month, or `nil` when the
+        /// previous month was zero.
+        public var monthOverMonthDelta: Double?
+    }
+
+    /// Computes `Bundle` for a single `asOf` month. Optionally accepts a
+    /// pre-loaded rate cache so multiple bundles (e.g. across a trend
+    /// window) can share one cache.
+    public static func bundle(
+        homeCurrency: String,
+        asOf periodMonth: Date = .now,
+        includeMemberBreakdown: Bool = true,
+        rateCache: FXService.RateCache? = nil,
+        sortedSnapshots: SortedSnapshotIndex? = nil,
+        context: ModelContext
+    ) -> Bundle {
+        let cache = rateCache ?? FXService.RateCache.load(in: context)
+        let index = sortedSnapshots ?? SortedSnapshotIndex.load(in: context)
+        let holdings = index.holdings
+
+        let current = aggregateFast(
+            holdings: holdings,
+            homeCurrency: homeCurrency,
+            asOf: periodMonth,
+            cache: cache,
+            sortedSnapshots: index
+        )
+
+        let kindMap = current.byKind
+        let kindTotals = kindMap
+            .filter { $0.value != 0 }
+            .map { KindTotal(kind: $0.key, amount: $0.value) }
+            .sorted { $0.amount > $1.amount }
+
+        let memberTotals: [MemberTotal] = includeMemberBreakdown
+            ? buildMemberTotals(byMember: current.byMember, in: context)
+            : []
+
+        let delta = priorMonthDelta(
+            currentTotal: current.total,
+            asOf: periodMonth,
+            inputs: AggregationInputs(
+                holdings: holdings,
+                homeCurrency: homeCurrency,
+                cache: cache,
+                index: index
+            )
+        )
+
+        return Bundle(
+            totals: Totals(amount: current.total, missingCurrencies: current.missing.sorted()),
+            byKind: kindTotals,
+            byMember: memberTotals,
+            monthOverMonthDelta: delta
+        )
+    }
+
+    private static func buildMemberTotals(
+        byMember: [UUID: (name: String, amount: Decimal)],
+        in context: ModelContext
+    ) -> [MemberTotal] {
+        // Iterate `Member` rows in their natural fetch order so the
+        // resulting list matches what `totalsByMember` returns and what
+        // existing UI ordering expects.
+        let members = (try? context.fetch(FetchDescriptor<Member>())) ?? []
+        return members.compactMap { member in
+            guard let entry = byMember[member.id] else { return nil }
+            return MemberTotal(memberId: member.id, memberName: member.name, amount: entry.amount)
+        }
+    }
+
+    /// Bag of inputs shared by every aggregation pass in a single bundle
+    /// computation. Lets `priorMonthDelta` keep its parameter list short.
+    private struct AggregationInputs {
+        let holdings: [Holding]
+        let homeCurrency: String
+        let cache: FXService.RateCache
+        let index: SortedSnapshotIndex
+    }
+
+    private static func priorMonthDelta(
+        currentTotal: Decimal,
+        asOf periodMonth: Date,
+        inputs: AggregationInputs
+    ) -> Double? {
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        let thisMonth = Snapshot.normalize(periodMonth)
+        guard let lastMonth = calendar.date(byAdding: .month, value: -1, to: thisMonth) else { return nil }
+        let prev = aggregateFast(
+            holdings: inputs.holdings,
+            homeCurrency: inputs.homeCurrency,
+            asOf: lastMonth,
+            cache: inputs.cache,
+            sortedSnapshots: inputs.index
+        )
+        guard prev.total != 0 else { return nil }
+        let change = (currentTotal - prev.total) / prev.total
+        return NSDecimalNumber(decimal: change).doubleValue
+    }
+
     /// Net worth across all holdings, valued at the latest snapshot on or
     /// before `periodMonth`.
     public static func total(
@@ -47,13 +157,16 @@ public enum NetWorthCalculator {
         asOf periodMonth: Date = .now,
         context: ModelContext
     ) -> Totals {
-        let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
-        return aggregate(
-            holdings: holdings,
+        let cache = FXService.RateCache.load(in: context)
+        let index = SortedSnapshotIndex.load(in: context)
+        let agg = aggregateFast(
+            holdings: index.holdings,
             homeCurrency: homeCurrency,
             asOf: periodMonth,
-            context: context
+            cache: cache,
+            sortedSnapshots: index
         )
+        return Totals(amount: agg.total, missingCurrencies: agg.missing.sorted())
     }
 
     /// Per-member breakdown. Members with no holdings are omitted.
@@ -62,21 +175,26 @@ public enum NetWorthCalculator {
         asOf periodMonth: Date = .now,
         context: ModelContext
     ) -> [MemberTotal] {
+        // Preserve existing semantics: iterate `Member`s in their fetch order
+        // (matches previous behaviour & test expectations).
         let members = (try? context.fetch(FetchDescriptor<Member>())) ?? []
+        let cache = FXService.RateCache.load(in: context)
+        let index = SortedSnapshotIndex.load(in: context)
         return members.compactMap { member in
             let holdings = member.accounts?
                 .flatMap { $0.holdings ?? [] } ?? []
             guard !holdings.isEmpty else { return nil }
-            let totals = aggregate(
+            let agg = aggregateFast(
                 holdings: holdings,
                 homeCurrency: homeCurrency,
                 asOf: periodMonth,
-                context: context
+                cache: cache,
+                sortedSnapshots: index
             )
             return MemberTotal(
                 memberId: member.id,
                 memberName: member.name,
-                amount: totals.amount
+                amount: agg.total
             )
         }
     }
@@ -91,7 +209,8 @@ public enum NetWorthCalculator {
         context: ModelContext
     ) -> [(period: Date, amount: Decimal)] {
         guard months > 0 else { return [] }
-        let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
+        let cache = FXService.RateCache.load(in: context)
+        let index = SortedSnapshotIndex.load(in: context)
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
 
@@ -100,13 +219,14 @@ public enum NetWorthCalculator {
             calendar.date(byAdding: .month, value: -offset, to: anchorMonth)
         }
         return periods.map { period in
-            let totals = aggregate(
-                holdings: holdings,
+            let agg = aggregateFast(
+                holdings: index.holdings,
                 homeCurrency: homeCurrency,
                 asOf: period,
-                context: context
+                cache: cache,
+                sortedSnapshots: index
             )
-            return (period, totals.amount)
+            return (period, agg.total)
         }
     }
 
@@ -118,29 +238,16 @@ public enum NetWorthCalculator {
         asOf periodMonth: Date = .now,
         context: ModelContext
     ) -> [KindTotal] {
-        let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
-        let normalizedCutoff = cutoffEndOfMonth(for: periodMonth)
-        var sums: [AccountKind: Decimal] = [:]
-
-        for holding in holdings where holding.isArchived == false {
-            guard let account = holding.account, account.isArchived == false else { continue }
-            guard let amount = latestAmount(for: holding, asOf: normalizedCutoff) else { continue }
-            let converted: Decimal?
-            if holding.currency == homeCurrency {
-                converted = amount
-            } else {
-                converted = FXService.convert(
-                    amount: amount,
-                    from: holding.currency,
-                    to: homeCurrency,
-                    in: context
-                )
-            }
-            guard let value = converted else { continue }
-            sums[account.kind, default: 0] += value
-        }
-
-        return sums
+        let cache = FXService.RateCache.load(in: context)
+        let index = SortedSnapshotIndex.load(in: context)
+        let agg = aggregateFast(
+            holdings: index.holdings,
+            homeCurrency: homeCurrency,
+            asOf: periodMonth,
+            cache: cache,
+            sortedSnapshots: index
+        )
+        return agg.byKind
             .filter { $0.value != 0 }
             .map { KindTotal(kind: $0.key, amount: $0.value) }
             .sorted { $0.amount > $1.amount }
@@ -158,8 +265,22 @@ public enum NetWorthCalculator {
         let thisMonth = Snapshot.normalize(periodMonth)
         guard let lastMonth = calendar.date(byAdding: .month, value: -1, to: thisMonth) else { return nil }
 
-        let current = total(homeCurrency: homeCurrency, asOf: thisMonth, context: context).amount
-        let previous = total(homeCurrency: homeCurrency, asOf: lastMonth, context: context).amount
+        let cache = FXService.RateCache.load(in: context)
+        let index = SortedSnapshotIndex.load(in: context)
+        let current = aggregateFast(
+            holdings: index.holdings,
+            homeCurrency: homeCurrency,
+            asOf: thisMonth,
+            cache: cache,
+            sortedSnapshots: index
+        ).total
+        let previous = aggregateFast(
+            holdings: index.holdings,
+            homeCurrency: homeCurrency,
+            asOf: lastMonth,
+            cache: cache,
+            sortedSnapshots: index
+        ).total
         guard previous != 0 else { return nil }
         let change = (current - previous) / previous
         return NSDecimalNumber(decimal: change).doubleValue
@@ -195,43 +316,106 @@ public enum NetWorthCalculator {
 
     // MARK: - Internals
 
-    private static func aggregate(
+    /// Per-holding snapshot index, ordered ascending by `periodMonth`.
+    /// Built once from a single SwiftData fetch so that repeated "latest
+    /// snapshot at or before X" lookups across many `asOf` cutoffs share
+    /// the same sorted arrays.
+    public struct SortedSnapshotIndex: Sendable {
+        /// All holdings present in the store. Includes archived rows so
+        /// callers can apply their own filters; aggregation skips archived
+        /// holdings / accounts.
+        public let holdings: [Holding]
+        /// Snapshots per holding `id`, sorted ascending by `periodMonth`.
+        @usableFromInline let byHoldingId: [UUID: [Snapshot]]
+
+        @usableFromInline
+        init(holdings: [Holding], byHoldingId: [UUID: [Snapshot]]) {
+            self.holdings = holdings
+            self.byHoldingId = byHoldingId
+        }
+
+        public static func load(in context: ModelContext) -> SortedSnapshotIndex {
+            let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
+            // Fetch all snapshots in one query and bucket by holding id;
+            // avoids N relationship round-trips through `holding.snapshots`
+            // when we have many holdings.
+            let snapshots = (try? context.fetch(
+                FetchDescriptor<Snapshot>(sortBy: [SortDescriptor(\.periodMonth, order: .forward)])
+            )) ?? []
+            var byHolding: [UUID: [Snapshot]] = [:]
+            byHolding.reserveCapacity(holdings.count)
+            for snap in snapshots {
+                guard let hid = snap.holding?.id else { continue }
+                byHolding[hid, default: []].append(snap)
+            }
+            return SortedSnapshotIndex(holdings: holdings, byHoldingId: byHolding)
+        }
+
+        /// Latest snapshot amount at or before `cutoff` for `holding`.
+        /// Linear scan from the tail of the ascending array — typically a
+        /// few comparisons because the cutoff is usually near "now".
+        @inlinable
+        public func latestAmount(for holding: Holding, asOf cutoff: Date) -> Decimal? {
+            guard let arr = byHoldingId[holding.id] else { return nil }
+            // Walk from newest backwards; bail at first <= cutoff.
+            var index = arr.count - 1
+            while index >= 0 {
+                let snap = arr[index]
+                if snap.periodMonth <= cutoff { return snap.amount }
+                index -= 1
+            }
+            return nil
+        }
+    }
+
+    @usableFromInline
+    struct AggregateResult {
+        var total: Decimal
+        var missing: Set<String>
+        var byKind: [AccountKind: Decimal]
+        var byMember: [UUID: (name: String, amount: Decimal)]
+    }
+
+    /// Single-pass aggregator. Walks every active holding once, valuing it
+    /// from the pre-sorted snapshot index and converting via the in-memory
+    /// FX cache. Produces total, per-kind, per-member, and missing
+    /// currencies in one go — callers pick what they need.
+    @usableFromInline
+    static func aggregateFast(
         holdings: [Holding],
         homeCurrency: String,
         asOf periodMonth: Date,
-        context: ModelContext
-    ) -> Totals {
-        let normalizedCutoff = cutoffEndOfMonth(for: periodMonth)
+        cache: FXService.RateCache,
+        sortedSnapshots: SortedSnapshotIndex
+    ) -> AggregateResult {
+        let cutoff = cutoffEndOfMonth(for: periodMonth)
         var total: Decimal = 0
         var missing: Set<String> = []
+        var byKind: [AccountKind: Decimal] = [:]
+        var byMember: [UUID: (name: String, amount: Decimal)] = [:]
 
         for holding in holdings where holding.isArchived == false {
-            guard let amount = latestAmount(for: holding, asOf: normalizedCutoff) else { continue }
+            guard let account = holding.account, account.isArchived == false else { continue }
+            guard let amount = sortedSnapshots.latestAmount(for: holding, asOf: cutoff) else { continue }
+            let converted: Decimal?
             if holding.currency == homeCurrency {
-                total += amount
-            } else if let converted = FXService.convert(
-                amount: amount,
-                from: holding.currency,
-                to: homeCurrency,
-                in: context
-            ) {
-                total += converted
+                converted = amount
             } else {
+                converted = cache.convert(amount: amount, from: holding.currency, to: homeCurrency)
+            }
+            guard let value = converted else {
                 missing.insert(holding.currency)
+                continue
+            }
+            total += value
+            byKind[account.kind, default: 0] += value
+            if let member = account.member {
+                let prev = byMember[member.id]?.amount ?? 0
+                byMember[member.id] = (member.name, prev + value)
             }
         }
 
-        return Totals(
-            amount: total,
-            missingCurrencies: missing.sorted()
-        )
-    }
-
-    private static func latestAmount(for holding: Holding, asOf cutoff: Date) -> Decimal? {
-        let snapshots = (holding.snapshots ?? [])
-            .filter { $0.periodMonth <= cutoff }
-            .sorted { $0.periodMonth > $1.periodMonth }
-        return snapshots.first?.amount
+        return AggregateResult(total: total, missing: missing, byKind: byKind, byMember: byMember)
     }
 
     /// Returns the last instant of the month that contains `periodMonth`, so

@@ -161,6 +161,64 @@ public enum FXService {
         return nil
     }
 
+    /// In-memory snapshot of every cached `FXRate` row, keyed by
+    /// `(base, quote)`. Built once via `RateCache.load(in:)` and reused for
+    /// every `convert(...)` call within an aggregation pass — replaces the
+    /// per-conversion SwiftData `#Predicate` fetch which is the dominant
+    /// hotspot when computing trends across many holdings × months.
+    public struct RateCache: Sendable {
+        // [base: [quote: rate]]
+        @usableFromInline var pairs: [String: [String: Decimal]]
+
+        @usableFromInline init(pairs: [String: [String: Decimal]]) {
+            self.pairs = pairs
+        }
+
+        public static let empty = RateCache(pairs: [:])
+
+        /// Eagerly load every `FXRate` from `context` into a memory map.
+        public static func load(in context: ModelContext) -> RateCache {
+            let rows = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
+            var pairs: [String: [String: Decimal]] = [:]
+            for row in rows {
+                pairs[row.base, default: [:]][row.quote] = row.rate
+            }
+            return RateCache(pairs: pairs)
+        }
+
+        @inlinable
+        public func rate(from base: String, to quote: String) -> Decimal? {
+            pairs[base]?[quote]
+        }
+
+        /// Convert with the same fallback rules as `FXService.convert`,
+        /// but purely in-memory.
+        @inlinable
+        public func convert(amount: Decimal, from: String, to: String) -> Decimal? {
+            if from == to { return amount }
+            if let direct = pairs[from]?[to] {
+                return amount * direct
+            }
+            if let inverse = pairs[to]?[from], inverse != 0 {
+                return amount / inverse
+            }
+            return nil
+        }
+    }
+
+    /// Convenience overload that goes through a precomputed `RateCache`,
+    /// avoiding per-conversion SwiftData fetches. Prefer this in tight
+    /// loops (aggregation, trends).
+    @inlinable
+    public static func convert(
+        amount: Decimal,
+        from: String,
+        to: String,
+        cache: RateCache
+    ) -> Decimal? {
+        cache.convert(amount: amount, from: from, to: to)
+    }
+
     private static func fetchRate(base: String, quote: String, in context: ModelContext) -> FXRate? {
         // Bind to locals with distinct names so the `#Predicate` closure does
         // not capture identifiers that collide with `FXRate.base` / `.quote`.

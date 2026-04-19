@@ -82,7 +82,7 @@ public enum BackupService {
     private static func insertMembers(_ dtos: [MemberDTO], context: ModelContext) -> [UUID: Member] {
         var map: [UUID: Member] = [:]
         for dto in dtos {
-            let member = Member(name: dto.name, createdAt: dto.createdAt)
+            let member = Member(name: dto.name, avatarData: dto.avatarData, createdAt: dto.createdAt)
             context.insert(member)
             map[dto.id] = member
         }
@@ -249,11 +249,15 @@ public struct MemberDTO: Codable, Sendable {
     public let id: UUID
     public let name: String
     public let createdAt: Date
+    /// Added in version 1.2; older backups omit this field entirely and
+    /// are decoded with `nil`.
+    public let avatarData: Data?
 
     init(_ member: Member) {
         self.id = member.id
         self.name = member.name
         self.createdAt = member.createdAt
+        self.avatarData = member.avatarData
     }
 }
 

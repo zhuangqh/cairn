@@ -28,12 +28,12 @@ struct BatchEntryRowView: View {
                 TextField(
                     previousAmount.map { formatAmount($0) } ?? "",
                     value: $amount,
-                    format: .number
+                    format: .number.precision(.fractionLength(0))
                 )
                 .multilineTextAlignment(.trailing)
                 .textFieldStyle(.roundedBorder)
                 #if !os(macOS)
-                .keyboardType(.decimalPad)
+                .keyboardType(.numberPad)
                 #endif
                 .frame(minWidth: 120, maxWidth: 160)
 
@@ -91,7 +91,7 @@ struct BatchEntryRowView: View {
     }
 
     private func formatAmount(_ value: Decimal) -> String {
-        value.formatted(.number.precision(.fractionLength(0...2)).locale(locale))
+        value.formatted(.number.precision(.fractionLength(0)).locale(locale))
     }
 }
 

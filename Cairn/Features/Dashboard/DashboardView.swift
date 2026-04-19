@@ -24,10 +24,72 @@ struct DashboardView: View {
     @Query private var members: [Member]
     @Query private var assets: [Asset]
 
-    @State private var isUpdating: Bool = false
     /// Current hover selection from the embedded trend chart. When set, the
     /// hero / allocation / category cards render values as of that month.
     @State private var hoverSelection: TrendSelection?
+
+    // MARK: - Derivation
+
+    /// All numbers the cards need, computed in one pass per body render.
+    /// Folds what used to be five independent computed properties (`totals`,
+    /// `physicalTotals`, `delta`, `allocation`, `combinedTotals`) into a
+    /// single `NetWorthCalculator.Bundle` + `AssetService.Bundle` snapshot
+    /// that shares a single FX rate cache and a single sorted-snapshot
+    /// index — the previous shape walked every holding 5+ times per render.
+    private struct Derivation {
+        var totals: NetWorthCalculator.Totals
+        var physicalTotals: AssetService.Totals
+        var combinedTotals: NetWorthCalculator.Totals
+        var allocation: [NetWorthCalculator.KindTotal]
+        /// `allocation` indexed by kind, so per-tile lookups don't re-scan.
+        var allocationByKind: [AccountKind: Decimal]
+        var delta: Double?
+    }
+
+    private func derive() -> Derivation {
+        // Touch the @Query sentinels so SwiftUI invalidates this view when
+        // any upstream model changes.
+        _ = holdings.count + snapshots.count + rates.count + members.count + assets.count
+
+        let asOf = effectiveAsOf
+        let rateCache = FXService.RateCache.load(in: context)
+        let snapshotIndex = NetWorthCalculator.SortedSnapshotIndex.load(in: context)
+        let financial = NetWorthCalculator.bundle(
+            homeCurrency: homeCurrency,
+            asOf: asOf,
+            includeMemberBreakdown: false,
+            rateCache: rateCache,
+            sortedSnapshots: snapshotIndex,
+            context: context
+        )
+        let physical = AssetService.bundle(
+            homeCurrency: homeCurrency,
+            asOf: hoverSelection?.period,
+            rateCache: rateCache,
+            context: context
+        )
+
+        let mergedMissing = Set(financial.totals.missingCurrencies)
+            .union(physical.totals.missingCurrencies)
+            .sorted()
+        let combined = NetWorthCalculator.Totals(
+            amount: financial.totals.amount + physical.totals.amount,
+            missingCurrencies: mergedMissing
+        )
+
+        var byKind: [AccountKind: Decimal] = [:]
+        byKind.reserveCapacity(financial.byKind.count)
+        for entry in financial.byKind { byKind[entry.kind] = entry.amount }
+
+        return Derivation(
+            totals: financial.totals,
+            physicalTotals: physical.totals,
+            combinedTotals: combined,
+            allocation: financial.byKind,
+            allocationByKind: byKind,
+            delta: financial.monthOverMonthDelta
+        )
+    }
 
     // MARK: - Computed
 
@@ -35,59 +97,6 @@ struct DashboardView: View {
     /// present, otherwise "now".
     private var effectiveAsOf: Date {
         hoverSelection?.period ?? .now
-    }
-
-    private var totals: NetWorthCalculator.Totals {
-        _ = holdings.count + snapshots.count + rates.count
-        return NetWorthCalculator.total(
-            homeCurrency: homeCurrency,
-            asOf: effectiveAsOf,
-            context: context
-        )
-    }
-
-    /// Physical-asset total in home currency, valued as of the hovered
-    /// month so the Physical tile time-travels in step with the financial
-    /// hero. Historical physical values fall back to `purchasePrice` because
-    /// we do not persist per-month revaluations for assets.
-    private var physicalTotals: AssetService.Totals {
-        _ = assets.count + rates.count
-        return AssetService.total(
-            homeCurrency: homeCurrency,
-            asOf: hoverSelection?.period,
-            context: context
-        )
-    }
-
-    /// Sum of financial (holdings) and physical (assets) totals — what the
-    /// hero card shows as "Total family wealth". Missing FX currencies from
-    /// either side are merged for the warning footnote.
-    private var combinedTotals: NetWorthCalculator.Totals {
-        let financial = totals
-        let physical = physicalTotals
-        let merged = Set(financial.missingCurrencies).union(physical.missingCurrencies)
-        return NetWorthCalculator.Totals(
-            amount: financial.amount + physical.amount,
-            missingCurrencies: merged.sorted()
-        )
-    }
-
-    private var delta: Double? {
-        _ = holdings.count + snapshots.count + rates.count
-        return NetWorthCalculator.monthOverMonthDelta(
-            homeCurrency: homeCurrency,
-            asOf: effectiveAsOf,
-            context: context
-        )
-    }
-
-    private var allocation: [NetWorthCalculator.KindTotal] {
-        _ = holdings.count + snapshots.count + rates.count
-        return NetWorthCalculator.totalsByKind(
-            homeCurrency: homeCurrency,
-            asOf: effectiveAsOf,
-            context: context
-        )
     }
 
     // MARK: - Body
@@ -102,6 +111,7 @@ struct DashboardView: View {
     }
 
     var body: some View {
+        let derivation = derive()
         GeometryReader { proxy in
             let width = proxy.size.width
             let isCompact = width < Layout.compact
@@ -109,10 +119,10 @@ struct DashboardView: View {
 
             ScrollView {
                 VStack(spacing: isCompact ? 16 : 20) {
-                    heroCard(isCompact: isCompact)
-                    balanceSheetCard(isCompact: isCompact)
+                    heroCard(isCompact: isCompact, derivation: derivation)
+                    balanceSheetCard(isCompact: isCompact, derivation: derivation)
                     trendCard
-                    sideBySideCards(isRegular: isRegular, isCompact: isCompact)
+                    sideBySideCards(isRegular: isRegular, isCompact: isCompact, derivation: derivation)
                 }
                 .padding(isCompact ? 16 : 24)
                 .frame(maxWidth: 1100)
@@ -121,25 +131,22 @@ struct DashboardView: View {
             .background(AppBackground())
         }
         .navigationTitle("dashboard.title")
-        .sheet(isPresented: $isUpdating) {
-            BatchEntryView()
-        }
     }
 
     /// Allocation + Categories lay out side-by-side at regular widths and
     /// stack vertically when the window is narrow.
     @ViewBuilder
-    private func sideBySideCards(isRegular: Bool, isCompact: Bool) -> some View {
+    private func sideBySideCards(isRegular: Bool, isCompact: Bool, derivation: Derivation) -> some View {
         if isRegular {
             VStack(spacing: isCompact ? 16 : 20) {
-                allocationCard
-                categoriesCard(isCompact: isCompact)
+                allocationCard(derivation: derivation)
+                categoriesCard(isCompact: isCompact, derivation: derivation)
             }
         } else {
             HStack(alignment: .top, spacing: 20) {
-                allocationCard
+                allocationCard(derivation: derivation)
                     .frame(maxWidth: .infinity)
-                categoriesCard(isCompact: isCompact)
+                categoriesCard(isCompact: isCompact, derivation: derivation)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -148,27 +155,14 @@ struct DashboardView: View {
     // MARK: - Cards
 
     @ViewBuilder
-    private func heroCard(isCompact: Bool) -> some View {
-        Group {
-            if isCompact {
-                VStack(alignment: .leading, spacing: 16) {
-                    heroInfo(isCompact: true)
-                    heroAddButton(isCompact: true)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-            } else {
-                HStack(alignment: .center, spacing: 16) {
-                    heroInfo(isCompact: false)
-                    Spacer()
-                    heroAddButton(isCompact: false)
-                }
-            }
-        }
-        .glassCard(cornerRadius: 16, padding: isCompact ? 20 : 24)
+    private func heroCard(isCompact: Bool, derivation: Derivation) -> some View {
+        heroInfo(isCompact: isCompact, derivation: derivation)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassCard(cornerRadius: 16, padding: isCompact ? 20 : 24)
     }
 
     @ViewBuilder
-    private func heroInfo(isCompact: Bool) -> some View {
+    private func heroInfo(isCompact: Bool, derivation: Derivation) -> some View {
         let amountFont: Font = isCompact
             ? .system(size: 34, weight: .bold)
             : .system(size: 48, weight: .bold)
@@ -180,7 +174,7 @@ struct DashboardView: View {
                 .foregroundStyle(Color.notionInkSecondary)
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(
-                    combinedTotals.amount,
+                    derivation.combinedTotals.amount,
                     format: .currency(code: homeCurrency)
                         .locale(locale)
                         .precision(.fractionLength(0))
@@ -192,27 +186,13 @@ struct DashboardView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .contentTransition(.numericText())
-                .animation(.easeOut(duration: 0.2), value: combinedTotals.amount)
+                .animation(.easeOut(duration: 0.2), value: derivation.combinedTotals.amount)
 
-                if let delta {
+                if let delta = derivation.delta {
                     deltaBadge(delta)
                 }
             }
         }
-    }
-
-    private func heroAddButton(isCompact: Bool) -> some View {
-        Button {
-            isUpdating = true
-        } label: {
-            Label {
-                Text("dashboard.addAsset")
-            } icon: {
-                Image(systemName: "plus")
-            }
-        }
-        .buttonStyle(NotionPrimaryButtonStyle(size: isCompact ? .regular : .large))
-        .disabled(holdings.isEmpty)
     }
 
     private func deltaBadge(_ value: Double) -> some View {
@@ -224,7 +204,7 @@ struct DashboardView: View {
             : Color.notionOrange.opacity(0.12)
         return HStack(spacing: 4) {
             Image(systemName: arrow)
-            Text(value, format: .percent.precision(.fractionLength(1)))
+            Text(value, format: .percent.precision(.fractionLength(0)))
         }
         .font(.system(size: 12, weight: .semibold))
         .tracking(0.125)
@@ -254,9 +234,9 @@ struct DashboardView: View {
     /// purchase price). Provides a quick mental split that the hero alone —
     /// which reflects financial only — does not.
     @ViewBuilder
-    private func balanceSheetCard(isCompact: Bool) -> some View {
-        let physical = physicalTotals
-        let financial = totals
+    private func balanceSheetCard(isCompact: Bool, derivation: Derivation) -> some View {
+        let physical = derivation.physicalTotals
+        let financial = derivation.totals
         Group {
             if isCompact {
                 VStack(spacing: 12) {
@@ -330,19 +310,19 @@ struct DashboardView: View {
         }
     }
 
-    private var allocationCard: some View {
+    private func allocationCard(derivation: Derivation) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("dashboard.portfolioAllocation")
                 .font(.notionCardTitle)
                 .tracking(-0.25)
                 .foregroundStyle(Color.notionInk)
-            AllocationDonutView(entries: allocation, homeCurrency: homeCurrency)
+            AllocationDonutView(entries: derivation.allocation, homeCurrency: homeCurrency)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
     }
 
-    private func categoriesCard(isCompact: Bool) -> some View {
+    private func categoriesCard(isCompact: Bool, derivation: Derivation) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("dashboard.assetCategories")
                 .font(.headline)
@@ -355,7 +335,7 @@ struct DashboardView: View {
                 spacing: 12
             ) {
                 ForEach(kinds, id: \.self) { kind in
-                    categoryTile(for: kind)
+                    categoryTile(for: kind, derivation: derivation)
                 }
             }
         }
@@ -363,8 +343,8 @@ struct DashboardView: View {
         .glassCard()
     }
 
-    private func categoryTile(for kind: AccountKind) -> some View {
-        let amount = allocation.first { $0.kind == kind }?.amount ?? 0
+    private func categoryTile(for kind: AccountKind, derivation: Derivation) -> some View {
+        let amount = derivation.allocationByKind[kind] ?? 0
         return HStack(alignment: .top, spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)

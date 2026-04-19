@@ -23,20 +23,28 @@ struct AssetTrendChartView: View {
     @State private var hoverSelection: AssetTrendSelection?
     @State private var range: TrendRange = .year
 
+    /// Cache of the cumulative-purchase point series. Keyed by a
+    /// fingerprint that excludes `hoverSelection` so cursor movement does
+    /// not re-derive the timeline.
+    @State private var cachedFingerprint: Int = 0
+    @State private var cachedPoints: [AssetTrendPoint] = []
+    @State private var hasComputed: Bool = false
+
     /// The accent for this chart. Intentionally green to echo the PRD's
     /// "physical assets" category color and to visually separate it from
     /// the blue/accent financial trend.
     private let lineColor: Color = .green
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let fingerprint = currentFingerprint()
+        return VStack(alignment: .leading, spacing: 12) {
             ViewThatFits(in: .horizontal) {
                 header(stacked: false)
                 header(stacked: true)
             }
 
-            let pts = points()
-            if pts.isEmpty {
+            let pts = cachedPoints
+            if hasComputed && pts.isEmpty {
                 ContentUnavailableView(
                     "asset.trend.empty.title",
                     systemImage: "chart.xyaxis.line",
@@ -47,6 +55,24 @@ struct AssetTrendChartView: View {
                 chart(for: pts)
             }
         }
+        .onAppear { refreshCacheIfNeeded(fingerprint) }
+        .onChange(of: fingerprint) { _, new in refreshCacheIfNeeded(new) }
+    }
+
+    private func currentFingerprint() -> Int {
+        var hasher = Hasher()
+        hasher.combine(homeCurrency)
+        hasher.combine(range)
+        hasher.combine(assets.count)
+        hasher.combine(rates.count)
+        return hasher.finalize()
+    }
+
+    private func refreshCacheIfNeeded(_ fingerprint: Int) {
+        guard !hasComputed || fingerprint != cachedFingerprint else { return }
+        cachedPoints = points()
+        cachedFingerprint = fingerprint
+        hasComputed = true
     }
 
     // MARK: - Header
@@ -203,7 +229,7 @@ struct AssetTrendChartView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(Color.notionSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.secondary.opacity(0.2), lineWidth: 0.5)
@@ -278,6 +304,10 @@ struct AssetTrendChartView: View {
         // Touch @Query results so changes invalidate the view.
         _ = rates.count + assets.count
 
+        // Build the FX rate cache once for the whole pass — avoids one
+        // SwiftData fetch per asset's currency conversion.
+        let cache = FXService.RateCache.load(in: context)
+
         let sorted = assets.sorted { $0.purchaseDate < $1.purchaseDate }
         var running: Decimal = 0
         var all: [AssetTrendPoint] = []
@@ -286,11 +316,10 @@ struct AssetTrendChartView: View {
             let converted: Decimal
             if asset.purchaseCurrency == homeCurrency {
                 converted = asset.purchasePrice
-            } else if let fx = FXService.convert(
+            } else if let fx = cache.convert(
                 amount: asset.purchasePrice,
                 from: asset.purchaseCurrency,
-                to: homeCurrency,
-                in: context
+                to: homeCurrency
             ) {
                 converted = fx
             } else {

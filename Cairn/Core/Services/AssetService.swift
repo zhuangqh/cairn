@@ -22,6 +22,14 @@ public enum AssetService {
         public var missingCurrencies: [String]
     }
 
+    /// Bundle of every aggregate the Assets / Dashboard screens need from
+    /// one fetch + one FX cache pass — total in home currency, per-category
+    /// breakdown, and the missing-currency warning list.
+    public struct Bundle: Sendable, Equatable {
+        public var totals: Totals
+        public var byCategory: [CategoryTotal]
+    }
+
     // MARK: - CRUD
 
     @discardableResult
@@ -90,7 +98,8 @@ public enum AssetService {
         context: ModelContext
     ) -> Totals {
         let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
-        return aggregate(assets: assets, homeCurrency: homeCurrency, asOf: asOf, context: context)
+        let cache = FXService.RateCache.load(in: context)
+        return aggregate(assets: assets, homeCurrency: homeCurrency, asOf: asOf, cache: cache)
     }
 
     /// Per-category totals, sorted by amount descending. See `total(...)`
@@ -101,6 +110,28 @@ public enum AssetService {
         context: ModelContext
     ) -> [CategoryTotal] {
         let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
+        let cache = FXService.RateCache.load(in: context)
+        return categoryTotals(
+            assets: assets,
+            homeCurrency: homeCurrency,
+            asOf: asOf,
+            cache: cache
+        )
+    }
+
+    /// Single-pass bundle. Useful when a view needs both the headline total
+    /// and the per-category breakdown in the same render — avoids fetching
+    /// `Asset` rows + the FX cache twice.
+    public static func bundle(
+        homeCurrency: String,
+        asOf: Date? = nil,
+        rateCache: FXService.RateCache? = nil,
+        context: ModelContext
+    ) -> Bundle {
+        let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
+        let cache = rateCache ?? FXService.RateCache.load(in: context)
+        var total: Decimal = 0
+        var missing: Set<String> = []
         var sums: [AssetCategory: Decimal] = [:]
         for asset in assets {
             guard let value = effectiveValue(for: asset, asOf: asOf) else { continue }
@@ -108,15 +139,41 @@ public enum AssetService {
             if asset.purchaseCurrency == homeCurrency {
                 converted = value
             } else {
-                converted = FXService.convert(
-                    amount: value,
-                    from: asset.purchaseCurrency,
-                    to: homeCurrency,
-                    in: context
-                )
+                converted = cache.convert(amount: value, from: asset.purchaseCurrency, to: homeCurrency)
             }
-            guard let v = converted else { continue }
-            sums[asset.category, default: 0] += v
+            guard let value = converted else {
+                missing.insert(asset.purchaseCurrency)
+                continue
+            }
+            total += value
+            sums[asset.category, default: 0] += value
+        }
+        let byCategory = sums
+            .map { CategoryTotal(category: $0.key, amount: $0.value) }
+            .sorted { $0.amount > $1.amount }
+        return Bundle(
+            totals: Totals(amount: total, missingCurrencies: missing.sorted()),
+            byCategory: byCategory
+        )
+    }
+
+    private static func categoryTotals(
+        assets: [Asset],
+        homeCurrency: String,
+        asOf: Date?,
+        cache: FXService.RateCache
+    ) -> [CategoryTotal] {
+        var sums: [AssetCategory: Decimal] = [:]
+        for asset in assets {
+            guard let value = effectiveValue(for: asset, asOf: asOf) else { continue }
+            let converted: Decimal?
+            if asset.purchaseCurrency == homeCurrency {
+                converted = value
+            } else {
+                converted = cache.convert(amount: value, from: asset.purchaseCurrency, to: homeCurrency)
+            }
+            guard let value = converted else { continue }
+            sums[asset.category, default: 0] += value
         }
         return sums
             .map { CategoryTotal(category: $0.key, amount: $0.value) }
@@ -127,7 +184,7 @@ public enum AssetService {
         assets: [Asset],
         homeCurrency: String,
         asOf: Date?,
-        context: ModelContext
+        cache: FXService.RateCache
     ) -> Totals {
         var total: Decimal = 0
         var missing: Set<String> = []
@@ -135,11 +192,10 @@ public enum AssetService {
             guard let value = effectiveValue(for: asset, asOf: asOf) else { continue }
             if asset.purchaseCurrency == homeCurrency {
                 total += value
-            } else if let converted = FXService.convert(
+            } else if let converted = cache.convert(
                 amount: value,
                 from: asset.purchaseCurrency,
-                to: homeCurrency,
-                in: context
+                to: homeCurrency
             ) {
                 total += converted
             } else {

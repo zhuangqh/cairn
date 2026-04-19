@@ -23,6 +23,18 @@ struct TrendChartView: View {
     @State private var range: TrendRange = .year
     @State private var hoverSelection: TrendSelection?
 
+    /// Cache of the heavy data series. The cache key intentionally excludes
+    /// `hoverSelection` so hovering — which fires many state updates per
+    /// second and re-runs `body` — never re-derives the trend, snapshot
+    /// markers, or asset overlay. The cache refreshes on `onAppear` and
+    /// whenever `cacheFingerprint` changes (range, currency, or any
+    /// upstream model count).
+    @State private var cachedFingerprint: Int = 0
+    @State private var cachedPoints: [TrendPoint] = []
+    @State private var cachedMarkers: [SnapshotMarker] = []
+    @State private var cachedAssetSeries: [Date: Decimal] = [:]
+    @State private var hasComputed: Bool = false
+
     /// Optional observer fired whenever the hover selection changes.
     /// Used by the Dashboard to drive time-travel on the hero / allocation cards.
     var onSelectionChange: ((TrendSelection?) -> Void)?
@@ -87,16 +99,19 @@ struct TrendChartView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let fingerprint = currentFingerprint()
+        return VStack(alignment: .leading, spacing: 12) {
             ViewThatFits(in: .horizontal) {
                 header(stacked: false)
                 header(stacked: true)
             }
 
-            let points = trendPoints()
-            let markers = snapshotMarkers(windowStart: points.first?.period)
-            let assetByPeriod = assetSeries(for: points)
-            if points.filter({ $0.amount > 0 }).isEmpty && markers.isEmpty
+            let points = cachedPoints
+            let markers = cachedMarkers
+            let assetByPeriod = cachedAssetSeries
+            if hasComputed
+                && points.filter({ $0.amount > 0 }).isEmpty
+                && markers.isEmpty
                 && assetByPeriod.values.allSatisfy({ $0 == 0 }) {
                 ContentUnavailableView(
                     "overview.trend.empty.title",
@@ -108,9 +123,37 @@ struct TrendChartView: View {
                 chart(for: points, markers: markers, assetByPeriod: assetByPeriod)
             }
         }
+        .onAppear { refreshCacheIfNeeded(fingerprint) }
+        .onChange(of: fingerprint) { _, new in refreshCacheIfNeeded(new) }
         .onChange(of: hoverSelection) { _, newValue in
             onSelectionChange?(newValue)
         }
+    }
+
+    /// Hash of every input that affects the chart's data series. Excluding
+    /// `hoverSelection` is the whole point — it means moving the cursor
+    /// over the chart never re-derives the trend.
+    private func currentFingerprint() -> Int {
+        var hasher = Hasher()
+        hasher.combine(homeCurrency)
+        hasher.combine(range)
+        hasher.combine(showAssetOverlay)
+        hasher.combine(snapshots.count)
+        hasher.combine(rates.count)
+        hasher.combine(holdings.count)
+        hasher.combine(assets.count)
+        hasher.combine(portfolioSnapshots.count)
+        return hasher.finalize()
+    }
+
+    private func refreshCacheIfNeeded(_ fingerprint: Int) {
+        guard !hasComputed || fingerprint != cachedFingerprint else { return }
+        let points = trendPoints()
+        cachedPoints = points
+        cachedMarkers = snapshotMarkers(windowStart: points.first?.period)
+        cachedAssetSeries = assetSeries(for: points)
+        cachedFingerprint = fingerprint
+        hasComputed = true
     }
 
     @ViewBuilder
@@ -238,7 +281,7 @@ struct TrendChartView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(Color.notionSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.secondary.opacity(0.2), lineWidth: 0.5)
@@ -388,6 +431,10 @@ struct TrendChartView: View {
         guard showAssetOverlay, !points.isEmpty else { return [:] }
         _ = assets.count + rates.count
 
+        // Pre-load every cached FX rate once so each asset's conversion is
+        // an in-memory lookup rather than a per-asset SwiftData fetch.
+        let cache = FXService.RateCache.load(in: context)
+
         // Pre-convert every asset to the home currency and bucket by the
         // first-of-month anchor so we can compare against TrendPoint.period.
         let cal = Calendar.current
@@ -395,11 +442,10 @@ struct TrendChartView: View {
             let value: Decimal
             if asset.purchaseCurrency == homeCurrency {
                 value = asset.purchasePrice
-            } else if let fx = FXService.convert(
+            } else if let fx = cache.convert(
                 amount: asset.purchasePrice,
                 from: asset.purchaseCurrency,
-                to: homeCurrency,
-                in: context
+                to: homeCurrency
             ) {
                 value = fx
             } else {
@@ -419,51 +465,6 @@ struct TrendChartView: View {
             result[point.period] = sum
         }
         return result
-    }
-}
-
-struct SnapshotMarker: Identifiable, Equatable {
-    let id: UUID
-    let periodMonth: Date
-    let amount: Decimal
-    var amountDouble: Double { NSDecimalNumber(decimal: amount).doubleValue }
-}
-
-struct TrendSelection: Equatable {
-    let period: Date
-    let amount: Decimal
-    var amountDouble: Double { NSDecimalNumber(decimal: amount).doubleValue }
-}
-
-struct TrendPoint: Identifiable, Equatable {
-    let period: Date
-    let amount: Decimal
-    var id: Date { period }
-    var amountDouble: Double { NSDecimalNumber(decimal: amount).doubleValue }
-}
-
-enum TrendRange: CaseIterable, Hashable {
-    case sixMonths
-    case year
-    case twoYears
-    case fiveYears
-
-    var months: Int {
-        switch self {
-        case .sixMonths: return 6
-        case .year: return 12
-        case .twoYears: return 24
-        case .fiveYears: return 60
-        }
-    }
-
-    var localizationKey: String {
-        switch self {
-        case .sixMonths: return "overview.trend.range.6m"
-        case .year: return "overview.trend.range.1y"
-        case .twoYears: return "overview.trend.range.2y"
-        case .fiveYears: return "overview.trend.range.5y"
-        }
     }
 }
 

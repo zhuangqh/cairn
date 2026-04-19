@@ -23,118 +23,85 @@ struct AssetsView: View {
     @State private var newAssetDraft: Asset?
     @State private var assetPendingDeletion: Asset?
 
-    var body: some View {
-        Group {
-            if members.isEmpty {
-                ContentUnavailableView(
-                    "asset.empty.noMember.title",
-                    systemImage: "person.2",
-                    description: Text("asset.empty.noMember.hint")
-                )
-                .padding(.top, 48)
-            } else if assets.isEmpty {
-                emptyState
+    /// Per-render derivation: pre-bucket assets by sold/active and by
+    /// category, and compute the home-currency total once. Avoids the
+    /// previous shape where `summaryCard`, `categorizedCards`, and the
+    /// active/sold computed properties each re-iterated the full asset
+    /// list (and `summaryCard` re-fetched + re-FX-converted everything on
+    /// every body re-render).
+    private struct Derivation {
+        var totals: AssetService.Totals
+        var active: [Asset]
+        var sold: [Asset]
+        var byCategory: [AssetCategory: [Asset]]
+    }
+
+    private func derive() -> Derivation {
+        _ = rates.count // keep reactive to FX updates
+        var active: [Asset] = []
+        var sold: [Asset] = []
+        var byCategory: [AssetCategory: [Asset]] = [:]
+        active.reserveCapacity(assets.count)
+        for asset in assets {
+            if asset.isSold {
+                sold.append(asset)
             } else {
-                VStack(spacing: 20) {
-                    summaryCard
-                    trendCard
-                    categorizedCards
-                    if !soldAssets.isEmpty {
-                        soldCard
-                    }
+                active.append(asset)
+                byCategory[asset.category, default: []].append(asset)
+            }
+        }
+        let totals = AssetService.total(homeCurrency: homeCurrency, context: context)
+        return Derivation(totals: totals, active: active, sold: sold, byCategory: byCategory)
+    }
+
+    var body: some View {
+        let derivation: Derivation = members.isEmpty || assets.isEmpty
+            ? Derivation(totals: .init(amount: 0, missingCurrencies: []), active: [], sold: [], byCategory: [:])
+            : derive()
+        return content(derivation: derivation)
+            .modifier(toolbarModifier())
+            .modifier(AssetsSheetsModifier(
+                newAssetDraft: $newAssetDraft,
+                editingAsset: $editingAsset,
+                assetPendingDeletion: $assetPendingDeletion,
+                context: context
+            ))
+    }
+
+    /// Adds the iOS-only "+" toolbar button. macOS keeps the action inside
+    /// the summary card because the nav bar already hosts the tab switcher.
+    private func toolbarModifier() -> some ViewModifier {
+        AssetsToolbarModifier(showAdd: !members.isEmpty, action: presentNewAsset)
+    }
+
+    @ViewBuilder
+    private func content(derivation: Derivation) -> some View {
+        if members.isEmpty {
+            ContentUnavailableView(
+                "asset.empty.noMember.title",
+                systemImage: "person.2",
+                description: Text("asset.empty.noMember.hint")
+            )
+            .padding(.top, 48)
+        } else if assets.isEmpty {
+            emptyState
+        } else {
+            VStack(spacing: 20) {
+                summaryCard(derivation: derivation)
+                trendCard
+                categorizedCards(derivation: derivation)
+                if !derivation.sold.isEmpty {
+                    soldCard(derivation: derivation)
                 }
             }
-        }
-        #if !os(macOS)
-        // Plain "+" button in the nav-bar, matching the Accounts screen.
-        // macOS keeps the inline button inside the summary card because the
-        // nav-bar there already hosts the tab switcher.
-        .toolbar {
-            if !members.isEmpty {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: presentNewAsset) {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel(Text("asset.new.title"))
-                }
-            }
-        }
-        #endif
-        .sheet(item: $newAssetDraft) { draft in
-            AssetFormView(asset: draft, isNew: true) { saved in
-                if !saved { context.delete(draft) }
-                newAssetDraft = nil
-            }
-        }
-        .sheet(item: $editingAsset) { asset in
-            AssetFormView(asset: asset, isNew: false) { _ in
-                editingAsset = nil
-            }
-        }
-        .confirmationDialog(
-            Text("asset.delete.confirm.title"),
-            isPresented: Binding(
-                get: { assetPendingDeletion != nil },
-                set: { if !$0 { assetPendingDeletion = nil } }
-            ),
-            presenting: assetPendingDeletion
-        ) { asset in
-            Button(role: .destructive) {
-                context.delete(asset)
-                assetPendingDeletion = nil
-            } label: {
-                Text("common.action.delete")
-            }
-            Button(role: .cancel) {
-                assetPendingDeletion = nil
-            } label: {
-                Text("common.action.cancel")
-            }
-        } message: { _ in
-            Text("asset.delete.confirm.message")
         }
     }
 
     // MARK: - Cards
 
-    private var summaryCard: some View {
-        let totals = AssetService.total(homeCurrency: homeCurrency, context: context)
-        _ = rates.count  // keep the view reactive to FX updates
-        return HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Text("asset.total.title")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    Text(verbatim: "·")
-                        .foregroundStyle(.tertiary)
-                    Text(verbatim: homeCurrency)
-                        .font(.caption.monospaced().weight(.semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.secondary.opacity(0.15), in: Capsule())
-                }
-                Text(
-                    totals.amount,
-                    format: .currency(code: homeCurrency)
-                        .locale(locale)
-                        .precision(.fractionLength(0))
-                )
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                if !totals.missingCurrencies.isEmpty {
-                    Label {
-                        Text(missingRatesMessage(totals.missingCurrencies))
-                    } icon: {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                    }
-                    .foregroundStyle(.orange)
-                    .font(.footnote)
-                }
-                Text(assetCountFootnote)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+    private func summaryCard(derivation: Derivation) -> some View {
+        HStack(alignment: .center, spacing: 16) {
+            summaryCardText(derivation: derivation)
             Spacer(minLength: 0)
             #if os(macOS)
             Button {
@@ -153,6 +120,44 @@ struct AssetsView: View {
         .glassCard()
     }
 
+    private func summaryCardText(derivation: Derivation) -> some View {
+        let totals = derivation.totals
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text("asset.total.title")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text(verbatim: "·")
+                    .foregroundStyle(.tertiary)
+                Text(verbatim: homeCurrency)
+                    .font(.caption.monospaced().weight(.semibold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.secondary.opacity(0.15), in: Capsule())
+            }
+            Text(
+                totals.amount,
+                format: .currency(code: homeCurrency)
+                    .locale(locale)
+                    .precision(.fractionLength(0))
+            )
+                .font(.system(size: 38, weight: .bold, design: .rounded))
+                .monospacedDigit()
+            if !totals.missingCurrencies.isEmpty {
+                Label {
+                    Text(missingRatesMessage(totals.missingCurrencies))
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                }
+                .foregroundStyle(.orange)
+                .font(.footnote)
+            }
+            Text(assetCountFootnote(activeCount: derivation.active.count))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     /// Cumulative asset-purchase timeline. Styled to match `TrendChartView`
     /// in the Financial tab (same `glassCard` wrapper + minHeight) so the
     /// two tabs share a consistent visual rhythm.
@@ -162,10 +167,9 @@ struct AssetsView: View {
     }
 
     @ViewBuilder
-    private var categorizedCards: some View {
+    private func categorizedCards(derivation: Derivation) -> some View {
         ForEach(AssetCategory.allCases, id: \.self) { category in
-            let bucket = activeAssets.filter { $0.category == category }
-            if !bucket.isEmpty {
+            if let bucket = derivation.byCategory[category], !bucket.isEmpty {
                 categorySection(category: category, assets: bucket)
             }
         }
@@ -198,8 +202,9 @@ struct AssetsView: View {
         .glassCard()
     }
 
-    private var soldCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private func soldCard(derivation: Derivation) -> some View {
+        let soldAssets = derivation.sold
+        return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "archivebox.fill")
                     .foregroundStyle(.secondary)
@@ -319,9 +324,6 @@ struct AssetsView: View {
 
     // MARK: - Derived
 
-    private var activeAssets: [Asset] { assets.filter { !$0.isSold } }
-    private var soldAssets: [Asset] { assets.filter { $0.isSold } }
-
     private func valueForDisplay(_ asset: Asset) -> Decimal {
         if asset.isSold {
             return asset.salePrice ?? asset.purchasePrice
@@ -336,10 +338,9 @@ struct AssetsView: View {
         return asset.currentValue == nil ? "asset.value.label.purchase" : "asset.value.label.current"
     }
 
-    private var assetCountFootnote: String {
-        let active = activeAssets.count
+    private func assetCountFootnote(activeCount: Int) -> String {
         let template = String(localized: "asset.count.active")
-        return template.replacingOccurrences(of: "{count}", with: String(active))
+        return template.replacingOccurrences(of: "{count}", with: String(activeCount))
     }
 
     private func missingRatesMessage(_ currencies: [String]) -> String {
@@ -362,6 +363,70 @@ struct AssetsView: View {
         )
         context.insert(draft)
         newAssetDraft = draft
+    }
+}
+
+private struct AssetsToolbarModifier: ViewModifier {
+    let showAdd: Bool
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        #if os(macOS)
+        content
+        #else
+        content.toolbar {
+            if showAdd {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: action) {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(Text("asset.new.title"))
+                }
+            }
+        }
+        #endif
+    }
+}
+
+/// Bundles the Assets screen's sheet + delete-confirmation modifiers so
+/// `AssetsView.body` stays comfortably under the function-length budget.
+private struct AssetsSheetsModifier: ViewModifier {
+    @Binding var newAssetDraft: Asset?
+    @Binding var editingAsset: Asset?
+    @Binding var assetPendingDeletion: Asset?
+    let context: ModelContext
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: $newAssetDraft) { draft in
+                AssetFormView(asset: draft, isNew: true) { saved in
+                    if !saved { context.delete(draft) }
+                    newAssetDraft = nil
+                }
+            }
+            .sheet(item: $editingAsset) { asset in
+                AssetFormView(asset: asset, isNew: false) { _ in
+                    editingAsset = nil
+                }
+            }
+            .confirmationDialog(
+                Text("asset.delete.confirm.title"),
+                isPresented: Binding(
+                    get: { assetPendingDeletion != nil },
+                    set: { if !$0 { assetPendingDeletion = nil } }
+                ),
+                presenting: assetPendingDeletion
+            ) { asset in
+                Button(role: .destructive) {
+                    context.delete(asset)
+                    assetPendingDeletion = nil
+                } label: {
+                    Text("common.action.delete")
+                }
+                Button(role: .cancel) { assetPendingDeletion = nil } label: { Text("common.action.cancel") }
+            } message: { _ in
+                Text("asset.delete.confirm.message")
+            }
     }
 }
 

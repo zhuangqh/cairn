@@ -17,16 +17,23 @@ struct MembersListView: View {
     @State private var memberPendingDeletion: Member?
 
     private var memberTotals: [UUID: Decimal] {
-        _ = holdings.count + snapshots.count + rates.count
-        return Dictionary(
-            uniqueKeysWithValues: NetWorthCalculator
-                .totalsByMember(homeCurrency: homeCurrency, context: context)
-                .map { ($0.memberId, $0.amount) }
+        _ = holdings.count + snapshots.count + rates.count + members.count
+        // Single-pass bundle so the per-row totals share one fetch + one
+        // FX cache load, rather than re-fetching for each member.
+        let bundle = NetWorthCalculator.bundle(
+            homeCurrency: homeCurrency,
+            includeMemberBreakdown: true,
+            context: context
         )
+        var dict: [UUID: Decimal] = [:]
+        dict.reserveCapacity(bundle.byMember.count)
+        for entry in bundle.byMember { dict[entry.memberId] = entry.amount }
+        return dict
     }
 
     var body: some View {
-        ScrollView {
+        let totals = memberTotals
+        return ScrollView {
             if members.isEmpty {
                 ContentUnavailableView(
                     "member.empty",
@@ -40,7 +47,7 @@ struct MembersListView: View {
                         NavigationLink(value: member) {
                             MemberCard(
                                 member: member,
-                                total: memberTotals[member.id] ?? 0,
+                                total: totals[member.id] ?? 0,
                                 homeCurrency: homeCurrency,
                                 locale: locale
                             )
@@ -123,38 +130,18 @@ private struct MemberCard: View {
     let homeCurrency: String
     let locale: Locale
 
-    private var initials: String {
-        let parts = member.name.split(separator: " ")
-        let letters = parts.prefix(2).compactMap { $0.first }.map(String.init).joined()
-        return letters.isEmpty ? "?" : letters.uppercased()
-    }
-
     private var accountCount: Int {
         (member.accounts ?? []).count
     }
 
-    private var tint: Color {
-        let palette: [Color] = [.blue, .indigo, .teal, .pink, .orange, .purple, .green]
-        let hash = abs(member.id.hashValue)
-        return palette[hash % palette.count]
-    }
-
     var body: some View {
         HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [tint.opacity(0.85), tint.opacity(0.55)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                Text(verbatim: initials)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 44, height: 44)
+            MemberAvatarView(
+                name: member.name,
+                avatarData: member.avatarData,
+                seed: member.id,
+                size: 44
+            )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: member.name.isEmpty ? " " : member.name)

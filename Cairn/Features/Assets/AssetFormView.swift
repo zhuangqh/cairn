@@ -296,10 +296,10 @@ private struct DecimalField: View {
         TextField(
             labelKey,
             value: $value,
-            format: .number.precision(.fractionLength(0...2))
+            format: .number.precision(.fractionLength(0))
         )
         #if !os(macOS)
-        .keyboardType(.decimalPad)
+        .keyboardType(.numberPad)
         #endif
     }
 }
