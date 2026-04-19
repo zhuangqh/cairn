@@ -8,6 +8,9 @@ struct SettingsView: View {
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
 
+    @AppStorage(AppSettingsKeys.appearance)
+    private var appearanceRaw: String = AppAppearance.default.rawValue
+
     @AppStorage(AppSettingsKeys.reminderEnabled)
     private var reminderEnabled: Bool = false
 
@@ -62,6 +65,19 @@ struct SettingsView: View {
                 #if !os(macOS)
                 .pickerStyle(.navigationLink)
                 #endif
+
+                Picker(selection: appearanceBinding) {
+                    ForEach(AppAppearance.allCases, id: \.self) { option in
+                        Text(LocalizedStringKey(option.localizationKey))
+                            .tag(option)
+                    }
+                } label: {
+                    settingsRowLabel(
+                        titleKey: "settings.appearance.title",
+                        systemImage: "circle.righthalf.filled",
+                        tint: .notionPurple
+                    )
+                }
             } header: {
                 NotionSectionHeader("settings.section.general", systemImage: "gearshape.fill")
             }
@@ -247,8 +263,14 @@ struct SettingsView: View {
         }
     }
 
-    private var reminderTimeBinding: Binding<Date> {
+    private var appearanceBinding: Binding<AppAppearance> {
         Binding(
+            get: { AppAppearance(rawValue: appearanceRaw) ?? .default },
+            set: { appearanceRaw = $0.rawValue }
+        )
+    }
+
+    private var reminderTimeBinding: Binding<Date> {        Binding(
             get: {
                 var components = DateComponents()
                 components.hour = reminderHour

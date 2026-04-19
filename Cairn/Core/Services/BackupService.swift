@@ -20,6 +20,7 @@ public enum BackupService {
         let snapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
         let rates = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
         let portfolioSnapshots = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
+        let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
 
         let payload = BackupPayload(
             version: currentVersion,
@@ -29,7 +30,8 @@ public enum BackupService {
             holdings: holdings.map(HoldingDTO.init),
             snapshots: snapshots.map(SnapshotDTO.init),
             fxRates: rates.map(FXRateDTO.init),
-            portfolioSnapshots: portfolioSnapshots.map(PortfolioSnapshotDTO.init)
+            portfolioSnapshots: portfolioSnapshots.map(PortfolioSnapshotDTO.init),
+            assets: assets.map(AssetDTO.init)
         )
 
         let encoder = JSONEncoder()
@@ -61,6 +63,7 @@ public enum BackupService {
         insertSnapshots(payload.snapshots, holdingById: holdingById, context: context)
         insertFXRates(payload.fxRates, context: context)
         insertPortfolioSnapshots(payload.portfolioSnapshots ?? [], context: context)
+        insertAssets(payload.assets ?? [], memberById: memberById, context: context)
         try context.save()
         return payload
     }
@@ -71,6 +74,7 @@ public enum BackupService {
         try context.delete(model: Snapshot.self)
         try context.delete(model: Holding.self)
         try context.delete(model: Account.self)
+        try context.delete(model: Asset.self)
         try context.delete(model: Member.self)
         try context.delete(model: FXRate.self)
     }
@@ -173,6 +177,32 @@ public enum BackupService {
             context.insert(snapshot)
         }
     }
+
+    private static func insertAssets(
+        _ dtos: [AssetDTO],
+        memberById: [UUID: Member],
+        context: ModelContext
+    ) {
+        for dto in dtos {
+            let category = AssetCategory(rawValue: dto.categoryRawValue) ?? .other
+            let asset = Asset(
+                name: dto.name,
+                category: category,
+                purchasePrice: dto.purchasePrice,
+                purchaseCurrency: dto.purchaseCurrency,
+                purchaseDate: dto.purchaseDate,
+                currentValue: dto.currentValue,
+                currentValueUpdatedAt: dto.currentValueUpdatedAt,
+                saleDate: dto.saleDate,
+                salePrice: dto.salePrice,
+                iconName: dto.iconName,
+                note: dto.note,
+                member: dto.memberId.flatMap { memberById[$0] },
+                createdAt: dto.createdAt
+            )
+            context.insert(asset)
+        }
+    }
 }
 
 // MARK: - Payload
@@ -188,6 +218,9 @@ public struct BackupPayload: Codable, Sendable {
     /// Added in version 1.1; older backups omit this field entirely, so it
     /// is decoded as `nil` and treated as an empty collection.
     public let portfolioSnapshots: [PortfolioSnapshotDTO]?
+    /// Added in version 1.1 with physical-asset support. Older backups omit
+    /// this field and decode as `nil`.
+    public let assets: [AssetDTO]?
 
     public init(
         version: Int,
@@ -197,7 +230,8 @@ public struct BackupPayload: Codable, Sendable {
         holdings: [HoldingDTO],
         snapshots: [SnapshotDTO],
         fxRates: [FXRateDTO],
-        portfolioSnapshots: [PortfolioSnapshotDTO]? = nil
+        portfolioSnapshots: [PortfolioSnapshotDTO]? = nil,
+        assets: [AssetDTO]? = nil
     ) {
         self.version = version
         self.exportedAt = exportedAt
@@ -207,6 +241,7 @@ public struct BackupPayload: Codable, Sendable {
         self.snapshots = snapshots
         self.fxRates = fxRates
         self.portfolioSnapshots = portfolioSnapshots
+        self.assets = assets
     }
 }
 
@@ -311,5 +346,39 @@ public struct PortfolioSnapshotDTO: Codable, Sendable {
         self.recordedAt = snapshot.recordedAt
         self.entries = snapshot.entries
         self.rates = snapshot.rates
+    }
+}
+
+public struct AssetDTO: Codable, Sendable {
+    public let id: UUID
+    public let name: String
+    public let categoryRawValue: String
+    public let purchasePrice: Decimal
+    public let purchaseCurrency: String
+    public let purchaseDate: Date
+    public let currentValue: Decimal?
+    public let currentValueUpdatedAt: Date?
+    public let saleDate: Date?
+    public let salePrice: Decimal?
+    public let iconName: String?
+    public let note: String?
+    public let createdAt: Date
+    public let memberId: UUID?
+
+    init(_ asset: Asset) {
+        self.id = asset.id
+        self.name = asset.name
+        self.categoryRawValue = asset.categoryRawValue
+        self.purchasePrice = asset.purchasePrice
+        self.purchaseCurrency = asset.purchaseCurrency
+        self.purchaseDate = asset.purchaseDate
+        self.currentValue = asset.currentValue
+        self.currentValueUpdatedAt = asset.currentValueUpdatedAt
+        self.saleDate = asset.saleDate
+        self.salePrice = asset.salePrice
+        self.iconName = asset.iconName
+        self.note = asset.note
+        self.createdAt = asset.createdAt
+        self.memberId = asset.member?.id
     }
 }

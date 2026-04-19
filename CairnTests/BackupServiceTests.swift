@@ -72,4 +72,68 @@ final class BackupServiceTests: XCTestCase {
         XCTAssertEqual(snapshots.count, 1)
         XCTAssertEqual(snapshots.first?.amount, 500)
     }
+
+    func testExportImportRoundTripPreservesAssets() throws {
+        let context = container.mainContext
+        let member = Member(name: "Alice")
+        context.insert(member)
+        let house = Asset(
+            name: "Apartment",
+            category: .realEstate,
+            purchasePrice: 800_000,
+            purchaseCurrency: "CNY",
+            purchaseDate: Date(timeIntervalSince1970: 1_600_000_000),
+            currentValue: 950_000,
+            currentValueUpdatedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            note: "Primary residence",
+            member: member
+        )
+        let phone = Asset(
+            name: "iPhone 15",
+            category: .electronics,
+            purchasePrice: 999,
+            purchaseCurrency: "USD",
+            purchaseDate: Date(timeIntervalSince1970: 1_650_000_000),
+            saleDate: Date(timeIntervalSince1970: 1_700_500_000),
+            salePrice: 420,
+            member: member
+        )
+        context.insert(house)
+        context.insert(phone)
+        try context.save()
+
+        let data = try BackupService.makeBackup(in: context)
+        let other = try PersistenceController.makeContainer(.inMemory)
+        _ = try BackupService.restoreReplacing(from: data, context: other.mainContext)
+
+        let assets = try other.mainContext.fetch(FetchDescriptor<Asset>())
+        XCTAssertEqual(assets.count, 2)
+        let byName = Dictionary(uniqueKeysWithValues: assets.map { ($0.name, $0) })
+        XCTAssertEqual(byName["Apartment"]?.category, .realEstate)
+        XCTAssertEqual(byName["Apartment"]?.purchasePrice, 800_000)
+        XCTAssertEqual(byName["Apartment"]?.currentValue, 950_000)
+        XCTAssertEqual(byName["Apartment"]?.member?.name, "Alice")
+        XCTAssertEqual(byName["iPhone 15"]?.isSold, true)
+        XCTAssertEqual(byName["iPhone 15"]?.salePrice, 420)
+    }
+
+    func testRestoreOldBackupWithoutAssetsSucceeds() throws {
+        // Simulate a pre-v1.1 backup: payload with no `assets` field.
+        let json = """
+        {
+          "version": 1,
+          "exportedAt": "2026-01-01T00:00:00Z",
+          "members": [],
+          "accounts": [],
+          "holdings": [],
+          "snapshots": [],
+          "fxRates": []
+        }
+        """.data(using: .utf8)!
+        let other = try PersistenceController.makeContainer(.inMemory)
+        let payload = try BackupService.restoreReplacing(from: json, context: other.mainContext)
+        XCTAssertNil(payload.assets)
+        let assets = try other.mainContext.fetch(FetchDescriptor<Asset>())
+        XCTAssertTrue(assets.isEmpty)
+    }
 }

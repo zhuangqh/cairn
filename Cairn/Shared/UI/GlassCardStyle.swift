@@ -328,7 +328,7 @@ public extension Font {
 
 // MARK: - Color(hex:)
 
-private extension Color {
+extension Color {
     init(hex: UInt32, opacity: Double = 1) {
         let red = Double((hex >> 16) & 0xFF) / 255.0
         let green = Double((hex >> 8) & 0xFF) / 255.0

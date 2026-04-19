@@ -22,6 +22,7 @@ struct DashboardView: View {
     @Query private var snapshots: [Snapshot]
     @Query private var rates: [FXRate]
     @Query private var members: [Member]
+    @Query private var assets: [Asset]
 
     @State private var isUpdating: Bool = false
     /// Current hover selection from the embedded trend chart. When set, the
@@ -42,6 +43,32 @@ struct DashboardView: View {
             homeCurrency: homeCurrency,
             asOf: effectiveAsOf,
             context: context
+        )
+    }
+
+    /// Physical-asset total in home currency, valued as of the hovered
+    /// month so the Physical tile time-travels in step with the financial
+    /// hero. Historical physical values fall back to `purchasePrice` because
+    /// we do not persist per-month revaluations for assets.
+    private var physicalTotals: AssetService.Totals {
+        _ = assets.count + rates.count
+        return AssetService.total(
+            homeCurrency: homeCurrency,
+            asOf: hoverSelection?.period,
+            context: context
+        )
+    }
+
+    /// Sum of financial (holdings) and physical (assets) totals — what the
+    /// hero card shows as "Total family wealth". Missing FX currencies from
+    /// either side are merged for the warning footnote.
+    private var combinedTotals: NetWorthCalculator.Totals {
+        let financial = totals
+        let physical = physicalTotals
+        let merged = Set(financial.missingCurrencies).union(physical.missingCurrencies)
+        return NetWorthCalculator.Totals(
+            amount: financial.amount + physical.amount,
+            missingCurrencies: merged.sorted()
         )
     }
 
@@ -83,6 +110,7 @@ struct DashboardView: View {
             ScrollView {
                 VStack(spacing: isCompact ? 16 : 20) {
                     heroCard(isCompact: isCompact)
+                    balanceSheetCard(isCompact: isCompact)
                     trendCard
                     sideBySideCards(isRegular: isRegular, isCompact: isCompact)
                 }
@@ -152,8 +180,10 @@ struct DashboardView: View {
                 .foregroundStyle(Color.notionInkSecondary)
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(
-                    totals.amount,
-                    format: .currency(code: homeCurrency).locale(locale)
+                    combinedTotals.amount,
+                    format: .currency(code: homeCurrency)
+                        .locale(locale)
+                        .precision(.fractionLength(0))
                 )
                 .font(amountFont)
                 .tracking(isCompact ? -0.5 : -1.5)
@@ -162,7 +192,7 @@ struct DashboardView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .contentTransition(.numericText())
-                .animation(.easeOut(duration: 0.2), value: totals.amount)
+                .animation(.easeOut(duration: 0.2), value: combinedTotals.amount)
 
                 if let delta {
                     deltaBadge(delta)
@@ -205,12 +235,99 @@ struct DashboardView: View {
     }
 
     private var trendCard: some View {
-        TrendChartView(onSelectionChange: { selection in
-            withAnimation(.easeOut(duration: 0.15)) {
-                hoverSelection = selection
+        TrendChartView(
+            showAssetOverlay: true,
+            onSelectionChange: { selection in
+                withAnimation(.easeOut(duration: 0.15)) {
+                    hoverSelection = selection
+                }
             }
-        })
+        )
         .glassCard()
+    }
+
+    // MARK: - Balance sheet (financial + physical)
+
+    /// Compact card that splits the family's holdings between
+    /// "Financial" (holdings-based net worth, valued `asOf` the hover month)
+    /// and "Physical" (non-sold `Asset` records, valued at their current /
+    /// purchase price). Provides a quick mental split that the hero alone —
+    /// which reflects financial only — does not.
+    @ViewBuilder
+    private func balanceSheetCard(isCompact: Bool) -> some View {
+        let physical = physicalTotals
+        let financial = totals
+        Group {
+            if isCompact {
+                VStack(spacing: 12) {
+                    balanceTile(
+                        titleKey: "dashboard.balance.financial",
+                        amount: financial.amount,
+                        iconName: "chart.line.uptrend.xyaxis",
+                        tint: .notionBlue
+                    )
+                    balanceTile(
+                        titleKey: "dashboard.balance.physical",
+                        amount: physical.amount,
+                        iconName: "house.and.flag",
+                        tint: .notionTeal
+                    )
+                }
+            } else {
+                HStack(spacing: 16) {
+                    balanceTile(
+                        titleKey: "dashboard.balance.financial",
+                        amount: financial.amount,
+                        iconName: "chart.line.uptrend.xyaxis",
+                        tint: .notionBlue
+                    )
+                    .frame(maxWidth: .infinity)
+                    balanceTile(
+                        titleKey: "dashboard.balance.physical",
+                        amount: physical.amount,
+                        iconName: "house.and.flag",
+                        tint: .notionTeal
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .glassCard(cornerRadius: 16, padding: isCompact ? 16 : 20)
+    }
+
+    private func balanceTile(
+        titleKey: LocalizedStringKey,
+        amount: Decimal,
+        iconName: String,
+        tint: Color
+    ) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(tint.opacity(0.15))
+                Image(systemName: iconName)
+                    .foregroundStyle(tint)
+            }
+            .frame(width: 36, height: 36)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(titleKey)
+                    .font(.caption.weight(.semibold))
+                    .tracking(0.125)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+                Text(
+                    amount,
+                    format: .currency(code: homeCurrency)
+                        .locale(locale)
+                        .precision(.fractionLength(0))
+                )
+                .font(.title3.weight(.semibold))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .animation(.easeOut(duration: 0.2), value: amount)
+            }
+            Spacer(minLength: 0)
+        }
     }
 
     private var allocationCard: some View {

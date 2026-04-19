@@ -91,12 +91,20 @@ private extension NetWorthCalculator.KindTotal {
 
 extension AccountKind {
     /// Stable display tint used by the donut + category cards.
+    ///
+    /// Warm analogous palette in the orange → pink range, inspired by the
+    /// Notion semantic accents in `DESIGN.md` §2. Deliberately avoids blue
+    /// (reserved as the singular interactive accent) and green (reserved
+    /// for the physical-asset curve in the Trend chart). Each hue is
+    /// picked to stay legible against both light and dark surfaces and to
+    /// have enough hue separation that adjacent donut sectors remain
+    /// distinguishable.
     var tint: Color {
         switch self {
-        case .realEstate: return .blue
-        case .stock: return .indigo
-        case .cash: return .green
-        case .device: return .orange
+        case .realEstate: return Color(hex: 0xDD5B00) // Notion Orange
+        case .stock:      return Color(hex: 0xD9A003) // Warm gold
+        case .cash:       return Color(hex: 0xE03E3E) // Coral red
+        case .device:     return Color(hex: 0xFF64C8) // Notion Pink
         }
     }
 

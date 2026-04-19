@@ -3,7 +3,30 @@ import SwiftData
 
 /// Trend-focused view: net worth hero, multi-month chart, per-member breakdown.
 /// Complements the Dashboard (which emphasizes allocation + activity).
+///
+/// Hosts a segmented tab at the top so the user can flip between the
+/// existing trend view and a dedicated "Assets" tab that manages physical
+/// assets (PRD §4.7, v1.1).
 struct OverviewView: View {
+    enum Tab: Hashable, CaseIterable {
+        case financial
+        case assets
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .financial: return "overview.tab.financial"
+            case .assets: return "overview.tab.assets"
+            }
+        }
+
+        var iconName: String {
+            switch self {
+            case .financial: return "chart.line.uptrend.xyaxis"
+            case .assets: return "house.and.flag"
+            }
+        }
+    }
+
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
 
@@ -19,6 +42,7 @@ struct OverviewView: View {
 
     @State private var isUpdating: Bool = false
     @State private var selectedYear: Int? = nil
+    @State private var selectedTab: Tab = .financial
 
     private var totals: NetWorthCalculator.Totals {
         _ = snapshots.count + rates.count + holdings.count
@@ -32,30 +56,41 @@ struct OverviewView: View {
 
     var body: some View {
         ScrollView {
-            if holdings.isEmpty {
-                ContentUnavailableView(
-                    "overview.empty.title",
-                    systemImage: "chart.line.uptrend.xyaxis",
-                    description: Text("overview.empty.hint")
-                )
-                .padding(.top, 64)
-            } else {
-                VStack(spacing: 20) {
-                    heroCard
-                    trendCard
-                    if !memberTotals.isEmpty {
-                        membersCard
-                    }
-                    snapshotsCard
+            VStack(spacing: 20) {
+                switch selectedTab {
+                case .financial:
+                    financialTab
+                case .assets:
+                    AssetsView()
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 20)
-                .frame(maxWidth: 1100)
-                .frame(maxWidth: .infinity)
             }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
+            .frame(maxWidth: 1100)
+            .frame(maxWidth: .infinity)
         }
+        // Avoid right-edge jitter: when the system scrollbar style is
+        // "Always show", the vertical scroller toggles as content height
+        // crosses the viewport, shifting card right-edges by ~15pt.
+        // Hiding the indicator keeps layout stable; trackpad scroll and
+        // keyboard navigation still work.
+        .scrollIndicators(.hidden)
         .ambientBackground()
         .navigationTitle("overview.title")
+        .toolbar {
+            // Float the tab switcher in the toolbar so it stays visible
+            // while the content scrolls, and sits on the same row as the
+            // window's navigation chrome.
+            ToolbarItem(placement: .principal) {
+                GlassSegmentedControl(
+                    selection: $selectedTab,
+                    options: Tab.allCases,
+                    title: { $0.titleKey },
+                    icon: { $0.iconName }
+                )
+                .frame(minWidth: 260, idealWidth: 320, maxWidth: 420)
+            }
+        }
         .sheet(isPresented: $isUpdating) {
             BatchEntryView()
         }
@@ -69,6 +104,29 @@ struct OverviewView: View {
                 selectedYear = newYears.first
             } else if selectedYear == nil {
                 selectedYear = newYears.first
+            }
+        }
+    }
+
+    // MARK: - Financial (holdings-based) tab
+
+    @ViewBuilder
+    private var financialTab: some View {
+        if holdings.isEmpty {
+            ContentUnavailableView(
+                "overview.empty.title",
+                systemImage: "chart.line.uptrend.xyaxis",
+                description: Text("overview.empty.hint")
+            )
+            .padding(.top, 64)
+        } else {
+            VStack(spacing: 20) {
+                heroCard
+                trendCard
+                if !memberTotals.isEmpty {
+                    membersCard
+                }
+                snapshotsCard
             }
         }
     }
@@ -90,7 +148,12 @@ struct OverviewView: View {
                         .padding(.vertical, 2)
                         .background(.secondary.opacity(0.15), in: Capsule())
                 }
-                Text(totals.amount, format: .currency(code: homeCurrency).locale(locale))
+                Text(
+                    totals.amount,
+                    format: .currency(code: homeCurrency)
+                        .locale(locale)
+                        .precision(.fractionLength(0))
+                )
                     .font(.system(size: 38, weight: .bold, design: .rounded))
                     .monospacedDigit()
 

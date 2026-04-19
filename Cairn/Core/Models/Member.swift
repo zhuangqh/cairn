@@ -15,11 +15,15 @@ public final class Member {
     @Relationship(deleteRule: .cascade, inverse: \Account.member)
     public var accounts: [Account]? = []
 
+    @Relationship(deleteRule: .cascade, inverse: \Asset.member)
+    public var assets: [Asset]? = []
+
     public init(name: String, avatarData: Data? = nil, createdAt: Date = .now) {
         self.id = UUID()
         self.name = name
         self.avatarData = avatarData
         self.createdAt = createdAt
         self.accounts = []
+        self.assets = []
     }
 }
