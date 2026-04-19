@@ -14,6 +14,8 @@ struct OverviewView: View {
     @Query private var holdings: [Holding]
     @Query private var snapshots: [Snapshot]
     @Query private var rates: [FXRate]
+    @Query(sort: \PortfolioSnapshot.periodMonth, order: .reverse)
+    private var portfolioSnapshots: [PortfolioSnapshot]
 
     @State private var isRefreshing: Bool = false
     @State private var refreshError: String?
@@ -45,6 +47,7 @@ struct OverviewView: View {
                     if !memberTotals.isEmpty {
                         membersCard
                     }
+                    snapshotsCard
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 20)
@@ -135,7 +138,7 @@ struct OverviewView: View {
                 isUpdating = true
             } label: {
                 Label {
-                    Text("overview.updateThisMonth")
+                    Text("overview.addSnapshot")
                 } icon: {
                     Image(systemName: "square.and.pencil")
                 }
@@ -186,6 +189,90 @@ struct OverviewView: View {
         .glassCard()
     }
 
+    private var snapshotsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("overview.snapshots")
+                    .font(.headline)
+                Spacer()
+                if !portfolioSnapshots.isEmpty {
+                    Button {
+                        isUpdating = true
+                    } label: {
+                        Label {
+                            Text("overview.addSnapshot")
+                        } icon: {
+                            Image(systemName: "plus")
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.callout)
+                }
+            }
+            if portfolioSnapshots.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("overview.snapshots.empty.title")
+                        .font(.callout.weight(.medium))
+                    Text("overview.snapshots.empty.hint")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(portfolioSnapshots.enumerated()), id: \.element.id) { index, snapshot in
+                        NavigationLink {
+                            PortfolioSnapshotDetailView(snapshot: snapshot)
+                        } label: {
+                            snapshotRow(snapshot)
+                        }
+                        .buttonStyle(.plain)
+                        if index < portfolioSnapshots.count - 1 {
+                            Divider().opacity(0.4)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard()
+    }
+
+    private func snapshotRow(_ snapshot: PortfolioSnapshot) -> some View {
+        HStack(spacing: 12) {
+            GlyphBadge(systemName: "camera.aperture", tint: .accentColor)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(verbatim: snapshot.periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
+                    .font(.callout.weight(.medium))
+                HStack(spacing: 6) {
+                    Text(verbatim: snapshot.homeCurrency)
+                        .font(.caption.monospaced().weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.secondary.opacity(0.15), in: Capsule())
+                    if let note = snapshot.note, !note.isEmpty {
+                        Text(verbatim: note)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            Spacer()
+            Text(
+                snapshot.totalAmount,
+                format: .currency(code: snapshot.homeCurrency).locale(locale)
+            )
+            .monospacedDigit()
+            .font(.callout.weight(.semibold))
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+    }
+
     private var missingRatesMessage: String {
         let list = totals.missingCurrencies.joined(separator: ", ")
         let template = String(localized: "overview.missingRates")
@@ -215,7 +302,18 @@ struct OverviewView: View {
     }
 }
 
-#Preview {
-    OverviewView()
-        .modelContainer(PersistenceController.previewContainer())
+#Preview("Overview · seeded") {
+    PreviewDefaults.primeOnboarded()
+    return NavigationStack {
+        OverviewView()
+    }
+    .modelContainer(PreviewSampleData.container())
+}
+
+#Preview("Overview · empty") {
+    PreviewDefaults.primeOnboarded()
+    return NavigationStack {
+        OverviewView()
+    }
+    .modelContainer(PreviewSampleData.emptyContainer())
 }

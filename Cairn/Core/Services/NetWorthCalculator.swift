@@ -119,7 +119,7 @@ public enum NetWorthCalculator {
         context: ModelContext
     ) -> [KindTotal] {
         let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
-        let normalizedCutoff = Snapshot.normalize(periodMonth)
+        let normalizedCutoff = cutoffEndOfMonth(for: periodMonth)
         var sums: [AccountKind: Decimal] = [:]
 
         for holding in holdings where holding.isArchived == false {
@@ -201,7 +201,7 @@ public enum NetWorthCalculator {
         asOf periodMonth: Date,
         context: ModelContext
     ) -> Totals {
-        let normalizedCutoff = Snapshot.normalize(periodMonth)
+        let normalizedCutoff = cutoffEndOfMonth(for: periodMonth)
         var total: Decimal = 0
         var missing: Set<String> = []
 
@@ -232,5 +232,19 @@ public enum NetWorthCalculator {
             .filter { $0.periodMonth <= cutoff }
             .sorted { $0.periodMonth > $1.periodMonth }
         return snapshots.first?.amount
+    }
+
+    /// Returns the last instant of the month that contains `periodMonth`, so
+    /// day-granular snapshots recorded anywhere within the cutoff's month
+    /// are included in "as of" queries. Expressed as `startOfNextMonth - 1s`
+    /// so the `<=` filter remains inclusive of the final day.
+    private static func cutoffEndOfMonth(for periodMonth: Date) -> Date {
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        let monthStart = Snapshot.normalize(periodMonth)
+        guard let nextMonthStart = calendar.date(byAdding: .month, value: 1, to: monthStart) else {
+            return monthStart
+        }
+        return nextMonthStart.addingTimeInterval(-1)
     }
 }

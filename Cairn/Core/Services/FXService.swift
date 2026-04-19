@@ -5,6 +5,19 @@ import SwiftData
 public protocol FXRateFetching: Sendable {
     /// Returns rates keyed by quote currency: `1 unit of base == rate × quote`.
     func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse
+
+    /// Returns rates keyed by quote currency for a specific historical
+    /// date. Implementations should return the closest available
+    /// business-day rate when the exact date has no quote.
+    func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse
+}
+
+public extension FXRateFetching {
+    /// Default: fall back to `fetchLatest` for fetchers that don't care
+    /// about dates (e.g. test stubs).
+    func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse {
+        try await fetchLatest(base: base, quotes: quotes)
+    }
 }
 
 public struct FXRateResponse: Sendable {
@@ -25,6 +38,20 @@ public struct FrankfurterFetcher: FXRateFetching {
     public init() {}
 
     public func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse {
+        try await fetch(base: base, quotes: quotes, endpoint: "latest")
+    }
+
+    public func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .iso8601)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        formatter.dateFormat = "yyyy-MM-dd"
+        let endpoint = formatter.string(from: date)
+        return try await fetch(base: base, quotes: quotes, endpoint: endpoint)
+    }
+
+    private func fetch(base: String, quotes: [String], endpoint: String) async throws -> FXRateResponse {
         let filtered = quotes.filter { $0 != base }
         guard !filtered.isEmpty else {
             return FXRateResponse(base: base, date: .now, rates: [:])
@@ -33,7 +60,7 @@ public struct FrankfurterFetcher: FXRateFetching {
         // `api.frankfurter.app/latest` endpoint now returns a 301 redirect to
         // this URL, and relying on implicit redirect following across hosts
         // has caused intermittent fetch failures in release builds.
-        var components = URLComponents(string: "https://api.frankfurter.dev/v1/latest")
+        var components = URLComponents(string: "https://api.frankfurter.dev/v1/\(endpoint)")
         components?.queryItems = [
             URLQueryItem(name: "base", value: base),
             URLQueryItem(name: "symbols", value: filtered.joined(separator: ","))

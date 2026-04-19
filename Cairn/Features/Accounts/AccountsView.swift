@@ -12,5 +12,5 @@ struct AccountsView: View {
 
 #Preview {
     AccountsView()
-        .modelContainer(PersistenceController.previewContainer())
+        .modelContainer(PreviewSampleData.container())
 }

@@ -54,3 +54,9 @@ struct HoldingEditView: View {
         }
     }
 }
+
+#Preview {
+    let env = PreviewSampleData.seededContainer()
+    return HoldingEditView(holding: env.seed.checkingEUR)
+        .modelContainer(env.container)
+}

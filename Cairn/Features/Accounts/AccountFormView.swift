@@ -155,3 +155,17 @@ private struct CurrencyPickerRow: View {
         }
     }
 }
+
+#Preview("AccountForm · new") {
+    let env = PreviewSampleData.seededContainer()
+    let draft = Account(name: "", kind: .cash, member: env.seed.alice)
+    env.container.mainContext.insert(draft)
+    return AccountFormView(account: draft, isNew: true)
+        .modelContainer(env.container)
+}
+
+#Preview("AccountForm · edit") {
+    let env = PreviewSampleData.seededContainer()
+    return AccountFormView(account: env.seed.brokerage, isNew: false)
+        .modelContainer(env.container)
+}

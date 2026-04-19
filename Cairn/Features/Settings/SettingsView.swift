@@ -325,5 +325,5 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environment(LocalizationService())
-        .modelContainer(PersistenceController.previewContainer())
+        .modelContainer(PreviewSampleData.container())
 }

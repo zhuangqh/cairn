@@ -11,7 +11,8 @@ public enum PersistenceController {
         Account.self,
         Holding.self,
         Snapshot.self,
-        FXRate.self
+        FXRate.self,
+        PortfolioSnapshot.self
     ])
 
     public enum Mode {

@@ -130,3 +130,9 @@ private struct CurrencyRow: View {
         }
     }
 }
+
+#Preview {
+    let env = PreviewSampleData.seededContainer()
+    return HoldingCreateView(account: env.seed.brokerage)
+        .modelContainer(env.container)
+}

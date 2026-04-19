@@ -19,6 +19,7 @@ public enum BackupService {
         let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
         let snapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
         let rates = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
+        let portfolioSnapshots = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
 
         let payload = BackupPayload(
             version: currentVersion,
@@ -27,7 +28,8 @@ public enum BackupService {
             accounts: accounts.map(AccountDTO.init),
             holdings: holdings.map(HoldingDTO.init),
             snapshots: snapshots.map(SnapshotDTO.init),
-            fxRates: rates.map(FXRateDTO.init)
+            fxRates: rates.map(FXRateDTO.init),
+            portfolioSnapshots: portfolioSnapshots.map(PortfolioSnapshotDTO.init)
         )
 
         let encoder = JSONEncoder()
@@ -58,12 +60,14 @@ public enum BackupService {
         let holdingById = insertHoldings(payload.holdings, accountById: accountById, context: context)
         insertSnapshots(payload.snapshots, holdingById: holdingById, context: context)
         insertFXRates(payload.fxRates, context: context)
+        insertPortfolioSnapshots(payload.portfolioSnapshots ?? [], context: context)
         try context.save()
         return payload
     }
 
     // Bottom-up delete to avoid dangling references.
     private static func wipe(context: ModelContext) throws {
+        try context.delete(model: PortfolioSnapshot.self)
         try context.delete(model: Snapshot.self)
         try context.delete(model: Holding.self)
         try context.delete(model: Account.self)
@@ -151,6 +155,24 @@ public enum BackupService {
             context.insert(rate)
         }
     }
+
+    private static func insertPortfolioSnapshots(
+        _ dtos: [PortfolioSnapshotDTO],
+        context: ModelContext
+    ) {
+        for dto in dtos {
+            let snapshot = PortfolioSnapshot(
+                periodMonth: dto.periodMonth,
+                homeCurrency: dto.homeCurrency,
+                totalAmount: dto.totalAmount,
+                entries: dto.entries,
+                rates: dto.rates,
+                note: dto.note,
+                recordedAt: dto.recordedAt
+            )
+            context.insert(snapshot)
+        }
+    }
 }
 
 // MARK: - Payload
@@ -163,6 +185,29 @@ public struct BackupPayload: Codable, Sendable {
     public let holdings: [HoldingDTO]
     public let snapshots: [SnapshotDTO]
     public let fxRates: [FXRateDTO]
+    /// Added in version 1.1; older backups omit this field entirely, so it
+    /// is decoded as `nil` and treated as an empty collection.
+    public let portfolioSnapshots: [PortfolioSnapshotDTO]?
+
+    public init(
+        version: Int,
+        exportedAt: Date,
+        members: [MemberDTO],
+        accounts: [AccountDTO],
+        holdings: [HoldingDTO],
+        snapshots: [SnapshotDTO],
+        fxRates: [FXRateDTO],
+        portfolioSnapshots: [PortfolioSnapshotDTO]? = nil
+    ) {
+        self.version = version
+        self.exportedAt = exportedAt
+        self.members = members
+        self.accounts = accounts
+        self.holdings = holdings
+        self.snapshots = snapshots
+        self.fxRates = fxRates
+        self.portfolioSnapshots = portfolioSnapshots
+    }
 }
 
 public struct MemberDTO: Codable, Sendable {
@@ -244,5 +289,27 @@ public struct FXRateDTO: Codable, Sendable {
         self.quote = rate.quote
         self.rate = rate.rate
         self.date = rate.date
+    }
+}
+
+public struct PortfolioSnapshotDTO: Codable, Sendable {
+    public let id: UUID
+    public let periodMonth: Date
+    public let homeCurrency: String
+    public let totalAmount: Decimal
+    public let note: String?
+    public let recordedAt: Date
+    public let entries: [PortfolioSnapshot.Entry]
+    public let rates: [PortfolioSnapshot.Rate]
+
+    init(_ snapshot: PortfolioSnapshot) {
+        self.id = snapshot.id
+        self.periodMonth = snapshot.periodMonth
+        self.homeCurrency = snapshot.homeCurrency
+        self.totalAmount = snapshot.totalAmount
+        self.note = snapshot.note
+        self.recordedAt = snapshot.recordedAt
+        self.entries = snapshot.entries
+        self.rates = snapshot.rates
     }
 }

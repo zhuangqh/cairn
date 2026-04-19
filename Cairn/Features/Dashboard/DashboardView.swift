@@ -1,8 +1,12 @@
 import SwiftUI
 import SwiftData
 
-/// Home screen of the app. Shows a hero net-worth card, allocation donut,
-/// asset-category breakdown, and the most recent snapshot activity.
+/// Home screen of the app. Shows a hero net-worth card, the monthly trend
+/// chart, an allocation donut, and an asset-category breakdown.
+///
+/// Hovering a point on the trend chart time-travels the hero / portfolio /
+/// category cards to that month so the user can inspect historical values
+/// without leaving the Dashboard.
 ///
 /// Styled with translucent glass cards against an ambient gradient, mirroring
 /// Apple's Liquid Glass design language.
@@ -20,18 +24,32 @@ struct DashboardView: View {
     @Query private var members: [Member]
 
     @State private var isUpdating: Bool = false
+    /// Current hover selection from the embedded trend chart. When set, the
+    /// hero / allocation / category cards render values as of that month.
+    @State private var hoverSelection: TrendSelection?
 
     // MARK: - Computed
 
+    /// Month the Dashboard should render for. Driven by hover selection when
+    /// present, otherwise "now".
+    private var effectiveAsOf: Date {
+        hoverSelection?.period ?? .now
+    }
+
     private var totals: NetWorthCalculator.Totals {
         _ = holdings.count + snapshots.count + rates.count
-        return NetWorthCalculator.total(homeCurrency: homeCurrency, context: context)
+        return NetWorthCalculator.total(
+            homeCurrency: homeCurrency,
+            asOf: effectiveAsOf,
+            context: context
+        )
     }
 
     private var delta: Double? {
         _ = holdings.count + snapshots.count + rates.count
         return NetWorthCalculator.monthOverMonthDelta(
             homeCurrency: homeCurrency,
+            asOf: effectiveAsOf,
             context: context
         )
     }
@@ -40,79 +58,131 @@ struct DashboardView: View {
         _ = holdings.count + snapshots.count + rates.count
         return NetWorthCalculator.totalsByKind(
             homeCurrency: homeCurrency,
+            asOf: effectiveAsOf,
             context: context
         )
     }
 
-    private var activities: [NetWorthCalculator.Activity] {
-        _ = snapshots.count
-        return NetWorthCalculator.recentActivities(limit: 8, context: context)
-    }
-
     // MARK: - Body
 
+    /// Breakpoints for the adaptive layout. Chosen to match common macOS
+    /// window sizes: below `compact` we collapse all multi-column rows into a
+    /// single column; below `regular` we drop hero / allocation side-by-side
+    /// layouts but keep a 2-up category grid.
+    private enum Layout {
+        static let compact: CGFloat = 560
+        static let regular: CGFloat = 820
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                heroCard
-                HStack(alignment: .top, spacing: 20) {
-                    allocationCard
-                        .frame(maxWidth: .infinity)
-                    categoriesCard
-                        .frame(maxWidth: .infinity)
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let isCompact = width < Layout.compact
+            let isRegular = width < Layout.regular
+
+            ScrollView {
+                VStack(spacing: isCompact ? 16 : 20) {
+                    heroCard(isCompact: isCompact)
+                    trendCard
+                    sideBySideCards(isRegular: isRegular, isCompact: isCompact)
                 }
-                activitiesCard
+                .padding(isCompact ? 16 : 24)
+                .frame(maxWidth: 1100)
+                .frame(maxWidth: .infinity)
             }
-            .padding(24)
-            .frame(maxWidth: 1100)
-            .frame(maxWidth: .infinity)
+            .background(AppBackground())
         }
-        .background(AppBackground())
         .navigationTitle("dashboard.title")
         .sheet(isPresented: $isUpdating) {
             BatchEntryView()
         }
     }
 
+    /// Allocation + Categories lay out side-by-side at regular widths and
+    /// stack vertically when the window is narrow.
+    @ViewBuilder
+    private func sideBySideCards(isRegular: Bool, isCompact: Bool) -> some View {
+        if isRegular {
+            VStack(spacing: isCompact ? 16 : 20) {
+                allocationCard
+                categoriesCard(isCompact: isCompact)
+            }
+        } else {
+            HStack(alignment: .top, spacing: 20) {
+                allocationCard
+                    .frame(maxWidth: .infinity)
+                categoriesCard(isCompact: isCompact)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
     // MARK: - Cards
 
-    private var heroCard: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("dashboard.totalWealth")
-                    .font(.system(size: 14, weight: .semibold))
-                    .tracking(0.125)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Color.notionInkSecondary)
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text(
-                        totals.amount,
-                        format: .currency(code: homeCurrency).locale(locale)
-                    )
-                    .font(.system(size: 48, weight: .bold))
-                    .tracking(-1.5)
-                    .foregroundStyle(Color.notionInk)
-                    .monospacedDigit()
-
-                    if let delta {
-                        deltaBadge(delta)
-                    }
+    @ViewBuilder
+    private func heroCard(isCompact: Bool) -> some View {
+        Group {
+            if isCompact {
+                VStack(alignment: .leading, spacing: 16) {
+                    heroInfo(isCompact: true)
+                    heroAddButton(isCompact: true)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            } else {
+                HStack(alignment: .center, spacing: 16) {
+                    heroInfo(isCompact: false)
+                    Spacer()
+                    heroAddButton(isCompact: false)
                 }
             }
-            Spacer()
-            Button {
-                isUpdating = true
-            } label: {
-                Label {
-                    Text("dashboard.addAsset")
-                } icon: {
-                    Image(systemName: "plus")
-                }
-            }
-            .buttonStyle(NotionPrimaryButtonStyle(size: .large))
-            .disabled(holdings.isEmpty)
         }
-        .glassCard(cornerRadius: 16, padding: 24)
+        .glassCard(cornerRadius: 16, padding: isCompact ? 20 : 24)
+    }
+
+    @ViewBuilder
+    private func heroInfo(isCompact: Bool) -> some View {
+        let amountFont: Font = isCompact
+            ? .system(size: 34, weight: .bold)
+            : .system(size: 48, weight: .bold)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("dashboard.totalWealth")
+                .font(.system(size: 14, weight: .semibold))
+                .tracking(0.125)
+                .textCase(.uppercase)
+                .foregroundStyle(Color.notionInkSecondary)
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(
+                    totals.amount,
+                    format: .currency(code: homeCurrency).locale(locale)
+                )
+                .font(amountFont)
+                .tracking(isCompact ? -0.5 : -1.5)
+                .foregroundStyle(Color.notionInk)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .contentTransition(.numericText())
+                .animation(.easeOut(duration: 0.2), value: totals.amount)
+
+                if let delta {
+                    deltaBadge(delta)
+                }
+            }
+        }
+    }
+
+    private func heroAddButton(isCompact: Bool) -> some View {
+        Button {
+            isUpdating = true
+        } label: {
+            Label {
+                Text("dashboard.addAsset")
+            } icon: {
+                Image(systemName: "plus")
+            }
+        }
+        .buttonStyle(NotionPrimaryButtonStyle(size: isCompact ? .regular : .large))
+        .disabled(holdings.isEmpty)
     }
 
     private func deltaBadge(_ value: Double) -> some View {
@@ -134,6 +204,15 @@ struct DashboardView: View {
         .background(badgeBg, in: Capsule())
     }
 
+    private var trendCard: some View {
+        TrendChartView(onSelectionChange: { selection in
+            withAnimation(.easeOut(duration: 0.15)) {
+                hoverSelection = selection
+            }
+        })
+        .glassCard()
+    }
+
     private var allocationCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("dashboard.portfolioAllocation")
@@ -146,13 +225,16 @@ struct DashboardView: View {
         .glassCard()
     }
 
-    private var categoriesCard: some View {
+    private func categoriesCard(isCompact: Bool) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("dashboard.assetCategories")
                 .font(.headline)
             let kinds = AccountKind.allCases
+            let columns: [GridItem] = isCompact
+                ? [GridItem(.flexible(), spacing: 12)]
+                : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
             LazyVGrid(
-                columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                columns: columns,
                 spacing: 12
             ) {
                 ForEach(kinds, id: \.self) { kind in
@@ -187,6 +269,8 @@ struct DashboardView: View {
                 )
                 .font(.title3.weight(.semibold))
                 .monospacedDigit()
+                .contentTransition(.numericText())
+                .animation(.easeOut(duration: 0.2), value: amount)
             }
             Spacer(minLength: 0)
         }
@@ -200,62 +284,20 @@ struct DashboardView: View {
                 .strokeBorder(Color.notionBorder, lineWidth: 1)
         )
     }
-
-    private var activitiesCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("dashboard.recentActivities")
-                .font(.headline)
-            if activities.isEmpty {
-                Text("dashboard.recentActivities.empty")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 8)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(activities.enumerated()), id: \.element.id) { index, activity in
-                        activityRow(activity)
-                        if index < activities.count - 1 {
-                            Divider().opacity(0.4)
-                        }
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
-    }
-
-    private func activityRow(_ activity: NetWorthCalculator.Activity) -> some View {
-        HStack(spacing: 16) {
-            Text(activity.recordedAt.formatted(.dateTime.month(.abbreviated).day().locale(locale)))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .frame(width: 72, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: activity.accountName.isEmpty ? activity.currency : activity.accountName)
-                    .font(.callout.weight(.semibold))
-                if !activity.memberName.isEmpty {
-                    Text(verbatim: activity.memberName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            Text(
-                activity.amount,
-                format: .currency(code: activity.currency).locale(locale)
-            )
-            .font(.callout.monospacedDigit().weight(.medium))
-        }
-        .padding(.vertical, 10)
-    }
 }
 
-#Preview {
-    DashboardView()
-        .modelContainer(PersistenceController.previewContainer())
+#Preview("Dashboard · seeded") {
+    PreviewDefaults.primeOnboarded()
+    return NavigationStack {
+        DashboardView()
+    }
+    .modelContainer(PreviewSampleData.container())
+}
+
+#Preview("Dashboard · empty") {
+    PreviewDefaults.primeOnboarded()
+    return NavigationStack {
+        DashboardView()
+    }
+    .modelContainer(PreviewSampleData.emptyContainer())
 }

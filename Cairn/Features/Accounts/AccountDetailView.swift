@@ -285,3 +285,19 @@ private struct SnapshotRow: View {
         .glassCard(cornerRadius: 14, padding: 14)
     }
 }
+
+#Preview("AccountDetail · populated") {
+    let env = PreviewSampleData.seededContainer()
+    return NavigationStack {
+        AccountDetailView(account: env.seed.checking)
+    }
+    .modelContainer(env.container)
+}
+
+#Preview("AccountDetail · empty account") {
+    let env = PreviewSampleData.seededContainer()
+    return NavigationStack {
+        AccountDetailView(account: env.seed.emptyAccount)
+    }
+    .modelContainer(env.container)
+}

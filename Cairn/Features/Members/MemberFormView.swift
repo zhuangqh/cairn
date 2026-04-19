@@ -54,3 +54,17 @@ struct MemberFormView: View {
         member.name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
+
+#Preview("MemberForm · new") {
+    let env = PreviewSampleData.seededContainer()
+    let draft = Member(name: "")
+    env.container.mainContext.insert(draft)
+    return MemberFormView(member: draft, isNew: true)
+        .modelContainer(env.container)
+}
+
+#Preview("MemberForm · edit") {
+    let env = PreviewSampleData.seededContainer()
+    return MemberFormView(member: env.seed.alice, isNew: false)
+        .modelContainer(env.container)
+}

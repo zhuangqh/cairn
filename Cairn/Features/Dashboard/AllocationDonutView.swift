@@ -94,3 +94,21 @@ extension AccountKind {
         }
     }
 }
+
+#Preview("Allocation · populated") {
+    AllocationDonutView(
+        entries: [
+            .init(kind: .realEstate, amount: 450_000),
+            .init(kind: .stock, amount: 65_000),
+            .init(kind: .cash, amount: 25_000),
+            .init(kind: .device, amount: 2_400)
+        ],
+        homeCurrency: "USD"
+    )
+    .padding()
+}
+
+#Preview("Allocation · empty") {
+    AllocationDonutView(entries: [], homeCurrency: "USD")
+        .padding()
+}

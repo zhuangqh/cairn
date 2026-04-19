@@ -186,9 +186,16 @@ private struct MemberCard: View {
     }
 }
 
-#Preview {
+#Preview("MembersList · seeded") {
     NavigationStack {
         MembersListView()
     }
-    .modelContainer(PersistenceController.previewContainer())
+    .modelContainer(PreviewSampleData.container())
+}
+
+#Preview("MembersList · empty") {
+    NavigationStack {
+        MembersListView()
+    }
+    .modelContainer(PreviewSampleData.emptyContainer())
 }

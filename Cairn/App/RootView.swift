@@ -90,8 +90,16 @@ enum SidebarItem: CaseIterable, Hashable {
     }
 }
 
-#Preview {
-    RootView()
+#Preview("RootView · seeded") {
+    PreviewDefaults.primeOnboarded()
+    return RootView()
         .environment(LocalizationService())
-        .modelContainer(PersistenceController.previewContainer())
+        .modelContainer(PreviewSampleData.container())
+}
+
+#Preview("RootView · first run") {
+    UserDefaults.standard.set(false, forKey: AppSettingsKeys.onboardingCompleted)
+    return RootView()
+        .environment(LocalizationService())
+        .modelContainer(PreviewSampleData.emptyContainer())
 }

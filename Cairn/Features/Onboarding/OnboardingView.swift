@@ -174,6 +174,7 @@ struct OnboardingView: View {
 }
 
 #Preview {
-    OnboardingView()
-        .modelContainer(PersistenceController.previewContainer())
+    UserDefaults.standard.set(false, forKey: AppSettingsKeys.onboardingCompleted)
+    return OnboardingView()
+        .modelContainer(PreviewSampleData.emptyContainer())
 }

@@ -243,3 +243,21 @@ private struct SnapshotCard: View {
         .glassCard(cornerRadius: 14, padding: 14)
     }
 }
+
+#Preview("HoldingDetail · with snapshots") {
+    let env = PreviewSampleData.seededContainer()
+    return NavigationStack {
+        HoldingDetailView(holding: env.seed.brokerageUSD)
+    }
+    .modelContainer(env.container)
+}
+
+#Preview("HoldingDetail · empty") {
+    let env = PreviewSampleData.seededContainer()
+    let empty = Holding(currency: "JPY", label: "Yen", account: env.seed.checking)
+    env.container.mainContext.insert(empty)
+    return NavigationStack {
+        HoldingDetailView(holding: empty)
+    }
+    .modelContainer(env.container)
+}

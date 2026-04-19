@@ -206,3 +206,21 @@ private struct AccountCard: View {
         .glassCard(cornerRadius: 14, padding: 14)
     }
 }
+
+#Preview("MemberDetail · with accounts") {
+    let env = PreviewSampleData.seededContainer()
+    return NavigationStack {
+        MemberDetailView(member: env.seed.alice)
+    }
+    .modelContainer(env.container)
+}
+
+#Preview("MemberDetail · empty") {
+    let container = PreviewSampleData.emptyContainer()
+    let blank = Member(name: "New member")
+    container.mainContext.insert(blank)
+    return NavigationStack {
+        MemberDetailView(member: blank)
+    }
+    .modelContainer(container)
+}

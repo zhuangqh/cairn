@@ -63,17 +63,40 @@ final class SnapshotServiceTests: XCTestCase {
         context.insert(account)
         context.insert(holding)
 
-        // Two different dates in the same month should collapse into one snapshot.
+        // Two different times on the same calendar day (UTC) should collapse
+        // into one snapshot — uniqueness is now per day, not per month.
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        let mid = calendar.date(from: DateComponents(year: 2026, month: 4, day: 15)) ?? .now
-        let end = calendar.date(from: DateComponents(year: 2026, month: 4, day: 29)) ?? .now
+        let morning = calendar.date(from: DateComponents(year: 2026, month: 4, day: 15, hour: 8)) ?? .now
+        let evening = calendar.date(from: DateComponents(year: 2026, month: 4, day: 15, hour: 22)) ?? .now
 
-        SnapshotService.upsert(amount: 100, periodMonth: mid, for: holding, context: context)
-        SnapshotService.upsert(amount: 200, periodMonth: end, for: holding, context: context)
+        SnapshotService.upsert(amount: 100, periodMonth: morning, for: holding, context: context)
+        SnapshotService.upsert(amount: 200, periodMonth: evening, for: holding, context: context)
 
         let snapshots = (holding.snapshots ?? [])
         XCTAssertEqual(snapshots.count, 1)
         XCTAssertEqual(snapshots.first?.amount, 200)
+    }
+
+    func testUpsertKeepsDistinctDaysInSameMonth() throws {
+        let context = container.mainContext
+        let account = Account(name: "Primary", kind: .cash)
+        let holding = Holding(currency: "USD", account: account)
+        context.insert(account)
+        context.insert(holding)
+
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        let day1 = calendar.date(from: DateComponents(year: 2026, month: 4, day: 15)) ?? .now
+        let day2 = calendar.date(from: DateComponents(year: 2026, month: 4, day: 29)) ?? .now
+
+        SnapshotService.upsert(amount: 100, periodMonth: day1, for: holding, context: context)
+        SnapshotService.upsert(amount: 200, periodMonth: day2, for: holding, context: context)
+
+        let snapshots = (holding.snapshots ?? []).sorted { $0.periodMonth < $1.periodMonth }
+        XCTAssertEqual(snapshots.count, 2)
+        XCTAssertEqual(snapshots.map(\.amount), [100, 200])
+        XCTAssertEqual(snapshots.first?.periodMonth, Snapshot.normalizeDay(day1))
+        XCTAssertEqual(snapshots.last?.periodMonth, Snapshot.normalizeDay(day2))
     }
 }

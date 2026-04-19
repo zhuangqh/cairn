@@ -3,13 +3,13 @@ import SwiftData
 
 /// Business rules for `Snapshot`.
 ///
-/// Snapshots have monthly granularity — a given `(holding, periodMonth)` pair
-/// must be unique. This is enforced here instead of via a CloudKit-incompatible
-/// unique attribute.
+/// Snapshots are day-granular — a given `(holding, day)` pair must be
+/// unique. Uniqueness is enforced here instead of via a
+/// CloudKit-incompatible unique attribute.
 public enum SnapshotService {
-    /// Upsert a snapshot for `(holding, periodMonth)`:
-    /// - If one already exists: update its `amount` and `recordedAt`.
-    /// - Otherwise: insert a new snapshot.
+    /// Upsert a snapshot for `(holding, day)`:
+    /// - If one already exists for that day: update its `amount` and `recordedAt`.
+    /// - Otherwise: insert a new snapshot on that day.
     ///
     /// Returns the effective snapshot.
     @MainActor
@@ -21,23 +21,23 @@ public enum SnapshotService {
         context: ModelContext,
         now: Date = .now
     ) -> Snapshot {
-        let month = Snapshot.normalize(periodMonth)
-        if let existing = (holding.snapshots ?? []).first(where: { $0.periodMonth == month }) {
+        let day = Snapshot.normalizeDay(periodMonth)
+        if let existing = (holding.snapshots ?? []).first(where: { $0.periodMonth == day }) {
             existing.amount = amount
             existing.recordedAt = now
             return existing
         }
-        let snapshot = Snapshot(periodMonth: month, amount: amount, holding: holding, recordedAt: now)
+        let snapshot = Snapshot(periodMonth: day, amount: amount, holding: holding, recordedAt: now)
         context.insert(snapshot)
         return snapshot
     }
 
-    /// Returns the snapshot for the given month if one exists, else nil.
+    /// Returns the snapshot for the given day if one exists, else nil.
     public static func snapshot(
         for holding: Holding,
         in periodMonth: Date
     ) -> Snapshot? {
-        let month = Snapshot.normalize(periodMonth)
-        return (holding.snapshots ?? []).first { $0.periodMonth == month }
+        let day = Snapshot.normalizeDay(periodMonth)
+        return (holding.snapshots ?? []).first { $0.periodMonth == day }
     }
 }

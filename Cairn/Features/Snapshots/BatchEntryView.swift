@@ -4,22 +4,40 @@ import SwiftData
 /// Spreadsheet-style monthly snapshot entry (PRD §4.3.5). One row per active
 /// Holding, grouped by Member. Only the "this month" column is editable.
 struct BatchEntryView: View {
-    @Environment(\.modelContext) private var context
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.locale) private var locale
+    @Environment(\.modelContext) var context
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.locale) var locale
 
     @AppStorage(AppSettingsKeys.homeCurrency)
-    private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
+    var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
 
-    @Query private var members: [Member]
-    @Query private var rates: [FXRate]
+    @Query var members: [Member]
+    @Query var rates: [FXRate]
 
-    @State private var periodMonth: Date = Snapshot.normalize(.now)
-    @State private var edits: [UUID: Decimal?] = [:]
-    @State private var savedOnce: Set<UUID> = []
+    @State var periodMonth: Date = Snapshot.normalizeDay(.now)
+    @State var edits: [UUID: Decimal?] = [:]
+    @State var savedOnce: Set<UUID> = []
     @State private var showClearConfirm: Bool = false
     @State private var showDiscardConfirm: Bool = false
     @State private var errorMessage: String?
+    @State private var isSaving: Bool = false
+    @State var didPrefill: Bool = false
+
+    /// Historical FX rates fetched for the currently selected month.
+    /// Keyed by quote currency; each value means `1 homeCurrency == rate × quote`.
+    /// Lives in view state only — never persisted to the `FXRate` cache,
+    /// so month-by-month lookups don't pollute "current" rates.
+    @State var historicalRates: [String: Decimal] = [:]
+    @State var historicalRatesAsOf: Date?
+    @State var isLoadingRates: Bool = false
+    @State var ratesFetchError: String?
+
+    /// Free-form notes attached to the monthly `PortfolioSnapshot`.
+    @State var note: String = ""
+    @State var didPrefillNote: Bool = false
+
+    /// Seam for tests. Defaults to the live Frankfurter fetcher.
+    var ratesFetcher: any FXRateFetching = FrankfurterFetcher()
 
     var body: some View {
         NavigationStack {
@@ -33,7 +51,16 @@ struct BatchEntryView: View {
                     )
                 } else {
                     entryScroll
+                        .task { prefillIfNeeded() }
                 }
+            }
+            .task(id: periodMonth) {
+                await loadHistoricalRates()
+                loadNoteForCurrentMonth()
+            }
+            .onChange(of: homeCurrency) { _, _ in
+                Task { await loadHistoricalRates() }
+                loadNoteForCurrentMonth()
             }
             .navigationTitle(navTitle)
             #if !os(macOS)
@@ -113,9 +140,14 @@ struct BatchEntryView: View {
             Button {
                 save()
             } label: {
-                Text("batch.save")
+                if isSaving {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Text("batch.save")
+                }
             }
-            .disabled(!hasUnsavedEdits)
+            .disabled(!hasUnsavedEdits || isSaving)
             .buttonStyle(.borderedProminent)
         }
         ToolbarItem(placement: .secondaryAction) {
@@ -157,6 +189,7 @@ struct BatchEntryView: View {
                 ForEach(groupedRows, id: \.member.id) { group in
                     memberGroupCard(group)
                 }
+                notesCard
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 20)
@@ -166,24 +199,71 @@ struct BatchEntryView: View {
     }
 
     private var monthCard: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "calendar")
-                .foregroundStyle(Color.accentColor)
-            DatePicker(
-                "batch.month",
-                selection: $periodMonth,
-                displayedComponents: [.date]
-            )
-            .labelsHidden()
-            .onChange(of: periodMonth) { _, newValue in
-                periodMonth = Snapshot.normalize(newValue)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
+                GlyphBadge(systemName: "calendar", tint: .accentColor, size: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("batch.monthCard.title")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .tracking(0.3)
+                    Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
+                        .font(.title3.weight(.semibold))
+                }
+                Spacer()
+                DatePicker(
+                    "batch.month",
+                    selection: $periodMonth,
+                    displayedComponents: [.date]
+                )
+                .labelsHidden()
+                .onChange(of: periodMonth) { _, newValue in
+                    // Normalize to the start of the picked day (UTC) so the
+                    // value stays stable across timezone boundaries without
+                    // forcing the user back to the 1st of the month.
+                    let day = Snapshot.normalizeDay(newValue)
+                    if day != periodMonth { periodMonth = day }
+                }
             }
-            Text("batch.month")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Spacer()
+
+            Divider().opacity(0.4)
+
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("batch.total")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(totalInHome, format: .currency(code: homeCurrency).locale(locale))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("batch.summary.filled")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(verbatim: filledSummary)
+                        .font(.callout.monospacedDigit().weight(.semibold))
+                }
+                Button {
+                    fillFromLast()
+                } label: {
+                    Label {
+                        Text("batch.fillFromLast")
+                    } icon: {
+                        Image(systemName: "arrow.down.to.line")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!hasBlankWithPrevious)
+            }
+
+            ratesSection
         }
-        .glassCard(cornerRadius: 14, padding: 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 14, padding: 16)
     }
 
     private func memberGroupCard(_ group: MemberGroup) -> some View {
@@ -207,59 +287,18 @@ struct BatchEntryView: View {
 
     @ViewBuilder
     private func entryRow(_ row: HoldingRow) -> some View {
-        HStack(spacing: 12) {
-            statusDot(for: row.holding.id)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: row.holding.account?.name ?? "")
-                    .font(.body.weight(.medium))
-                HStack(spacing: 6) {
-                    Text(verbatim: row.holding.currency)
-                        .font(.caption.monospaced().weight(.semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.secondary.opacity(0.15), in: Capsule())
-                    if let label = row.holding.label, !label.isEmpty {
-                        Text(verbatim: label)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                TextField(
-                    row.lastMonthAmount.map { formatAmount($0) } ?? "",
-                    value: binding(for: row.holding.id),
-                    format: .number
-                )
-                .multilineTextAlignment(.trailing)
-                .textFieldStyle(.roundedBorder)
-                #if !os(macOS)
-                .keyboardType(.decimalPad)
-                #endif
-                .frame(minWidth: 110, maxWidth: 150)
-
-                if let approx = approxHome(for: row) {
-                    Text(approx, format: .currency(code: homeCurrency).locale(locale))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else if currentAmount(for: row.holding.id) != nil && row.holding.currency != homeCurrency {
-                    Text("overview.missingRates.short")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                }
-            }
-        }
-        .padding(.vertical, 8)
-    }
-
-    @ViewBuilder
-    private func statusDot(for holdingId: UUID) -> some View {
-        let dirty = edits[holdingId] != nil
-        let saved = savedOnce.contains(holdingId)
-        Circle()
-            .fill(dirty ? Color.yellow : (saved ? Color.green : Color.secondary.opacity(0.25)))
-            .frame(width: 8, height: 8)
+        BatchEntryRowView(
+            accountName: row.holding.account?.name ?? "",
+            accountKind: row.holding.account?.kind ?? .cash,
+            currency: row.holding.currency,
+            label: row.holding.label,
+            previousAmount: row.previousAmount,
+            homeCurrency: homeCurrency,
+            convertedPreview: approxHome(for: row),
+            isDirty: edits[row.holding.id] != nil,
+            isSaved: savedOnce.contains(row.holding.id),
+            amount: binding(for: row.holding.id)
+        )
     }
 
     // MARK: - Footer
@@ -293,160 +332,54 @@ struct BatchEntryView: View {
         }
     }
 
-    // MARK: - Derived data
-
-    private struct HoldingRow {
-        let holding: Holding
-        let lastMonthAmount: Decimal?
-    }
-
-    private struct MemberGroup {
-        let member: Member
-        let rows: [HoldingRow]
-    }
-
-    private var groupedRows: [MemberGroup] {
-        let calendar = isoCalendar()
-        guard let previousMonth = calendar.date(byAdding: .month, value: -1, to: periodMonth) else {
-            return []
-        }
-        let prevNormalized = Snapshot.normalize(previousMonth)
-
-        return members.compactMap { member in
-            let accounts = member.accounts ?? []
-            let holdings = accounts
-                .flatMap { $0.holdings ?? [] }
-                .filter { $0.isArchived == false }
-                .sorted { lhs, rhs in
-                    let lhsName = lhs.account?.name ?? ""
-                    let rhsName = rhs.account?.name ?? ""
-                    if lhsName == rhsName { return lhs.currency < rhs.currency }
-                    return lhsName < rhsName
-                }
-            guard !holdings.isEmpty else { return nil }
-
-            let rows = holdings.map { holding in
-                HoldingRow(
-                    holding: holding,
-                    lastMonthAmount: snapshot(for: holding, periodMonth: prevNormalized)?.amount
-                )
-            }
-            return MemberGroup(member: member, rows: rows)
-        }
-    }
-
-    private func snapshot(for holding: Holding, periodMonth: Date) -> Snapshot? {
-        (holding.snapshots ?? []).first { $0.periodMonth == periodMonth }
-    }
-
-    private func binding(for holdingId: UUID) -> Binding<Decimal?> {
-        Binding(
-            get: { edits[holdingId] ?? currentSavedAmount(for: holdingId) },
-            set: { newValue in edits[holdingId] = newValue }
-        )
-    }
-
-    private func currentSavedAmount(for holdingId: UUID) -> Decimal? {
-        let rows = groupedRows.flatMap(\.rows)
-        guard let holding = rows.first(where: { $0.holding.id == holdingId })?.holding else { return nil }
-        return snapshot(for: holding, periodMonth: periodMonth)?.amount
-    }
-
-    private func currentAmount(for holdingId: UUID) -> Decimal? {
-        if let staged = edits[holdingId] { return staged }
-        return currentSavedAmount(for: holdingId)
-    }
-
-    private func approxHome(for row: HoldingRow) -> Decimal? {
-        guard let amount = currentAmount(for: row.holding.id) else { return nil }
-        return FXService.convert(
-            amount: amount,
-            from: row.holding.currency,
-            to: homeCurrency,
-            in: context
-        )
-    }
-
-    private var totalInHome: Decimal {
-        groupedRows.flatMap(\.rows).reduce(Decimal(0)) { running, row in
-            guard let converted = approxHome(for: row) else { return running }
-            return running + converted
-        }
-    }
-
-    private var unresolvedCurrencies: [String] {
-        var codes: Set<String> = []
-        for row in groupedRows.flatMap(\.rows) {
-            guard let amount = currentAmount(for: row.holding.id), amount != 0 else { continue }
-            if row.holding.currency == homeCurrency { continue }
-            if FXService.convert(
-                amount: amount,
-                from: row.holding.currency,
-                to: homeCurrency,
-                in: context
-            ) == nil {
-                codes.insert(row.holding.currency)
-            }
-        }
-        return codes.sorted()
-    }
-
-    private var unresolvedFootnote: String {
-        let template = String(localized: "overview.missingRates")
-        return template.replacingOccurrences(of: "{currencies}", with: unresolvedCurrencies.joined(separator: ", "))
-    }
-
-    private var hasUnsavedEdits: Bool {
-        edits.contains { key, value in
-            value != currentSavedAmount(for: key)
-        }
-    }
-
     // MARK: - Actions
 
-    private func fillFromLast() {
-        for row in groupedRows.flatMap(\.rows) {
-            let current = currentAmount(for: row.holding.id)
-            if current == nil, let last = row.lastMonthAmount {
-                edits[row.holding.id] = last
-            }
-        }
-    }
-
-    private func clearAll() {
-        for row in groupedRows.flatMap(\.rows) {
-            edits[row.holding.id] = Optional<Decimal>.none
-        }
-    }
-
     private func save() {
-        let normalized = Snapshot.normalize(periodMonth)
+        // Per-holding snapshots land on the user's picked day; the
+        // `PortfolioSnapshot` is still keyed by month so month-over-month
+        // trend points stay stable.
+        let day = Snapshot.normalizeDay(periodMonth)
+        let month = Snapshot.normalize(periodMonth)
         let rows: [BatchUpsertService.Row] = edits.compactMap { key, value in
             guard let value else { return nil }
             return BatchUpsertService.Row(holdingId: key, amount: value)
         }
         do {
-            try BatchUpsertService.apply(rows, periodMonth: normalized, context: context)
-            savedOnce.formUnion(rows.map(\.holdingId))
-            edits.removeAll()
-            dismiss()
+            try BatchUpsertService.apply(rows, periodMonth: day, context: context)
         } catch {
             errorMessage = error.localizedDescription
+            return
+        }
+        isSaving = true
+        Task { @MainActor in
+            defer { isSaving = false }
+            do {
+                let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+                try await PortfolioSnapshotService.captureForMonth(
+                    month,
+                    homeCurrency: homeCurrency,
+                    note: trimmed.isEmpty ? nil : trimmed,
+                    context: context
+                )
+                savedOnce.formUnion(rows.map(\.holdingId))
+                edits.removeAll()
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
-
-    private func formatAmount(_ value: Decimal) -> String {
-        value.formatted(.number.precision(.fractionLength(0...2)).locale(locale))
-    }
-
-    private func isoCalendar() -> Calendar {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        return calendar
-    }
 }
 
-#Preview {
-    BatchEntryView()
-        .modelContainer(PersistenceController.previewContainer())
+#Preview("BatchEntry · seeded") {
+    PreviewDefaults.primeOnboarded()
+    return BatchEntryView()
+        .modelContainer(PreviewSampleData.container())
 }
+
+#Preview("BatchEntry · empty") {
+    PreviewDefaults.primeOnboarded()
+    return BatchEntryView()
+        .modelContainer(PreviewSampleData.emptyContainer())
+}
+
