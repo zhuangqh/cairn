@@ -1,87 +1,110 @@
-# Cairn
+<h1 align="center">
+  <img src="docs/assets/icon.png" alt="Cairn" width="160" height="160"><br>
+  Cairn
+</h1>
 
-A family asset-management app for Apple platforms (macOS first).
-See [PRD.md](PRD.md) for the full product spec.
+<p align="center">
+  <b>A monthly net-worth check-up app for families — for your Mac.</b><br>
+  Private by design · Multi-currency · Apple-native
+</p>
 
-> The name comes from mountaineering — a cairn is a stack of stones left as a trail marker.
-> Each monthly snapshot in the app is one more stone on your financial trail.
+<p align="center">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>
+  <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey">
+  <img alt="Built with" src="https://img.shields.io/badge/SwiftUI%20%2B%20SwiftData-orange">
+</p>
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+---
 
-## Status
+> The name comes from mountaineering — a **cairn** is a stack of stones left as a trail marker.
+> Each monthly snapshot in the app is one more stone on your family's financial trail.
 
-Early-stage. macOS is the primary target. iOS / iPadOS sources still build but are not tested
-for distribution — Cairn has no Apple Developer account behind it, so there are no signed
-iOS builds and CloudKit sync is intentionally not used.
+Cairn gives the family CFO a single, calm place to answer one question every month:
+**"What do we own, what is it worth, and how is it trending?"** No transactions to
+categorize, no API keys to configure, no cloud account to sign into.
 
-Data lives locally in the sandboxed Application Support directory. Use
-**Settings → Backup → Export** to produce a `.cairn` JSON file that you can drop into
-iCloud Drive / Dropbox / Git to carry between Macs.
+## ✨ Features
 
-## Prerequisites
+### 👨‍👩‍👧 Whole-family view, organized by member
+Create a profile for each family member, group their accounts under them, and switch
+between a per-member view and an aggregated "All family" view with a single tap.
 
-- macOS 14+ and Xcode 15.3+ (Swift 5.10+, SwiftData)
-- Homebrew packages: `xcodegen`, `swiftlint`
-  ```sh
-  brew install xcodegen swiftlint
-  ```
+### 💱 Multi-currency without the spreadsheet gymnastics
+One account can hold positions in **CNY, USD, HKD, AUD, …** at the same time. Cairn
+fetches live FX rates from the ECB (Frankfurter API, no API key) and converts everything
+to your chosen home currency on the fly. Works offline with cached rates.
 
-No Apple Developer account is required for local builds. The shipped entitlements are
-sandbox + user-selected files only, and the Makefile signs with an ad-hoc identity.
+### 📅 Excel-style monthly batch entry
+The core workflow. One screen, one row per holding, last month's values pre-filled —
+edit only what changed, `Save all`, done. Designed to take **under 3 minutes a month**.
 
-## Build & Run
+- Keyboard navigation (`Tab`, `↑`/`↓`, `Enter`)
+- Live running total in your home currency
+- Atomic save — all rows commit together or none do
+- Backfill any past month
 
-The Xcode project is **not** committed — it is regenerated from [`project.yml`](project.yml)
-via [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+### 📈 Net-worth trend, at a glance
+A Swift Charts curve of total family net worth over **6M / 12M / All time**, with
+breakdowns by **account kind**, **member**, or **currency**. Long-press any point for
+that month's composition and MoM change.
 
-```sh
-make gen          # generate Cairn.xcodeproj
-make open         # generate + open in Xcode
-make build        # xcodebuild for macOS (ad-hoc signed)
-make test         # run unit tests
-make lint         # run SwiftLint (incl. i18n custom rules)
-make clean        # wipe project + build artifacts
-```
+### 🏦 Accounts & holdings that match reality
+Cash, brokerage, and more (real estate & devices in v1.1). An account is *not* pinned to
+a single currency — add as many single-currency **holdings** underneath as you need.
 
-## Structure
+### 🔔 Gentle monthly reminder
+Optional local notification on the 1st of each month: *"Time to update your assets."*
+No push servers, no account required.
 
-```
-Cairn/
-├─ App/          # CairnApp, RootView, tab container
-├─ Features/     # Overview / Accounts / Snapshots / Settings
-├─ Core/
-│  ├─ Models/         # SwiftData @Model types
-│  ├─ Persistence/    # ModelContainer (local-only)
-│  └─ Services/       # Domain services: Holding, Snapshot, Backup
-├─ Shared/
-│  ├─ L10n/           # Localization helpers
-│  └─ Formatters/     # Currency catalog, formatters
-├─ Resources/
-│  ├─ Localizable.xcstrings   # Single source of truth for user-facing strings
-│  └─ Assets.xcassets
-└─ Support/
-   └─ Cairn.entitlements      # Sandbox + user-selected file access only
-```
+### 🌐 Ships in English and 简体中文
+Every string goes through Apple's String Catalog from day one, so currencies, dates, and
+pluralization all follow your locale. Override the app language independently of the
+system if you like.
 
-## Localization
+## 🔒 Privacy by design
 
-**All user-facing strings live in [`Cairn/Resources/Localizable.xcstrings`](Cairn/Resources/Localizable.xcstrings)**
-(Xcode String Catalog). `Text("overview.title")` and friends are auto-localized by SwiftUI.
-See PRD §5.5 for the hard rules.
+- **Your data never leaves your Mac.** Storage is a local-only SwiftData store in the
+  app sandbox. CloudKit sync is intentionally **off**.
+- **The only network call is fetching public FX rates** — no user data, no analytics,
+  no ad SDKs, no account system.
+- **Portable, human-readable backups.** Export your whole store to a single `.cairn`
+  JSON file from **Settings → Backup → Export**. Drop it in iCloud Drive, Dropbox, or
+  a Git repo to carry between Macs, or just to keep a personal archive.
 
-The SwiftLint config includes custom rules that fail the build if `Text(...)`, `.navigationTitle(...)`
-or `Button(...)` contain untokenized free-form English.
+## 📦 Install
 
-## Contributing
+Cairn is open-source and has no Apple Developer account behind it, so there are no
+signed App Store builds.
 
-Pull requests welcome. Before opening one:
+- **Download** — grab the latest `Cairn-x.y.z.dmg` from the
+  [Releases page](../../releases), drag it to `/Applications`. The first launch needs
+  `Control-click → Open` because the build is ad-hoc signed.
+- **Build from source** — see the [Development Guide](docs/development.md).
 
-1. `make lint && make test` is green.
-2. Any new user-facing text has keys in `Localizable.xcstrings` with both `en` and `zh-Hans`
-   translations.
-3. One logical change per commit, using [Conventional Commits](https://www.conventionalcommits.org/)
-   (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:` …).
+System requirement: **macOS 14 Sonoma** or later.
 
-## License
+## 🗺 Status & Roadmap
+
+Cairn is early-stage. macOS is the primary target; iOS / iPadOS sources still compile
+but are not published.
+
+- **v1** — Members · Accounts · Holdings · Monthly snapshots · FX · Trend chart · Backup
+- **v1.1** — Physical assets (real estate, vehicles, devices), CSV export, Face ID lock
+- **v2+** — Depreciation rules, quote API, Widgets, Siri Shortcuts
+
+Full spec: [PRD.md](PRD.md).
+
+## 📚 Documentation
+
+- [Product spec (PRD)](PRD.md)
+- [Design notes](DESIGN.md)
+- [Development guide](docs/development.md) — build, project structure, localization, contributing
+
+## 🤝 Contributing
+
+Pull requests welcome. Start with the [Development Guide](docs/development.md) for the
+build workflow, localization rules, and commit conventions.
+
+## 📄 License
 
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
