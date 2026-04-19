@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct RootView: View {
+    @AppStorage(AppSettingsKeys.onboardingCompleted)
+    private var onboardingCompleted: Bool = false
+
     var body: some View {
         TabView {
             OverviewView()
@@ -17,6 +20,12 @@ struct RootView: View {
                 .tabItem {
                     Label("settings.title", systemImage: "gearshape")
                 }
+        }
+        .sheet(isPresented: .init(
+            get: { !onboardingCompleted },
+            set: { _ in }
+        )) {
+            OnboardingView()
         }
     }
 }
