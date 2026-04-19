@@ -19,7 +19,7 @@ public struct FXRateResponse: Sendable {
     }
 }
 
-/// Default fetcher backed by the free [Frankfurter](https://www.frankfurter.app) API.
+/// Default fetcher backed by the free [Frankfurter](https://frankfurter.dev) API.
 /// Used only at refresh time; the rest of the app reads cached `FXRate` rows.
 public struct FrankfurterFetcher: FXRateFetching {
     public init() {}
@@ -29,15 +29,30 @@ public struct FrankfurterFetcher: FXRateFetching {
         guard !filtered.isEmpty else {
             return FXRateResponse(base: base, date: .now, rates: [:])
         }
-        var components = URLComponents(string: "https://api.frankfurter.app/latest")
+        // Use the canonical `frankfurter.dev/v1` host directly. The legacy
+        // `api.frankfurter.app/latest` endpoint now returns a 301 redirect to
+        // this URL, and relying on implicit redirect following across hosts
+        // has caused intermittent fetch failures in release builds.
+        var components = URLComponents(string: "https://api.frankfurter.dev/v1/latest")
         components?.queryItems = [
-            URLQueryItem(name: "from", value: base),
-            URLQueryItem(name: "to", value: filtered.joined(separator: ","))
+            URLQueryItem(name: "base", value: base),
+            URLQueryItem(name: "symbols", value: filtered.joined(separator: ","))
         ]
         guard let url = components?.url else { throw URLError(.badURL) }
 
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            #if DEBUG
+            let body = String(data: data, encoding: .utf8) ?? "<non-utf8>"
+            print("[FX] \(url.absoluteString) -> HTTP \(http.statusCode): \(body)")
+            #endif
             throw URLError(.badServerResponse)
         }
 
@@ -120,8 +135,14 @@ public enum FXService {
     }
 
     private static func fetchRate(base: String, quote: String, in context: ModelContext) -> FXRate? {
+        // Bind to locals with distinct names so the `#Predicate` closure does
+        // not capture identifiers that collide with `FXRate.base` / `.quote`.
+        // SwiftData's predicate translation can silently mis-match when a
+        // captured value shadows a model property name.
+        let baseCode = base
+        let quoteCode = quote
         var descriptor = FetchDescriptor<FXRate>(
-            predicate: #Predicate { $0.base == base && $0.quote == quote }
+            predicate: #Predicate { $0.base == baseCode && $0.quote == quoteCode }
         )
         descriptor.fetchLimit = 1
         return (try? context.fetch(descriptor))?.first
