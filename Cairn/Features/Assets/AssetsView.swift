@@ -45,6 +45,21 @@ struct AssetsView: View {
                 }
             }
         }
+        #if !os(macOS)
+        // Plain "+" button in the nav-bar, matching the Accounts screen.
+        // macOS keeps the inline button inside the summary card because the
+        // nav-bar there already hosts the tab switcher.
+        .toolbar {
+            if !members.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: presentNewAsset) {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(Text("asset.new.title"))
+                }
+            }
+        }
+        #endif
         .sheet(item: $newAssetDraft) { draft in
             AssetFormView(asset: draft, isNew: true) { saved in
                 if !saved { context.delete(draft) }
@@ -120,7 +135,8 @@ struct AssetsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Spacer()
+            Spacer(minLength: 0)
+            #if os(macOS)
             Button {
                 presentNewAsset()
             } label: {
@@ -132,6 +148,7 @@ struct AssetsView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
+            #endif
         }
         .glassCard()
     }

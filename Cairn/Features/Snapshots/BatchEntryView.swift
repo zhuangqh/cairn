@@ -147,7 +147,9 @@ struct BatchEntryView: View {
                 if let errorMessage { Text(verbatim: errorMessage) }
             }
         }
+        #if os(macOS)
         .frame(minWidth: 560, minHeight: 560)
+        #endif
     }
 
     // MARK: - Header / toolbar

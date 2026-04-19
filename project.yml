@@ -1,6 +1,6 @@
 name: Cairn
 options:
-  bundleIdPrefix: com.cairn
+  bundleIdPrefix: com.zhuangqh
   deploymentTarget:
     iOS: "17.0"
     macOS: "14.0"
@@ -30,7 +30,7 @@ targets:
       - path: Cairn
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.cairn.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.zhuangqh.cairn
         PRODUCT_NAME: Cairn
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_ENTITLEMENTS: Cairn/Support/Cairn.entitlements
@@ -51,7 +51,7 @@ targets:
       - target: Cairn
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.cairn.app.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.zhuangqh.cairn.tests
         GENERATE_INFOPLIST_FILE: YES
       configs:
         Debug:

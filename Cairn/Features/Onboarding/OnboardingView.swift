@@ -38,7 +38,9 @@ struct OnboardingView: View {
             .padding(.vertical, 40)
         }
         .interactiveDismissDisabled(true)
+        #if os(macOS)
         .frame(minWidth: 560, minHeight: 520)
+        #endif
     }
 
     private var progressDots: some View {

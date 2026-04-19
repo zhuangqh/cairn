@@ -57,6 +57,17 @@ struct OverviewView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
+                #if !os(macOS)
+                // On iOS the nav bar is narrow; host the segmented
+                // control in the scroll content instead of the toolbar.
+                GlassSegmentedControl(
+                    selection: $selectedTab,
+                    options: Tab.allCases,
+                    title: { $0.titleKey },
+                    icon: { $0.iconName }
+                )
+                .frame(maxWidth: 420)
+                #endif
                 switch selectedTab {
                 case .financial:
                     financialTab
@@ -77,7 +88,11 @@ struct OverviewView: View {
         .scrollIndicators(.hidden)
         .ambientBackground()
         .navigationTitle("overview.title")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
+            #if os(macOS)
             // Float the tab switcher in the toolbar so it stays visible
             // while the content scrolls, and sits on the same row as the
             // window's navigation chrome.
@@ -90,6 +105,20 @@ struct OverviewView: View {
                 )
                 .frame(minWidth: 260, idealWidth: 320, maxWidth: 420)
             }
+            #else
+            // Plain "+" style action in the nav bar on iOS, matching
+            // the Accounts screen.
+            ToolbarItem(placement: .primaryAction) {
+                if selectedTab == .financial && !holdings.isEmpty {
+                    Button {
+                        isUpdating = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(Text("overview.addSnapshot"))
+                }
+            }
+            #endif
         }
         .sheet(isPresented: $isUpdating) {
             BatchEntryView()
@@ -134,58 +163,84 @@ struct OverviewView: View {
     // MARK: - Cards
 
     private var heroCard: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Text("overview.netWorth")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                    Text(verbatim: "·")
-                        .foregroundStyle(.tertiary)
-                    Text(verbatim: homeCurrency)
-                        .font(.caption.monospaced().weight(.semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.secondary.opacity(0.15), in: Capsule())
-                }
-                Text(
-                    totals.amount,
-                    format: .currency(code: homeCurrency)
-                        .locale(locale)
-                        .precision(.fractionLength(0))
-                )
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-
-                if !totals.missingCurrencies.isEmpty {
-                    Label {
-                        Text(missingRatesMessage)
-                    } icon: {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                    }
-                    .foregroundStyle(.orange)
-                    .font(.footnote)
-                }
-                if let latest = rates.map(\.date).max(), totals.missingCurrencies.isEmpty {
-                    Text(latestRatesFootnote(date: latest))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+        #if os(macOS)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 16) {
+                heroTextBlock
+                Spacer()
+                addSnapshotButton
             }
-            Spacer()
-            Button {
-                isUpdating = true
-            } label: {
-                Label {
-                    Text("overview.addSnapshot")
-                } icon: {
-                    Image(systemName: "square.and.pencil")
-                }
+            VStack(alignment: .leading, spacing: 16) {
+                heroTextBlock
+                addSnapshotButton
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
         }
         .glassCard()
+        #else
+        // On iOS the "Add snapshot" action lives in a floating action
+        // button overlaid on the ScrollView, so the hero only carries
+        // the total and the contextual badges.
+        heroTextBlock
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassCard()
+        #endif
+    }
+
+    private var heroTextBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text("overview.netWorth")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text(verbatim: "·")
+                    .foregroundStyle(.tertiary)
+                Text(verbatim: homeCurrency)
+                    .font(.caption.monospaced().weight(.semibold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.secondary.opacity(0.15), in: Capsule())
+            }
+            Text(
+                totals.amount,
+                format: .currency(code: homeCurrency)
+                    .locale(locale)
+                    .precision(.fractionLength(0))
+            )
+                .font(.system(size: 38, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+
+            if !totals.missingCurrencies.isEmpty {
+                Label {
+                    Text(missingRatesMessage)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                }
+                .foregroundStyle(.orange)
+                .font(.footnote)
+            }
+            if let latest = rates.map(\.date).max(), totals.missingCurrencies.isEmpty {
+                Text(latestRatesFootnote(date: latest))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var addSnapshotButton: some View {
+        Button {
+            isUpdating = true
+        } label: {
+            Label {
+                Text("overview.addSnapshot")
+            } icon: {
+                Image(systemName: "square.and.pencil")
+            }
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
     }
 
     private var trendCard: some View {

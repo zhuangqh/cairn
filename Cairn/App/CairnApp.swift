@@ -22,17 +22,27 @@ struct CairnApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(localization)
-                .environment(\.locale, localization.effectiveLocale ?? Locale.current)
-                .preferredColorScheme(appearance.colorScheme)
-                // Enforce a sensible minimum size so the responsive layout
-                // never gets squeezed below its compact breakpoint.
-                .frame(minWidth: 720, minHeight: 520)
+            rootScene
         }
         .modelContainer(container)
         #if os(macOS)
         .defaultSize(width: 1200, height: 800)
+        #endif
+    }
+
+    @ViewBuilder
+    private var rootScene: some View {
+        let root = RootView()
+            .environment(localization)
+            .environment(\.locale, localization.effectiveLocale ?? Locale.current)
+            .preferredColorScheme(appearance.colorScheme)
+        #if os(macOS)
+        // Enforce a sensible minimum window size on macOS so the responsive
+        // layout never gets squeezed below its compact breakpoint. Do NOT
+        // apply on iOS — would force the UI wider than the device screen.
+        root.frame(minWidth: 720, minHeight: 520)
+        #else
+        root
         #endif
     }
 }

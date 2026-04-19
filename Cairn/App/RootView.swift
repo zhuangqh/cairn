@@ -1,28 +1,45 @@
 import SwiftUI
 
-/// Top-level navigation shell. Uses a sidebar layout on macOS / iPad that
-/// collapses into a stack on compact iPhone widths. The detail column
-/// renders the feature selected in the sidebar.
+/// Top-level navigation shell. On macOS it uses a `NavigationSplitView`
+/// with a sidebar. On iOS/iPadOS it uses a bottom `TabView`, which is the
+/// platform-native pattern and avoids `List(selection:)` being unavailable
+/// on iOS outside of a split-view sidebar.
 struct RootView: View {
     @AppStorage(AppSettingsKeys.onboardingCompleted)
     private var onboardingCompleted: Bool = false
 
     @State private var selection: SidebarItem = .dashboard
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
+        shell
+            .sheet(isPresented: .init(
+                get: { !onboardingCompleted },
+                set: { _ in }
+            )) {
+                OnboardingView()
+            }
+    }
+
+    @ViewBuilder
+    private var shell: some View {
+        #if os(macOS)
+        macShell
+        #else
+        iosShell
+        #endif
+    }
+
+    #if os(macOS)
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+
+    @ViewBuilder
+    private var macShell: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             sidebar
         } detail: {
-            detail
+            detail(for: selection)
         }
         .navigationSplitViewStyle(.balanced)
-        .sheet(isPresented: .init(
-            get: { !onboardingCompleted },
-            set: { _ in }
-        )) {
-            OnboardingView()
-        }
     }
 
     @ViewBuilder
@@ -49,10 +66,30 @@ struct RootView: View {
         .navigationTitle("app.name")
         .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
     }
+    #endif
+
+    #if !os(macOS)
+    @ViewBuilder
+    private var iosShell: some View {
+        TabView(selection: $selection) {
+            ForEach(SidebarItem.allCases, id: \.self) { item in
+                detail(for: item)
+                    .tabItem {
+                        Label {
+                            Text(LocalizedStringKey(item.titleKey))
+                        } icon: {
+                            Image(systemName: item.systemImage)
+                        }
+                    }
+                    .tag(item)
+            }
+        }
+    }
+    #endif
 
     @ViewBuilder
-    private var detail: some View {
-        switch selection {
+    private func detail(for item: SidebarItem) -> some View {
+        switch item {
         case .dashboard:
             NavigationStack { DashboardView() }
         case .overview:
