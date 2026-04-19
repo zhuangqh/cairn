@@ -40,6 +40,15 @@ struct AllocationDonutView: View {
                 )
                 .cornerRadius(4)
                 .foregroundStyle(entry.kind.tint)
+                .annotation(position: .overlay) {
+                    let value = percentage(for: entry)
+                    if value >= 0.05 {
+                        Text(value, format: .percent.precision(.fractionLength(0)))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.35), radius: 1, x: 0, y: 0)
+                    }
+                }
             }
             .chartLegend(.hidden)
         }
@@ -67,6 +76,12 @@ struct AllocationDonutView: View {
                 }
             }
         }
+    }
+
+    private func percentage(for entry: NetWorthCalculator.KindTotal) -> Double {
+        guard total > 0 else { return 0 }
+        let ratio = NSDecimalNumber(decimal: entry.amount / total).doubleValue
+        return ratio
     }
 }
 

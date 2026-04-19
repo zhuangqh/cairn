@@ -1823,6 +1823,40 @@
         }
       }
     },
+    "overview.snapshots.filter.allYears" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All years"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部年份"
+          }
+        }
+      }
+    },
+    "overview.snapshots.filter.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No snapshots in the selected year."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选年份没有快照。"
+          }
+        }
+      }
+    },
     "overview.title" : {
       "extractionState" : "manual",
       "localizations" : {

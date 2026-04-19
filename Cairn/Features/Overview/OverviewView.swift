@@ -17,9 +17,8 @@ struct OverviewView: View {
     @Query(sort: \PortfolioSnapshot.periodMonth, order: .reverse)
     private var portfolioSnapshots: [PortfolioSnapshot]
 
-    @State private var isRefreshing: Bool = false
-    @State private var refreshError: String?
     @State private var isUpdating: Bool = false
+    @State private var selectedYear: Int? = nil
 
     private var totals: NetWorthCalculator.Totals {
         _ = snapshots.count + rates.count + holdings.count
@@ -60,39 +59,16 @@ struct OverviewView: View {
         .sheet(isPresented: $isUpdating) {
             BatchEntryView()
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task { await refreshRates() }
-                } label: {
-                    if isRefreshing {
-                        ProgressView()
-                    } else {
-                        Label {
-                            Text("overview.refreshRates")
-                        } icon: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                    }
-                }
-                .disabled(isRefreshing)
+        .onAppear {
+            if selectedYear == nil, let latest = availableYears.first {
+                selectedYear = latest
             }
         }
-        .alert(
-            "overview.refresh.failure",
-            isPresented: .init(
-                get: { refreshError != nil },
-                set: { if !$0 { refreshError = nil } }
-            )
-        ) {
-            Button {
-                refreshError = nil
-            } label: {
-                Text("common.action.done")
-            }
-        } message: {
-            if let refreshError {
-                Text(verbatim: refreshError)
+        .onChange(of: availableYears) { _, newYears in
+            if let selected = selectedYear, !newYears.contains(selected) {
+                selectedYear = newYears.first
+            } else if selectedYear == nil {
+                selectedYear = newYears.first
             }
         }
     }
@@ -195,6 +171,39 @@ struct OverviewView: View {
                 Text("overview.snapshots")
                     .font(.headline)
                 Spacer()
+                if !availableYears.isEmpty {
+                    Menu {
+                        Button {
+                            selectedYear = nil
+                        } label: {
+                            if selectedYear == nil {
+                                Label("overview.snapshots.filter.allYears", systemImage: "checkmark")
+                            } else {
+                                Text("overview.snapshots.filter.allYears")
+                            }
+                        }
+                        Divider()
+                        ForEach(availableYears, id: \.self) { year in
+                            Button {
+                                selectedYear = year
+                            } label: {
+                                if selectedYear == year {
+                                    Label(String(year), systemImage: "checkmark")
+                                } else {
+                                    Text(verbatim: String(year))
+                                }
+                            }
+                        }
+                    } label: {
+                        Label {
+                            Text(verbatim: selectedYear.map(String.init) ?? String(localized: "overview.snapshots.filter.allYears"))
+                        } icon: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                        }
+                    }
+                    .menuStyle(.borderlessButton)
+                    .font(.callout)
+                }
                 if !portfolioSnapshots.isEmpty {
                     Button {
                         isUpdating = true
@@ -218,16 +227,23 @@ struct OverviewView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 8)
+            } else if filteredSnapshots.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("overview.snapshots.filter.empty")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 8)
             } else {
                 VStack(spacing: 0) {
-                    ForEach(Array(portfolioSnapshots.enumerated()), id: \.element.id) { index, snapshot in
+                    ForEach(Array(filteredSnapshots.enumerated()), id: \.element.id) { index, snapshot in
                         NavigationLink {
                             PortfolioSnapshotDetailView(snapshot: snapshot)
                         } label: {
                             snapshotRow(snapshot)
                         }
                         .buttonStyle(.plain)
-                        if index < portfolioSnapshots.count - 1 {
+                        if index < filteredSnapshots.count - 1 {
                             Divider().opacity(0.4)
                         }
                     }
@@ -236,6 +252,20 @@ struct OverviewView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
+    }
+
+    private var availableYears: [Int] {
+        let calendar = Calendar.current
+        let years = Set(portfolioSnapshots.map { calendar.component(.year, from: $0.periodMonth) })
+        return years.sorted(by: >)
+    }
+
+    private var filteredSnapshots: [PortfolioSnapshot] {
+        guard let selectedYear else { return portfolioSnapshots }
+        let calendar = Calendar.current
+        return portfolioSnapshots.filter {
+            calendar.component(.year, from: $0.periodMonth) == selectedYear
+        }
     }
 
     private func snapshotRow(_ snapshot: PortfolioSnapshot) -> some View {
@@ -286,20 +316,6 @@ struct OverviewView: View {
     }
 
     // MARK: - Actions
-
-    private func refreshRates() async {
-        isRefreshing = true
-        defer { isRefreshing = false }
-
-        let quotes = Array(Set(holdings.map(\.currency))).filter { $0 != homeCurrency }
-        guard !quotes.isEmpty else { return }
-
-        do {
-            try await FXService.refresh(base: homeCurrency, quotes: quotes, context: context)
-        } catch {
-            refreshError = error.localizedDescription
-        }
-    }
 }
 
 #Preview("Overview · seeded") {
