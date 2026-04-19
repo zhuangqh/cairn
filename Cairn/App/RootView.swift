@@ -90,6 +90,7 @@ enum SidebarItem: CaseIterable, Hashable {
     }
 }
 
+#if DEBUG
 #Preview("RootView · seeded") {
     PreviewDefaults.primeOnboarded()
     return RootView()
@@ -103,3 +104,4 @@ enum SidebarItem: CaseIterable, Hashable {
         .environment(LocalizationService())
         .modelContainer(PreviewSampleData.emptyContainer())
 }
+#endif

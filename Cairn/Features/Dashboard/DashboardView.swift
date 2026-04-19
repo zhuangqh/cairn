@@ -286,6 +286,7 @@ struct DashboardView: View {
     }
 }
 
+#if DEBUG
 #Preview("Dashboard · seeded") {
     PreviewDefaults.primeOnboarded()
     return NavigationStack {
@@ -301,3 +302,4 @@ struct DashboardView: View {
     }
     .modelContainer(PreviewSampleData.emptyContainer())
 }
+#endif

@@ -407,6 +407,7 @@ struct BatchEntryView: View {
     }
 }
 
+#if DEBUG
 #Preview("BatchEntry · seeded") {
     PreviewDefaults.primeOnboarded()
     return BatchEntryView()
@@ -418,4 +419,5 @@ struct BatchEntryView: View {
     return BatchEntryView()
         .modelContainer(PreviewSampleData.emptyContainer())
 }
+#endif
 

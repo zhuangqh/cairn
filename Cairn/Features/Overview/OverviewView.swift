@@ -318,6 +318,7 @@ struct OverviewView: View {
     // MARK: - Actions
 }
 
+#if DEBUG
 #Preview("Overview · seeded") {
     PreviewDefaults.primeOnboarded()
     return NavigationStack {
@@ -333,3 +334,4 @@ struct OverviewView: View {
     }
     .modelContainer(PreviewSampleData.emptyContainer())
 }
+#endif
