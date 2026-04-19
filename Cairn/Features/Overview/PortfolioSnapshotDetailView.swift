@@ -10,6 +10,7 @@ struct PortfolioSnapshotDetailView: View {
     let snapshot: PortfolioSnapshot
 
     @State private var showDeleteConfirm: Bool = false
+    @State private var showEditSheet: Bool = false
     @State private var errorMessage: String?
 
     var body: some View {
@@ -35,12 +36,27 @@ struct PortfolioSnapshotDetailView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showEditSheet = true
+                } label: {
+                    Image(systemName: "pencil")
+                }
+                .accessibilityLabel(Text("common.action.edit"))
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button(role: .destructive) {
                     showDeleteConfirm = true
                 } label: {
                     Image(systemName: "trash")
                 }
             }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            BatchEntryView(
+                initialPeriodMonth: snapshot.periodMonth,
+                lockedRates: lockedRatesForEdit,
+                lockedBaseline: lockedBaselineForEdit
+            )
         }
         .confirmationDialog(
             "portfolioSnapshot.delete.confirm.title",
@@ -269,6 +285,30 @@ struct PortfolioSnapshotDetailView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Captured rates rebuilt as `quote → rate` (matching Frankfurter's
+    /// `1 home == rate × quote` convention) so the editor reuses the
+    /// snapshot's historical rates instead of refetching live data.
+    private var lockedRatesForEdit: [String: Decimal] {
+        var map: [String: Decimal] = [:]
+        for rate in snapshot.rates where rate.base == snapshot.homeCurrency {
+            map[rate.quote] = rate.rate
+        }
+        return map
+    }
+
+    /// Captured per-holding amounts keyed by `holdingId`, used to seed
+    /// the editor with the snapshot's recorded values rather than the
+    /// previous month's. Entries whose holding has since been deleted
+    /// (no `holdingId`) are skipped — the row simply won't appear.
+    private var lockedBaselineForEdit: [UUID: Decimal] {
+        var map: [UUID: Decimal] = [:]
+        for entry in snapshot.entries {
+            guard let holdingId = entry.holdingId else { continue }
+            map[holdingId] = entry.amount
+        }
+        return map
     }
 }
 

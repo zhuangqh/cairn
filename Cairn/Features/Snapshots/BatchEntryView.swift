@@ -35,9 +35,44 @@ struct BatchEntryView: View {
     /// Free-form notes attached to the monthly `PortfolioSnapshot`.
     @State var note: String = ""
     @State var didPrefillNote: Bool = false
+    /// Snapshot of `note` at load time so we can detect note-only edits
+    /// and let the user save without touching any amount.
+    @State var originalNote: String = ""
 
     /// Seam for tests. Defaults to the live Frankfurter fetcher.
     var ratesFetcher: any FXRateFetching = FrankfurterFetcher()
+
+    /// When set, the month picker is disabled and FX rates are seeded
+    /// from these locked values instead of being fetched live. Used when
+    /// editing an existing `PortfolioSnapshot` so the historical record
+    /// keeps its captured rates and period.
+    var lockedRates: [String: Decimal]?
+
+    /// Captured per-holding amounts to use as the saved baseline when
+    /// editing an existing `PortfolioSnapshot`. Per-holding `Snapshot`
+    /// rows are stored at the original save day (not the month start),
+    /// so we can't re-derive these from `Snapshot` lookups keyed on the
+    /// portfolio snapshot's normalized month.
+    var lockedBaseline: [UUID: Decimal]?
+
+    var isMonthLocked: Bool { lockedRates != nil }
+
+    init(
+        initialPeriodMonth: Date? = nil,
+        lockedRates: [String: Decimal]? = nil,
+        lockedBaseline: [UUID: Decimal]? = nil,
+        ratesFetcher: any FXRateFetching = FrankfurterFetcher()
+    ) {
+        if let initialPeriodMonth {
+            _periodMonth = State(initialValue: Snapshot.normalizeDay(initialPeriodMonth))
+        }
+        if let lockedRates {
+            _historicalRates = State(initialValue: lockedRates)
+        }
+        self.lockedRates = lockedRates
+        self.lockedBaseline = lockedBaseline
+        self.ratesFetcher = ratesFetcher
+    }
 
     var body: some View {
         NavigationStack {
@@ -218,6 +253,7 @@ struct BatchEntryView: View {
                     displayedComponents: [.date]
                 )
                 .labelsHidden()
+                .disabled(isMonthLocked)
                 .onChange(of: periodMonth) { _, newValue in
                     // Normalize to the start of the picked day (UTC) so the
                     // value stays stable across timezone boundaries without

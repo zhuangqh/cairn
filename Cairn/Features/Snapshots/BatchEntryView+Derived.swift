@@ -60,6 +60,9 @@ extension BatchEntryView {
     }
 
     func currentSavedAmount(for holdingId: UUID) -> Decimal? {
+        if let lockedBaseline, let value = lockedBaseline[holdingId] {
+            return value
+        }
         let rows = groupedRows.flatMap(\.rows)
         guard let holding = rows.first(where: { $0.holding.id == holdingId })?.holding else { return nil }
         return snapshot(for: holding, periodMonth: periodMonth)?.amount
@@ -122,7 +125,8 @@ extension BatchEntryView {
     }
 
     var hasUnsavedEdits: Bool {
-        edits.contains { key, value in
+        if note != originalNote { return true }
+        return edits.contains { key, value in
             value != currentSavedAmount(for: key)
         }
     }

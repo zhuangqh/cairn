@@ -25,6 +25,15 @@ extension BatchEntryView {
     /// the closing rate for that period.
     @MainActor
     func loadHistoricalRates() async {
+        // When editing a captured snapshot, FX rates are locked to the
+        // values stored on the snapshot — never refetch.
+        if let lockedRates {
+            historicalRates = lockedRates
+            historicalRatesAsOf = nil
+            ratesFetchError = nil
+            isLoadingRates = false
+            return
+        }
         let quotes = neededQuoteCurrencies
         guard !quotes.isEmpty else {
             historicalRates = [:]
@@ -68,6 +77,7 @@ extension BatchEntryView {
         descriptor.fetchLimit = 1
         let existing = (try? context.fetch(descriptor))?.first
         note = existing?.note ?? ""
+        originalNote = note
         didPrefillNote = true
     }
 
