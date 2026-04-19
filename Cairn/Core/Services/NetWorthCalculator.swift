@@ -23,6 +23,23 @@ public enum NetWorthCalculator {
         public var id: UUID { memberId }
     }
 
+    public struct KindTotal: Sendable, Equatable, Identifiable {
+        public let kind: AccountKind
+        public let amount: Decimal
+        public var id: AccountKind { kind }
+    }
+
+    public struct Activity: Sendable, Identifiable {
+        public let id: UUID
+        public let recordedAt: Date
+        public let periodMonth: Date
+        public let memberName: String
+        public let accountName: String
+        public let holdingLabel: String?
+        public let currency: String
+        public let amount: Decimal
+    }
+
     /// Net worth across all holdings, valued at the latest snapshot on or
     /// before `periodMonth`.
     public static func total(
@@ -90,6 +107,89 @@ public enum NetWorthCalculator {
                 context: context
             )
             return (period, totals.amount)
+        }
+    }
+
+    /// Net-worth totals broken down by account kind (cash/stock/realEstate/device),
+    /// valued at the latest snapshot on or before `periodMonth`. Only kinds with
+    /// non-zero totals are returned, sorted by amount descending.
+    public static func totalsByKind(
+        homeCurrency: String,
+        asOf periodMonth: Date = .now,
+        context: ModelContext
+    ) -> [KindTotal] {
+        let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
+        let normalizedCutoff = Snapshot.normalize(periodMonth)
+        var sums: [AccountKind: Decimal] = [:]
+
+        for holding in holdings where holding.isArchived == false {
+            guard let account = holding.account, account.isArchived == false else { continue }
+            guard let amount = latestAmount(for: holding, asOf: normalizedCutoff) else { continue }
+            let converted: Decimal?
+            if holding.currency == homeCurrency {
+                converted = amount
+            } else {
+                converted = FXService.convert(
+                    amount: amount,
+                    from: holding.currency,
+                    to: homeCurrency,
+                    in: context
+                )
+            }
+            guard let value = converted else { continue }
+            sums[account.kind, default: 0] += value
+        }
+
+        return sums
+            .filter { $0.value != 0 }
+            .map { KindTotal(kind: $0.key, amount: $0.value) }
+            .sorted { $0.amount > $1.amount }
+    }
+
+    /// Percentage change between `asOf` month total and the preceding month total.
+    /// Returns `nil` when the previous month has zero net worth (no baseline).
+    public static func monthOverMonthDelta(
+        homeCurrency: String,
+        asOf periodMonth: Date = .now,
+        context: ModelContext
+    ) -> Double? {
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        let thisMonth = Snapshot.normalize(periodMonth)
+        guard let lastMonth = calendar.date(byAdding: .month, value: -1, to: thisMonth) else { return nil }
+
+        let current = total(homeCurrency: homeCurrency, asOf: thisMonth, context: context).amount
+        let previous = total(homeCurrency: homeCurrency, asOf: lastMonth, context: context).amount
+        guard previous != 0 else { return nil }
+        let change = (current - previous) / previous
+        return NSDecimalNumber(decimal: change).doubleValue
+    }
+
+    /// The most recently recorded snapshots across the whole store. Each entry
+    /// carries resolved member / account / holding context for display.
+    public static func recentActivities(
+        limit: Int = 10,
+        context: ModelContext
+    ) -> [Activity] {
+        var descriptor = FetchDescriptor<Snapshot>(
+            sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = max(0, limit)
+        let rows = (try? context.fetch(descriptor)) ?? []
+        return rows.map { snapshot in
+            let holding = snapshot.holding
+            let account = holding?.account
+            let member = account?.member
+            return Activity(
+                id: snapshot.id,
+                recordedAt: snapshot.recordedAt,
+                periodMonth: snapshot.periodMonth,
+                memberName: member?.name ?? "",
+                accountName: account?.name ?? "",
+                holdingLabel: holding?.label,
+                currency: holding?.currency ?? "",
+                amount: snapshot.amount
+            )
         }
     }
 

@@ -3,7 +3,6 @@ import SwiftData
 
 /// Spreadsheet-style monthly snapshot entry (PRD §4.3.5). One row per active
 /// Holding, grouped by Member. Only the "this month" column is editable.
-/// Supports Fill-from-last, Clear, and atomic Save-all via `BatchUpsertService`.
 struct BatchEntryView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -16,15 +15,16 @@ struct BatchEntryView: View {
     @Query private var rates: [FXRate]
 
     @State private var periodMonth: Date = Snapshot.normalize(.now)
-    @State private var edits: [UUID: Decimal?] = [:]  // holdingId -> entered value (nil = blank)
-    @State private var savedOnce: Set<UUID> = []      // holdings that were saved in this session
+    @State private var edits: [UUID: Decimal?] = [:]
+    @State private var savedOnce: Set<UUID> = []
     @State private var showClearConfirm: Bool = false
     @State private var showDiscardConfirm: Bool = false
     @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
-            Group {
+            ZStack {
+                AppBackground()
                 if groupedRows.isEmpty {
                     ContentUnavailableView(
                         "batch.empty.title",
@@ -32,7 +32,7 @@ struct BatchEntryView: View {
                         description: Text("batch.empty.hint")
                     )
                 } else {
-                    entryList
+                    entryScroll
                 }
             }
             .navigationTitle(navTitle)
@@ -85,6 +85,7 @@ struct BatchEntryView: View {
                 if let errorMessage { Text(verbatim: errorMessage) }
             }
         }
+        .frame(minWidth: 560, minHeight: 560)
     }
 
     // MARK: - Header / toolbar
@@ -115,6 +116,7 @@ struct BatchEntryView: View {
                 Text("batch.save")
             }
             .disabled(!hasUnsavedEdits)
+            .buttonStyle(.borderedProminent)
         }
         ToolbarItem(placement: .secondaryAction) {
             Menu {
@@ -146,46 +148,76 @@ struct BatchEntryView: View {
         }
     }
 
-    // MARK: - List
+    // MARK: - Scroll content
 
-    private var entryList: some View {
-        List {
-            monthSection
-            ForEach(groupedRows, id: \.member.id) { group in
-                Section {
-                    ForEach(group.rows, id: \.holding.id) { row in
-                        entryRow(row)
-                    }
-                } header: {
-                    Text(verbatim: group.member.name)
+    private var entryScroll: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                monthCard
+                ForEach(groupedRows, id: \.member.id) { group in
+                    memberGroupCard(group)
                 }
             }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
+            .frame(maxWidth: 900)
+            .frame(maxWidth: .infinity)
         }
     }
 
-    private var monthSection: some View {
-        Section {
+    private var monthCard: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "calendar")
+                .foregroundStyle(Color.accentColor)
             DatePicker(
                 "batch.month",
                 selection: $periodMonth,
                 displayedComponents: [.date]
             )
+            .labelsHidden()
             .onChange(of: periodMonth) { _, newValue in
                 periodMonth = Snapshot.normalize(newValue)
             }
+            Text("batch.month")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Spacer()
         }
+        .glassCard(cornerRadius: 14, padding: 14)
+    }
+
+    private func memberGroupCard(_ group: MemberGroup) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(verbatim: group.member.name)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            VStack(spacing: 0) {
+                ForEach(Array(group.rows.enumerated()), id: \.element.holding.id) { index, row in
+                    entryRow(row)
+                    if index < group.rows.count - 1 {
+                        Divider().opacity(0.4)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard()
     }
 
     @ViewBuilder
     private func entryRow(_ row: HoldingRow) -> some View {
         HStack(spacing: 12) {
             statusDot(for: row.holding.id)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: row.holding.account?.name ?? "")
-                    .font(.body)
+                    .font(.body.weight(.medium))
                 HStack(spacing: 6) {
                     Text(verbatim: row.holding.currency)
-                        .font(.caption.monospaced())
+                        .font(.caption.monospaced().weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.secondary.opacity(0.15), in: Capsule())
                     if let label = row.holding.label, !label.isEmpty {
                         Text(verbatim: label)
                             .font(.caption)
@@ -201,22 +233,24 @@ struct BatchEntryView: View {
                     format: .number
                 )
                 .multilineTextAlignment(.trailing)
+                .textFieldStyle(.roundedBorder)
                 #if !os(macOS)
                 .keyboardType(.decimalPad)
                 #endif
-                .frame(minWidth: 100, maxWidth: 140)
+                .frame(minWidth: 110, maxWidth: 150)
 
                 if let approx = approxHome(for: row) {
                     Text(approx, format: .currency(code: homeCurrency).locale(locale))
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 } else if currentAmount(for: row.holding.id) != nil && row.holding.currency != homeCurrency {
                     Text("overview.missingRates.short")
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.orange)
                 }
             }
         }
+        .padding(.vertical, 8)
     }
 
     @ViewBuilder
@@ -224,7 +258,7 @@ struct BatchEntryView: View {
         let dirty = edits[holdingId] != nil
         let saved = savedOnce.contains(holdingId)
         Circle()
-            .fill(dirty ? Color.yellow : (saved ? Color.green : Color.clear))
+            .fill(dirty ? Color.yellow : (saved ? Color.green : Color.secondary.opacity(0.25)))
             .frame(width: 8, height: 8)
     }
 
@@ -232,23 +266,31 @@ struct BatchEntryView: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Divider()
             HStack {
                 Text("batch.total")
                     .font(.callout)
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Text(totalInHome, format: .currency(code: homeCurrency).locale(locale))
-                    .font(.callout.monospacedDigit())
+                    .font(.title3.monospacedDigit().weight(.semibold))
             }
             if !unresolvedCurrencies.isEmpty {
-                Text(unresolvedFootnote)
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
+                Label {
+                    Text(unresolvedFootnote)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                }
+                .font(.caption)
+                .foregroundStyle(.orange)
             }
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(.bar)
+        .padding(16)
+        .background(Color.notionSurface)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.notionBorder)
+                .frame(height: 1)
+        }
     }
 
     // MARK: - Derived data
@@ -364,7 +406,6 @@ struct BatchEntryView: View {
 
     private func fillFromLast() {
         for row in groupedRows.flatMap(\.rows) {
-            // Only fill if this-month input is currently empty/blank.
             let current = currentAmount(for: row.holding.id)
             if current == nil, let last = row.lastMonthAmount {
                 edits[row.holding.id] = last

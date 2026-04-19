@@ -30,18 +30,36 @@ struct SnapshotFormView: View {
                         displayedComponents: [.date]
                     )
                     .disabled(existing != nil)
+                } header: {
+                    Text("snapshot.form.month")
                 }
                 Section {
-                    TextField(
-                        "snapshot.form.amount",
-                        value: $amount,
-                        format: .number
-                    )
-                    #if !os(macOS)
-                    .keyboardType(.decimalPad)
-                    #endif
+                    LabeledContent {
+                        TextField(
+                            "snapshot.form.amount",
+                            value: $amount,
+                            format: .number
+                        )
+                        .multilineTextAlignment(.trailing)
+                        .font(.body.monospacedDigit())
+                        #if !os(macOS)
+                        .keyboardType(.decimalPad)
+                        #endif
+                    } label: {
+                        Text(verbatim: holding.currency)
+                            .font(.caption.monospaced().weight(.semibold))
+                            .foregroundStyle(Color.notionInkSecondary)
+                    }
+                } header: {
+                    Text("snapshot.form.amount")
+                } footer: {
+                    Text(verbatim: CurrencyCatalog.displayName(holding.currency))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
+            .formStyle(.grouped)
+            .glassListStyle()
             .navigationTitle(existing == nil ? "snapshot.new.title" : "snapshot.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

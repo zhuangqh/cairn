@@ -18,8 +18,12 @@ struct MemberFormView: View {
                     TextField("member.form.name", text: $member.name)
                         .textContentType(.name)
                         .autocorrectionDisabled()
+                } header: {
+                    Text("member.form.name")
                 }
             }
+            .formStyle(.grouped)
+            .glassListStyle()
             .navigationTitle(isNew ? "member.new.title" : "member.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

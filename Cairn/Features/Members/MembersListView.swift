@@ -3,36 +3,69 @@ import SwiftData
 
 struct MembersListView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.locale) private var locale
+
+    @AppStorage(AppSettingsKeys.homeCurrency)
+    private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
+
     @Query(sort: \Member.createdAt) private var members: [Member]
+    @Query private var holdings: [Holding]
+    @Query private var snapshots: [Snapshot]
+    @Query private var rates: [FXRate]
 
     @State private var newMemberDraft: Member?
     @State private var memberPendingDeletion: Member?
 
+    private var memberTotals: [UUID: Decimal] {
+        _ = holdings.count + snapshots.count + rates.count
+        return Dictionary(
+            uniqueKeysWithValues: NetWorthCalculator
+                .totalsByMember(homeCurrency: homeCurrency, context: context)
+                .map { ($0.memberId, $0.amount) }
+        )
+    }
+
     var body: some View {
-        Group {
+        ScrollView {
             if members.isEmpty {
                 ContentUnavailableView(
                     "member.empty",
                     systemImage: "person.2",
                     description: Text("member.empty.hint")
                 )
+                .padding(.top, 64)
             } else {
-                List {
+                LazyVStack(spacing: 12) {
                     ForEach(members) { member in
                         NavigationLink(value: member) {
-                            MemberRow(member: member)
+                            MemberCard(
+                                member: member,
+                                total: memberTotals[member.id] ?? 0,
+                                homeCurrency: homeCurrency,
+                                locale: locale
+                            )
                         }
-                        .swipeActions(edge: .trailing) {
+                        .buttonStyle(.plain)
+                        .contextMenu {
                             Button(role: .destructive) {
                                 memberPendingDeletion = member
                             } label: {
-                                Label("common.action.delete", systemImage: "trash")
+                                Label {
+                                    Text("common.action.delete")
+                                } icon: {
+                                    Image(systemName: "trash")
+                                }
                             }
                         }
                     }
                 }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 20)
+                .frame(maxWidth: 900)
+                .frame(maxWidth: .infinity)
             }
         }
+        .ambientBackground()
         .navigationTitle("members.title")
         .navigationDestination(for: Member.self) { member in
             MemberDetailView(member: member)
@@ -44,7 +77,11 @@ struct MembersListView: View {
                     context.insert(draft)
                     newMemberDraft = draft
                 } label: {
-                    Label("common.action.add", systemImage: "plus")
+                    Label {
+                        Text("common.action.add")
+                    } icon: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
         }
@@ -80,29 +117,72 @@ struct MembersListView: View {
     }
 }
 
-private struct MemberRow: View {
+private struct MemberCard: View {
     let member: Member
+    let total: Decimal
+    let homeCurrency: String
+    let locale: Locale
+
+    private var initials: String {
+        let parts = member.name.split(separator: " ")
+        let letters = parts.prefix(2).compactMap { $0.first }.map(String.init).joined()
+        return letters.isEmpty ? "?" : letters.uppercased()
+    }
+
+    private var accountCount: Int {
+        (member.accounts ?? []).count
+    }
+
+    private var tint: Color {
+        let palette: [Color] = [.blue, .indigo, .teal, .pink, .orange, .purple, .green]
+        let hash = abs(member.id.hashValue)
+        return palette[hash % palette.count]
+    }
 
     var body: some View {
-        HStack {
-            Image(systemName: "person.crop.circle")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-            VStack(alignment: .leading) {
-                Text(verbatim: member.name)
-                    .font(.body)
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [tint.opacity(0.85), tint.opacity(0.55)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                Text(verbatim: initials)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: member.name.isEmpty ? " " : member.name)
+                    .font(.headline)
                 HStack(spacing: 4) {
-                    Text(activeAccountCount, format: .number)
+                    Text(accountCount, format: .number)
                     Text("accounts.title")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
-        }
-    }
 
-    private var activeAccountCount: Int {
-        (member.accounts ?? []).count
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(
+                    total,
+                    format: .currency(code: homeCurrency)
+                        .locale(locale)
+                        .precision(.fractionLength(0))
+                )
+                .font(.title3.weight(.semibold).monospacedDigit())
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .glassCard(cornerRadius: 16, padding: 16)
     }
 }
 

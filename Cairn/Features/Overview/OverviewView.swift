@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 
+/// Trend-focused view: net worth hero, multi-month chart, per-member breakdown.
+/// Complements the Dashboard (which emphasizes allocation + activity).
 struct OverviewView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
@@ -28,129 +30,160 @@ struct OverviewView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if holdings.isEmpty {
-                    ContentUnavailableView(
-                        "overview.empty.title",
-                        systemImage: "chart.line.uptrend.xyaxis",
-                        description: Text("overview.empty.hint")
-                    )
-                } else {
-                    List {
-                        totalSection
-                        Section {
-                            Button {
-                                isUpdating = true
-                            } label: {
-                                Label {
-                                    Text("overview.updateThisMonth")
-                                } icon: {
-                                    Image(systemName: "square.and.pencil")
-                                }
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        }
-                        Section {
-                            TrendChartView()
-                        }
-                        if !memberTotals.isEmpty {
-                            membersSection
-                        }
-                    }
-                }
-            }
-            .navigationTitle("overview.title")
-            .sheet(isPresented: $isUpdating) {
-                BatchEntryView()
-            }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        Task { await refreshRates() }
-                    } label: {
-                        if isRefreshing {
-                            ProgressView()
-                        } else {
-                            Label {
-                                Text("overview.refreshRates")
-                            } icon: {
-                                Image(systemName: "arrow.clockwise")
-                            }
-                        }
-                    }
-                    .disabled(isRefreshing)
-                }
-            }
-            .alert(
-                "overview.refresh.failure",
-                isPresented: .init(
-                    get: { refreshError != nil },
-                    set: { if !$0 { refreshError = nil } }
+        ScrollView {
+            if holdings.isEmpty {
+                ContentUnavailableView(
+                    "overview.empty.title",
+                    systemImage: "chart.line.uptrend.xyaxis",
+                    description: Text("overview.empty.hint")
                 )
-            ) {
+                .padding(.top, 64)
+            } else {
+                VStack(spacing: 20) {
+                    heroCard
+                    trendCard
+                    if !memberTotals.isEmpty {
+                        membersCard
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 20)
+                .frame(maxWidth: 1100)
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .ambientBackground()
+        .navigationTitle("overview.title")
+        .sheet(isPresented: $isUpdating) {
+            BatchEntryView()
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
                 Button {
-                    refreshError = nil
+                    Task { await refreshRates() }
                 } label: {
-                    Text("common.action.done")
+                    if isRefreshing {
+                        ProgressView()
+                    } else {
+                        Label {
+                            Text("overview.refreshRates")
+                        } icon: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
                 }
-            } message: {
-                if let refreshError {
-                    Text(verbatim: refreshError)
-                }
+                .disabled(isRefreshing)
             }
         }
-    }
-
-    // MARK: - Sections
-
-    private var totalSection: some View {
-        Section {
-            LabeledContent {
-                Text(totals.amount, format: .currency(code: homeCurrency).locale(locale))
-                    .font(.title2.monospacedDigit())
+        .alert(
+            "overview.refresh.failure",
+            isPresented: .init(
+                get: { refreshError != nil },
+                set: { if !$0 { refreshError = nil } }
+            )
+        ) {
+            Button {
+                refreshError = nil
             } label: {
-                Text("overview.netWorth")
+                Text("common.action.done")
             }
-
-            if !totals.missingCurrencies.isEmpty {
-                Label {
-                    Text(missingRatesMessage)
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle")
-                }
-                .foregroundStyle(.orange)
-                .font(.footnote)
-            }
-
-            if let latest = rates.map(\.date).max() {
-                Text(latestRatesFootnote(date: latest))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        } header: {
-            HStack {
-                Text("overview.homeCurrency")
-                Spacer()
-                Text(verbatim: homeCurrency)
+        } message: {
+            if let refreshError {
+                Text(verbatim: refreshError)
             }
         }
     }
 
-    private var membersSection: some View {
-        Section("overview.byMember") {
-            ForEach(memberTotals) { entry in
-                LabeledContent {
-                    Text(entry.amount, format: .currency(code: homeCurrency).locale(locale))
+    // MARK: - Cards
+
+    private var heroCard: some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Text("overview.netWorth")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                    Text(verbatim: "·")
+                        .foregroundStyle(.tertiary)
+                    Text(verbatim: homeCurrency)
+                        .font(.caption.monospaced().weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.secondary.opacity(0.15), in: Capsule())
+                }
+                Text(totals.amount, format: .currency(code: homeCurrency).locale(locale))
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+
+                if !totals.missingCurrencies.isEmpty {
+                    Label {
+                        Text(missingRatesMessage)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                    }
+                    .foregroundStyle(.orange)
+                    .font(.footnote)
+                }
+                if let latest = rates.map(\.date).max(), totals.missingCurrencies.isEmpty {
+                    Text(latestRatesFootnote(date: latest))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Button {
+                isUpdating = true
+            } label: {
+                Label {
+                    Text("overview.updateThisMonth")
+                } icon: {
+                    Image(systemName: "square.and.pencil")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+        }
+        .glassCard()
+    }
+
+    private var trendCard: some View {
+        TrendChartView()
+            .glassCard()
+    }
+
+    private var membersCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("overview.byMember")
+                .font(.headline)
+            VStack(spacing: 0) {
+                ForEach(Array(memberTotals.enumerated()), id: \.element.id) { index, entry in
+                    HStack {
+                        Circle()
+                            .fill(Color.accentColor.opacity(0.18))
+                            .frame(width: 32, height: 32)
+                            .overlay(
+                                Image(systemName: "person.fill")
+                                    .foregroundStyle(Color.accentColor)
+                            )
+                        Text(verbatim: entry.memberName)
+                            .font(.callout)
+                        Spacer()
+                        Text(
+                            entry.amount,
+                            format: .currency(code: homeCurrency).locale(locale)
+                        )
                         .monospacedDigit()
-                } label: {
-                    Text(verbatim: entry.memberName)
+                        .font(.callout.weight(.semibold))
+                    }
+                    .padding(.vertical, 10)
+                    if index < memberTotals.count - 1 {
+                        Divider().opacity(0.4)
+                    }
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard()
     }
 
     private var missingRatesMessage: String {

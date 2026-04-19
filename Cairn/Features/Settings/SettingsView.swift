@@ -26,88 +26,132 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var localization = localization
 
-        NavigationStack {
-            Form {
-                Section("settings.section.general") {
-                    Picker(selection: $localization.override) {
-                        ForEach(LocalizationService.LanguageOverride.allCases, id: \.self) { option in
-                            Text(LocalizedStringKey(option.localizationKey))
-                                .tag(option)
-                        }
-                    } label: {
-                        Text("settings.language.title")
+        Form {
+            Section {
+                Picker(selection: $localization.override) {
+                    ForEach(LocalizationService.LanguageOverride.allCases, id: \.self) { option in
+                        Text(LocalizedStringKey(option.localizationKey))
+                            .tag(option)
                     }
-
-                    Picker(selection: $homeCurrency) {
-                        Section("currency.picker.pinned") {
-                            ForEach(CurrencyCatalog.pinned, id: \.self) { code in
-                                currencyRow(code).tag(code)
-                            }
-                        }
-                        Section("currency.picker.other") {
-                            ForEach(CurrencyCatalog.rest, id: \.self) { code in
-                                currencyRow(code).tag(code)
-                            }
-                        }
-                    } label: {
-                        Text("settings.homeCurrency.title")
-                    }
+                } label: {
+                    settingsRowLabel(
+                        titleKey: "settings.language.title",
+                        systemImage: "globe",
+                        tint: .notionBlue
+                    )
                 }
 
-                Section {
-                    Button {
-                        beginExport()
-                    } label: {
-                        Label {
-                            Text("settings.backup.export")
-                        } icon: {
-                            Image(systemName: "square.and.arrow.up")
+                Picker(selection: $homeCurrency) {
+                    Section("currency.picker.pinned") {
+                        ForEach(CurrencyCatalog.pinned, id: \.self) { code in
+                            currencyRow(code).tag(code)
                         }
                     }
-
-                    Button {
-                        isImporting = true
-                    } label: {
-                        Label {
-                            Text("settings.backup.import")
-                        } icon: {
-                            Image(systemName: "square.and.arrow.down")
+                    Section("currency.picker.other") {
+                        ForEach(CurrencyCatalog.rest, id: \.self) { code in
+                            currencyRow(code).tag(code)
                         }
                     }
-                } header: {
-                    Text("settings.section.backup")
-                } footer: {
-                    Text("settings.backup.footer")
+                } label: {
+                    settingsRowLabel(
+                        titleKey: "settings.homeCurrency.title",
+                        systemImage: "dollarsign.circle.fill",
+                        tint: .notionGreen
+                    )
                 }
+                #if !os(macOS)
+                .pickerStyle(.navigationLink)
+                #endif
+            } header: {
+                NotionSectionHeader("settings.section.general", systemImage: "gearshape.fill")
+            }
 
-                Section {
-                    Toggle(isOn: $reminderEnabled) {
-                        Text("settings.reminder.toggle")
-                    }
-                    if reminderEnabled {
-                        DatePicker(
-                            "settings.reminder.time",
-                            selection: reminderTimeBinding,
-                            displayedComponents: [.hourAndMinute]
+            Section {
+                Toggle(isOn: $reminderEnabled) {
+                    settingsRowLabel(
+                        titleKey: "settings.reminder.toggle",
+                        systemImage: "bell.fill",
+                        tint: .notionOrange
+                    )
+                }
+                if reminderEnabled {
+                    DatePicker(
+                        selection: reminderTimeBinding,
+                        displayedComponents: [.hourAndMinute]
+                    ) {
+                        settingsRowLabel(
+                            titleKey: "settings.reminder.time",
+                            systemImage: "clock.fill",
+                            tint: .notionInkSecondary
                         )
                     }
-                } header: {
-                    Text("settings.section.reminder")
-                } footer: {
-                    Text("settings.reminder.footer")
                 }
-                .onChange(of: reminderEnabled) { _, newValue in
-                    Task { await applyReminder(enabled: newValue) }
-                }
-                .onChange(of: reminderHour) { _, _ in
-                    Task { await applyReminder(enabled: reminderEnabled) }
-                }
-                .onChange(of: reminderMinute) { _, _ in
-                    Task { await applyReminder(enabled: reminderEnabled) }
-                }
+            } header: {
+                NotionSectionHeader("settings.section.reminder", systemImage: "bell.badge.fill")
+            } footer: {
+                Text("settings.reminder.footer")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
-            .navigationTitle("settings.title")
+            .onChange(of: reminderEnabled) { _, newValue in
+                Task { await applyReminder(enabled: newValue) }
+            }
+            .onChange(of: reminderHour) { _, _ in
+                Task { await applyReminder(enabled: reminderEnabled) }
+            }
+            .onChange(of: reminderMinute) { _, _ in
+                Task { await applyReminder(enabled: reminderEnabled) }
+            }
+
+            Section {
+                Button {
+                    beginExport()
+                } label: {
+                    settingsRowLabel(
+                        titleKey: "settings.backup.export",
+                        systemImage: "square.and.arrow.up",
+                        tint: .notionBlue
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    isImporting = true
+                } label: {
+                    settingsRowLabel(
+                        titleKey: "settings.backup.import",
+                        systemImage: "square.and.arrow.down",
+                        tint: .notionTeal
+                    )
+                }
+                .buttonStyle(.plain)
+            } header: {
+                NotionSectionHeader("settings.section.backup", systemImage: "externaldrive.fill")
+            } footer: {
+                Text("settings.backup.footer")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                LabeledContent {
+                    Text(verbatim: appVersion)
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                } label: {
+                    settingsRowLabel(
+                        titleKey: "settings.about.version",
+                        systemImage: "info.circle.fill",
+                        tint: .notionInkSecondary
+                    )
+                }
+            } header: {
+                NotionSectionHeader("settings.section.about", systemImage: "app.badge.fill")
+            }
         }
+        .formStyle(.grouped)
+        .glassListStyle()
+        .navigationTitle("settings.title")
         .fileExporter(
             isPresented: $isExporting,
             document: exportDocument,
@@ -171,51 +215,26 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Export
+    // MARK: - Helpers
 
-    @MainActor
-    private func beginExport() {
-        do {
-            let data = try BackupService.makeBackup(in: context)
-            exportDocument = BackupDocument(data: data)
-            isExporting = true
-        } catch {
-            resultMessage = "settings.backup.export.failure"
+    private func settingsRowLabel(
+        titleKey: LocalizedStringKey,
+        systemImage: String,
+        tint: Color
+    ) -> some View {
+        HStack(spacing: 12) {
+            GlyphBadge(systemName: systemImage, tint: tint, size: 28)
+            Text(titleKey)
+                .font(.body)
+                .foregroundStyle(Color.notionInk)
         }
     }
 
-    private func defaultExportFilename() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd-HHmm"
-        return "cairn-backup-\(formatter.string(from: .now)).cairn"
-    }
-
-    // MARK: - Import
-
-    private func loadImportCandidate(from url: URL) {
-        let didStart = url.startAccessingSecurityScopedResource()
-        defer { if didStart { url.stopAccessingSecurityScopedResource() } }
-
-        do {
-            let data = try Data(contentsOf: url)
-            // Validate eagerly so we surface errors before the destructive confirm.
-            _ = try BackupService.parse(data)
-            importConfirmation = data
-        } catch {
-            resultMessage = "settings.backup.import.failure"
-        }
-    }
-
-    @MainActor
-    private func performRestore() {
-        guard let data = importConfirmation else { return }
-        importConfirmation = nil
-        do {
-            _ = try BackupService.restoreReplacing(from: data, context: context)
-            resultMessage = "settings.backup.import.success"
-        } catch {
-            resultMessage = "settings.backup.import.failure"
-        }
+    private var appVersion: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "–"
+        let build = info?["CFBundleVersion"] as? String ?? "0"
+        return "\(version) (\(build))"
     }
 
     @ViewBuilder
@@ -227,8 +246,6 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
         }
     }
-
-    // MARK: - Reminder
 
     private var reminderTimeBinding: Binding<Date> {
         Binding(
@@ -257,6 +274,50 @@ struct SettingsView: View {
             }
         } else {
             ReminderService.cancel()
+        }
+    }
+
+    // MARK: - Backup
+
+    @MainActor
+    private func beginExport() {
+        do {
+            let data = try BackupService.makeBackup(in: context)
+            exportDocument = BackupDocument(data: data)
+            isExporting = true
+        } catch {
+            resultMessage = "settings.backup.export.failure"
+        }
+    }
+
+    private func defaultExportFilename() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmm"
+        return "cairn-backup-\(formatter.string(from: .now)).cairn"
+    }
+
+    private func loadImportCandidate(from url: URL) {
+        let didStart = url.startAccessingSecurityScopedResource()
+        defer { if didStart { url.stopAccessingSecurityScopedResource() } }
+
+        do {
+            let data = try Data(contentsOf: url)
+            _ = try BackupService.parse(data)
+            importConfirmation = data
+        } catch {
+            resultMessage = "settings.backup.import.failure"
+        }
+    }
+
+    @MainActor
+    private func performRestore() {
+        guard let data = importConfirmation else { return }
+        importConfirmation = nil
+        do {
+            _ = try BackupService.restoreReplacing(from: data, context: context)
+            resultMessage = "settings.backup.import.success"
+        } catch {
+            resultMessage = "settings.backup.import.failure"
         }
     }
 }

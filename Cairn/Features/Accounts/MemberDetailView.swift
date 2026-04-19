@@ -2,48 +2,42 @@ import SwiftUI
 import SwiftData
 
 /// Lists the accounts belonging to a given `Member`, grouped by kind.
+/// Uses translucent cards and kind-colored leading badges to match the
+/// rest of the Liquid Glass surfaces.
 struct MemberDetailView: View {
     @Bindable var member: Member
     @Environment(\.modelContext) private var context
+    @Environment(\.locale) private var locale
 
     @State private var newAccountDraft: Account?
     @State private var accountPendingDeletion: Account?
     @State private var editingMember = false
 
     var body: some View {
-        Group {
+        ScrollView {
             if (member.accounts ?? []).isEmpty {
                 ContentUnavailableView(
                     "account.empty",
                     systemImage: "wallet.pass",
                     description: Text("account.empty.hint")
                 )
+                .padding(.top, 64)
             } else {
-                List {
+                VStack(alignment: .leading, spacing: 20) {
                     ForEach(AccountKind.allCases, id: \.self) { kind in
                         let bucket = accounts(for: kind)
                         if !bucket.isEmpty {
-                            Section {
-                                ForEach(bucket) { account in
-                                    NavigationLink(value: account) {
-                                        AccountRow(account: account)
-                                    }
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) {
-                                            accountPendingDeletion = account
-                                        } label: {
-                                            Label("common.action.delete", systemImage: "trash")
-                                        }
-                                    }
-                                }
-                            } header: {
-                                Text(LocalizedStringKey(kind.localizationKey))
-                            }
+                            kindSection(for: kind, accounts: bucket)
                         }
                     }
                 }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 20)
+                .frame(maxWidth: 900)
+                .frame(maxWidth: .infinity)
             }
         }
+        .ambientBackground()
         .navigationTitle(Text(verbatim: member.name))
         .navigationDestination(for: Account.self) { account in
             AccountDetailView(account: account)
@@ -56,12 +50,20 @@ struct MemberDetailView: View {
                         context.insert(draft)
                         newAccountDraft = draft
                     } label: {
-                        Label("account.new.title", systemImage: "plus")
+                        Label {
+                            Text("account.new.title")
+                        } icon: {
+                            Image(systemName: "plus")
+                        }
                     }
                     Button {
                         editingMember = true
                     } label: {
-                        Label("member.edit.title", systemImage: "pencil")
+                        Label {
+                            Text("member.edit.title")
+                        } icon: {
+                            Image(systemName: "pencil")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -102,6 +104,44 @@ struct MemberDetailView: View {
         }
     }
 
+    // MARK: - Sections
+
+    @ViewBuilder
+    private func kindSection(for kind: AccountKind, accounts: [Account]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: kind.iconName)
+                    .foregroundStyle(kind.tint)
+                Text(LocalizedStringKey(kind.localizationKey))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+
+            VStack(spacing: 10) {
+                ForEach(accounts) { account in
+                    NavigationLink(value: account) {
+                        AccountCard(account: account, tint: kind.tint, locale: locale)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            accountPendingDeletion = account
+                        } label: {
+                            Label {
+                                Text("common.action.delete")
+                            } icon: {
+                                Image(systemName: "trash")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func accounts(for kind: AccountKind) -> [Account] {
         (member.accounts ?? [])
             .filter { $0.kind == kind }
@@ -109,52 +149,60 @@ struct MemberDetailView: View {
     }
 }
 
-private struct AccountRow: View {
+private struct AccountCard: View {
     let account: Account
+    let tint: Color
+    let locale: Locale
 
-    var body: some View {
-        HStack {
-            Image(systemName: account.kind.symbolName)
-                .foregroundStyle(.secondary)
-                .frame(width: 28)
-            VStack(alignment: .leading) {
-                Text(verbatim: account.name.isEmpty ? " " : account.name)
-                if account.isArchived {
-                    Text("common.label.archived")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-            Text(verbatim: currencySummary)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var currencySummary: String {
-        let codes = (account.holdings ?? [])
+    private var activeCurrencies: [String] {
+        var seen: Set<String> = []
+        return (account.holdings ?? [])
             .filter { !$0.isArchived }
             .map(\.currency)
-            .uniqued()
-        return codes.joined(separator: " · ")
+            .filter { seen.insert($0).inserted }
     }
-}
 
-private extension AccountKind {
-    var symbolName: String {
-        switch self {
-        case .cash: return "banknote"
-        case .stock: return "chart.line.uptrend.xyaxis"
-        case .realEstate: return "house"
-        case .device: return "laptopcomputer"
+    var body: some View {
+        HStack(spacing: 14) {
+            GlyphBadge(systemName: account.kind.iconName, tint: tint)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(verbatim: account.name.isEmpty ? " " : account.name)
+                    .font(.headline)
+                HStack(spacing: 6) {
+                    if account.isArchived {
+                        Text("common.label.archived")
+                            .font(.caption2.weight(.medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.secondary.opacity(0.18), in: Capsule())
+                    }
+                    if let note = account.note, !note.isEmpty {
+                        Text(verbatim: note)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                ForEach(activeCurrencies.prefix(3), id: \.self) { code in
+                    Text(verbatim: code)
+                        .font(.caption.monospaced().weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(tint.opacity(0.15), in: Capsule())
+                        .foregroundStyle(tint)
+                }
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
-    }
-}
-
-private extension Array where Element: Hashable {
-    func uniqued() -> [Element] {
-        var seen = Set<Element>()
-        return filter { seen.insert($0).inserted }
+        .glassCard(cornerRadius: 14, padding: 14)
     }
 }

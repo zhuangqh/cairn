@@ -12,9 +12,17 @@ struct HoldingEditView: View {
                 Section {
                     LabeledContent {
                         Text(verbatim: holding.currency)
+                            .font(.body.monospaced().weight(.semibold))
+                            .foregroundStyle(Color.notionInkSecondary)
                     } label: {
                         Text("currency.picker.title")
                     }
+                } header: {
+                    Text("currency.picker.title")
+                } footer: {
+                    Text("holding.edit.currencyImmutable.hint")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
                 Section {
                     TextField(
@@ -24,8 +32,12 @@ struct HoldingEditView: View {
                             set: { holding.label = $0.isEmpty ? nil : $0 }
                         )
                     )
+                } header: {
+                    Text("holding.form.label")
                 }
             }
+            .formStyle(.grouped)
+            .glassListStyle()
             .navigationTitle("holding.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

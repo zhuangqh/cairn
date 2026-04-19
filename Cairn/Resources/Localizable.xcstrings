@@ -1,909 +1,2423 @@
 {
   "sourceLanguage" : "en",
-  "version" : "1.0",
   "strings" : {
+    "" : {
+
+    },
     "account.delete.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "This will delete all holdings and snapshots inside. This cannot be undone." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "将会删除账户下的所有持仓与快照，此操作无法撤销。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete all holdings and snapshots inside. This cannot be undone."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将会删除账户下的所有持仓与快照，此操作无法撤销。"
+          }
+        }
       }
     },
     "account.delete.confirm.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete account?" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除账户？" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete account?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除账户？"
+          }
+        }
       }
     },
     "account.detail.holdings" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Holdings" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "持仓" } }
-      }
-    },
-    "account.empty" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No accounts yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有账户" } }
-      }
-    },
-    "account.empty.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add a cash or equity account to start tracking." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加一个现金或股票账户以开始追踪。" } }
-      }
-    },
-    "account.form.kind" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Kind" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "类型" } }
-      }
-    },
-    "account.form.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Name" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "名称" } }
-      }
-    },
-    "account.form.note" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Note" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "备注" } }
-      }
-    },
-    "account.kind.cash" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cash" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "现金" } }
-      }
-    },
-    "account.kind.device" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Device" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "电子设备" } }
-      }
-    },
-    "account.kind.realEstate" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Real estate" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "不动产" } }
-      }
-    },
-    "account.kind.stock" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Equity" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "股票" } }
-      }
-    },
-    "account.new.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "New account" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "新建账户" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Holdings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "持仓"
+          }
+        }
       }
     },
     "account.edit.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit account" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑账户" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit account"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑账户"
+          }
+        }
+      }
+    },
+    "account.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No accounts yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有账户"
+          }
+        }
+      }
+    },
+    "account.empty.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a cash or equity account to start tracking."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加一个现金或股票账户以开始追踪。"
+          }
+        }
+      }
+    },
+    "account.form.kind" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kind"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类型"
+          }
+        }
+      }
+    },
+    "account.form.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称"
+          }
+        }
+      }
+    },
+    "account.form.note" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备注"
+          }
+        }
+      }
+    },
+    "account.kind.cash" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cash"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "现金"
+          }
+        }
+      }
+    },
+    "account.kind.device" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电子设备"
+          }
+        }
+      }
+    },
+    "account.kind.realEstate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real estate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不动产"
+          }
+        }
+      }
+    },
+    "account.kind.stock" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Equity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "股票"
+          }
+        }
+      }
+    },
+    "account.new.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New account"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建账户"
+          }
+        }
       }
     },
     "accounts.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Accounts" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "账户" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accounts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账户"
+          }
+        }
       }
     },
     "app.name" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cairn" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Cairn" } }
-      }
-    },
-    "common.action.add" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加" } }
-      }
-    },
-    "common.action.archive" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Archive" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "归档" } }
-      }
-    },
-    "common.action.cancel" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消" } }
-      }
-    },
-    "common.action.delete" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除" } }
-      }
-    },
-    "common.action.done" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Done" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "完成" } }
-      }
-    },
-    "common.action.edit" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑" } }
-      }
-    },
-    "common.action.save" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存" } }
-      }
-    },
-    "common.action.unarchive" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unarchive" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消归档" } }
-      }
-    },
-    "common.label.archived" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Archived" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已归档" } }
-      }
-    },
-    "common.placeholder.comingSoon" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "即将推出" } }
-      }
-    },
-    "currency.picker.other" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other currencies" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "其他币种" } }
-      }
-    },
-    "currency.picker.pinned" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Frequently used" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "常用币种" } }
-      }
-    },
-    "currency.picker.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Currency" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "币种" } }
-      }
-    },
-    "error.field.required" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "This field is required." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此字段为必填项。" } }
-      }
-    },
-    "error.holding.currencyImmutable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "A holding's currency cannot be changed after creation." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "持仓币种一经创建不可修改。" } }
-      }
-    },
-    "error.holding.duplicateCurrency" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "This account already has a holding in that currency." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "该账户已有此币种的持仓。" } }
-      }
-    },
-    "holding.delete.confirm.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "This will delete every snapshot on this holding." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "将删除此持仓下的所有快照。" } }
-      }
-    },
-    "holding.delete.confirm.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete holding?" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除持仓？" } }
-      }
-    },
-    "holding.detail.snapshots" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Snapshots" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "快照" } }
-      }
-    },
-    "holding.empty" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No holdings yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有持仓" } }
-      }
-    },
-    "holding.empty.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add a per-currency position inside this account." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在此账户下添加一个币种持仓。" } }
-      }
-    },
-    "holding.form.label" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Label (optional)" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "标签（可选）" } }
-      }
-    },
-    "holding.new.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "New holding" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "新建持仓" } }
-      }
-    },
-    "holding.edit.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit holding" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑持仓" } }
-      }
-    },
-    "member.delete.confirm.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "This will delete every account, holding, and snapshot for this member. This cannot be undone." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "将删除该成员的所有账户、持仓与快照，且无法恢复。" } }
-      }
-    },
-    "member.delete.confirm.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete member?" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除成员？" } }
-      }
-    },
-    "member.empty" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No members yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有成员" } }
-      }
-    },
-    "member.empty.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add yourself or a family member to begin." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加你或家庭成员以开始。" } }
-      }
-    },
-    "member.form.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Name" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "姓名" } }
-      }
-    },
-    "member.new.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "New member" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "新建成员" } }
-      }
-    },
-    "member.edit.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit member" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑成员" } }
-      }
-    },
-    "members.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Members" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "成员" } }
-      }
-    },
-    "overview.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Overview" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "总览" } }
-      }
-    },
-    "overview.empty.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No assets yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有资产记录" } }
-      }
-    },
-    "overview.empty.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add a member and their accounts from the Accounts tab to see your family's net worth here." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在账户标签页中添加成员和账户，这里将显示家庭净资产。" } }
-      }
-    },
-    "overview.netWorth" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Net worth" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "净资产" } }
-      }
-    },
-    "overview.byMember" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "By member" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "按成员" } }
-      }
-    },
-    "overview.trend" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Trend" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "趋势" } }
-      }
-    },
-    "overview.trend.range" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Range" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "区间" } }
-      }
-    },
-    "overview.trend.range.6m" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "6M" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "6个月" } }
-      }
-    },
-    "overview.trend.range.1y" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "1Y" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "1年" } }
-      }
-    },
-    "overview.trend.range.2y" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "2Y" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "2年" } }
-      }
-    },
-    "overview.trend.range.5y" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "5Y" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "5年" } }
-      }
-    },
-    "overview.trend.empty.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No trend yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "暂无趋势数据" } }
-      }
-    },
-    "overview.trend.empty.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Record at least one monthly snapshot to see the curve." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "至少记录一个月度快照后，将会显示净资产曲线。" } }
-      }
-    },
-    "overview.trend.axis.month" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Month" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "月份" } }
-      }
-    },
-    "overview.trend.axis.amount" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Amount" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "金额" } }
-      }
-    },
-    "overview.homeCurrency" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home currency" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本币" } }
-      }
-    },
-    "overview.refreshRates" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Refresh rates" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "刷新汇率" } }
-      }
-    },
-    "overview.updateThisMonth" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update this month" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更新本月" } }
-      }
-    },
-    "overview.missingRates.short" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No rate" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "缺汇率" } }
-      }
-    },
-    "batch.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Update — {month}" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更新 — {month}" } }
-      }
-    },
-    "batch.month" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Month" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "月份" } }
-      }
-    },
-    "batch.save" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save all" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部保存" } }
-      }
-    },
-    "batch.save.failure" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save failed" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存失败" } }
-      }
-    },
-    "batch.fillFromLast" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fill from last month" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "沿用上月" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn"
+          }
+        }
       }
     },
     "batch.clear" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear all" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部清空" } }
-      }
-    },
-    "batch.clear.confirm.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear all entries?" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "清空所有输入？" } }
-      }
-    },
-    "batch.clear.confirm.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unsaved values in every row will be removed." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所有尚未保存的行将被清空。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部清空"
+          }
+        }
       }
     },
     "batch.clear.confirm.action" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "清空" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清空"
+          }
+        }
       }
     },
-    "batch.discard.confirm.title" : {
+    "batch.clear.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Discard changes?" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "放弃修改？" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unsaved values in every row will be removed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有尚未保存的行将被清空。"
+          }
+        }
       }
     },
-    "batch.discard.confirm.message" : {
+    "batch.clear.confirm.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "You have unsaved values. Leaving now discards them." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "当前有未保存的修改，现在离开将会丢弃。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear all entries?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清空所有输入？"
+          }
+        }
       }
     },
     "batch.discard.confirm.action" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Discard" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "放弃" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放弃"
+          }
+        }
       }
     },
-    "batch.total" : {
+    "batch.discard.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Total" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "合计" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You have unsaved values. Leaving now discards them."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前有未保存的修改，现在离开将会丢弃。"
+          }
+        }
       }
     },
-    "batch.empty.title" : {
+    "batch.discard.confirm.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No holdings yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有持仓" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard changes?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放弃修改？"
+          }
+        }
       }
     },
     "batch.empty.hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Create accounts and holdings first, then come back to record a monthly snapshot." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请先创建账户和持仓，再回到这里录入月度快照。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create accounts and holdings first, then come back to record a monthly snapshot."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先创建账户和持仓，再回到这里录入月度快照。"
+          }
+        }
+      }
+    },
+    "batch.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No holdings yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有持仓"
+          }
+        }
+      }
+    },
+    "batch.fillFromLast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill from last month"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沿用上月"
+          }
+        }
+      }
+    },
+    "batch.month" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月份"
+          }
+        }
+      }
+    },
+    "batch.save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save all"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部保存"
+          }
+        }
+      }
+    },
+    "batch.save.failure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存失败"
+          }
+        }
+      }
+    },
+    "batch.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update — {month}"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新 — {month}"
+          }
+        }
+      }
+    },
+    "batch.total" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合计"
+          }
+        }
+      }
+    },
+    "common.action.add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加"
+          }
+        }
+      }
+    },
+    "common.action.archive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "归档"
+          }
+        }
+      }
+    },
+    "common.action.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "common.action.delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
+          }
+        }
+      }
+    },
+    "common.action.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
+    },
+    "common.action.edit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑"
+          }
+        }
       }
     },
     "common.action.more" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "More" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更多" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更多"
+          }
+        }
       }
     },
-    "overview.refresh.failure" : {
+    "common.action.save" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Failed to refresh rates" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "汇率刷新失败" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
       }
     },
-    "overview.missingRates" : {
+    "common.action.unarchive" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Missing rates for: {currencies}. Tap refresh." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "缺少汇率：{currencies}，请点击刷新。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unarchive"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消归档"
+          }
+        }
       }
     },
-    "overview.ratesAsOf" : {
+    "common.label.archived" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Rates as of {date}" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "汇率日期：{date}" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archived"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已归档"
+          }
+        }
       }
     },
-    "settings.homeCurrency.title" : {
+    "common.placeholder.comingSoon" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home currency" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本币" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coming soon"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即将推出"
+          }
+        }
       }
     },
-    "settings.language.english" : {
+    "currency.picker.other" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "English" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "English" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other currencies"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他币种"
+          }
+        }
       }
     },
-    "settings.language.followSystem" : {
+    "currency.picker.pinned" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Follow system" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "跟随系统" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequently used"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常用币种"
+          }
+        }
       }
     },
-    "settings.language.simplifiedChinese" : {
+    "currency.picker.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "简体中文" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "简体中文" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Currency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "币种"
+          }
+        }
       }
     },
-    "settings.language.title" : {
+    "dashboard.addAsset" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Language" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "语言" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update values"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新资产"
+          }
+        }
       }
     },
-    "settings.section.general" : {
+    "dashboard.allocation.axis.amount" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "General" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通用" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amount"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "金额"
+          }
+        }
       }
     },
-    "settings.title" : {
+    "dashboard.allocation.axis.kind" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Settings" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类别"
+          }
+        }
       }
     },
-    "snapshot.delete.confirm.message" : {
+    "dashboard.assetCategories" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "This snapshot will be removed. You can re-create it later." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "将删除该快照，你可以稍后重新创建。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asset Categories"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资产类别"
+          }
+        }
       }
     },
-    "snapshot.delete.confirm.title" : {
+    "dashboard.portfolioAllocation" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete snapshot?" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除快照？" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Portfolio Allocation"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资产分布"
+          }
+        }
       }
     },
-    "snapshot.empty" : {
+    "dashboard.recentActivities" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No snapshots yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有快照" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent Activities"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近动态"
+          }
+        }
       }
     },
-    "snapshot.empty.hint" : {
+    "dashboard.recentActivities.empty" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Record this month's value to start a trend." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "记录本月金额以开启走势曲线。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No snapshots yet. Record this month's values to see them here."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚无快照。记录本月数值后将在此显示。"
+          }
+        }
       }
     },
-    "snapshot.form.amount" : {
+    "dashboard.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Amount" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "金额" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仪表盘"
+          }
+        }
       }
     },
-    "snapshot.form.month" : {
+    "dashboard.totalWealth" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Month" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "月份" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Family Wealth"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "家庭总资产"
+          }
+        }
       }
     },
-    "snapshot.new.title" : {
+    "error.field.required" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "New snapshot" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "新建快照" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This field is required."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此字段为必填项。"
+          }
+        }
       }
     },
-    "snapshot.edit.title" : {
+    "error.holding.currencyImmutable" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit snapshot" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "编辑快照" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A holding's currency cannot be changed after creation."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "持仓币种一经创建不可修改。"
+          }
+        }
       }
     },
-    "settings.section.backup" : {
+    "error.holding.duplicateCurrency" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Backup" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "备份" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This account already has a holding in that currency."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该账户已有此币种的持仓。"
+          }
+        }
       }
     },
-    "settings.section.reminder" : {
+    "holding.delete.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reminder" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "提醒" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete every snapshot on this holding."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将删除此持仓下的所有快照。"
+          }
+        }
       }
     },
-    "settings.reminder.toggle" : {
+    "holding.delete.confirm.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Monthly reminder" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "月度提醒" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete holding?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除持仓？"
+          }
+        }
       }
     },
-    "settings.reminder.time" : {
+    "holding.detail.snapshots" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Time" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "时间" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snapshots"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快照"
+          }
+        }
       }
     },
-    "settings.reminder.footer" : {
+    "holding.edit.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cairn will send a local notification on the 1st of each month to remind you to record your snapshot." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Cairn 会在每月 1 号向你发送本地通知，提醒你录入快照。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit holding"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑持仓"
+          }
+        }
       }
     },
-    "settings.reminder.denied" : {
+    "holding.empty" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Notification permission denied. Enable it in System Settings to receive reminders." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通知权限被拒绝，请到系统设置中开启以接收提醒。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No holdings yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有持仓"
+          }
+        }
       }
     },
-    "reminder.title" : {
+    "holding.empty.hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Time for your monthly check-up" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "到了每月资产盘点时间" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a per-currency position inside this account."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在此账户下添加一个币种持仓。"
+          }
+        }
       }
     },
-    "reminder.body" : {
+    "holding.form.label" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Record this month's snapshot in Cairn." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在 Cairn 中记录本月资产快照。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Label (optional)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标签（可选）"
+          }
+        }
       }
     },
-    "onboarding.title" : {
+    "holding.edit.currencyImmutable.hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Welcome" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "欢迎" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Currency is fixed once the account is created."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账户创建后币种不可更改。"
+          }
+        }
       }
     },
-    "onboarding.welcome.title" : {
+    "holding.new.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Welcome to Cairn" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "欢迎使用 Cairn" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New holding"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建持仓"
+          }
+        }
       }
     },
-    "onboarding.welcome.body" : {
+    "member.delete.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "A monthly net-worth check-up for your family. Record a snapshot each month, and Cairn will chart the trail." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为家庭做月度净资产盘点。每月记录一次快照，Cairn 会为你绘制净资产曲线。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will delete every account, holding, and snapshot for this member. This cannot be undone."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将删除该成员的所有账户、持仓与快照，且无法恢复。"
+          }
+        }
       }
     },
-    "onboarding.homeCurrency.title" : {
+    "member.delete.confirm.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pick your home currency" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择本币" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete member?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除成员？"
+          }
+        }
       }
     },
-    "onboarding.homeCurrency.body" : {
+    "member.edit.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "All totals and charts will be shown in this currency. You can change it later in Settings." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所有汇总与图表都会以此货币展示，可随时在设置中更改。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit member"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑成员"
+          }
+        }
       }
     },
-    "onboarding.firstMember.title" : {
+    "member.empty" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add your first family member" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "添加第一位家庭成员" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No members yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有成员"
+          }
+        }
       }
     },
-    "onboarding.firstMember.body" : {
+    "member.empty.hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cairn groups assets by family member. You can add more — and accounts, holdings, snapshots — later." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Cairn 按家庭成员组织资产，之后可以继续添加成员、账户、持仓和快照。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add yourself or a family member to begin."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加你或家庭成员以开始。"
+          }
+        }
+      }
+    },
+    "member.form.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "姓名"
+          }
+        }
+      }
+    },
+    "member.new.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New member"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建成员"
+          }
+        }
+      }
+    },
+    "members.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Members"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成员"
+          }
+        }
       }
     },
     "onboarding.continue" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Continue" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "继续" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续"
+          }
+        }
       }
     },
     "onboarding.finish" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Get started" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开始使用" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get started"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始使用"
+          }
+        }
+      }
+    },
+    "onboarding.firstMember.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn groups assets by family member. You can add more — and accounts, holdings, snapshots — later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn 按家庭成员组织资产，之后可以继续添加成员、账户、持仓和快照。"
+          }
+        }
+      }
+    },
+    "onboarding.firstMember.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add your first family member"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加第一位家庭成员"
+          }
+        }
+      }
+    },
+    "onboarding.homeCurrency.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All totals and charts will be shown in this currency. You can change it later in Settings."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有汇总与图表都会以此货币展示，可随时在设置中更改。"
+          }
+        }
+      }
+    },
+    "onboarding.homeCurrency.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick your home currency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择本币"
+          }
+        }
       }
     },
     "onboarding.skip" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Skip for now" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "暂时跳过" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip for now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂时跳过"
+          }
+        }
+      }
+    },
+    "onboarding.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欢迎"
+          }
+        }
+      }
+    },
+    "onboarding.welcome.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A monthly net-worth check-up for your family. Record a snapshot each month, and Cairn will chart the trail."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为家庭做月度净资产盘点。每月记录一次快照，Cairn 会为你绘制净资产曲线。"
+          }
+        }
+      }
+    },
+    "onboarding.welcome.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to Cairn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欢迎使用 Cairn"
+          }
+        }
+      }
+    },
+    "overview.byMember" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By member"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按成员"
+          }
+        }
+      }
+    },
+    "overview.empty.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a member and their accounts from the Accounts tab to see your family's net worth here."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在账户标签页中添加成员和账户，这里将显示家庭净资产。"
+          }
+        }
+      }
+    },
+    "overview.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No assets yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有资产记录"
+          }
+        }
+      }
+    },
+    "overview.homeCurrency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home currency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本币"
+          }
+        }
+      }
+    },
+    "overview.missingRates" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Missing rates for: {currencies}. Tap refresh."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少汇率：{currencies}，请点击刷新。"
+          }
+        }
+      }
+    },
+    "overview.missingRates.short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No rate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺汇率"
+          }
+        }
+      }
+    },
+    "overview.netWorth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Net worth"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "净资产"
+          }
+        }
+      }
+    },
+    "overview.ratesAsOf" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rates as of {date}"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "汇率日期：{date}"
+          }
+        }
+      }
+    },
+    "overview.refresh.failure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to refresh rates"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "汇率刷新失败"
+          }
+        }
+      }
+    },
+    "overview.refreshRates" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh rates"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新汇率"
+          }
+        }
+      }
+    },
+    "overview.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overview"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总览"
+          }
+        }
+      }
+    },
+    "overview.trend" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trend"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "趋势"
+          }
+        }
+      }
+    },
+    "overview.trend.axis.amount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amount"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "金额"
+          }
+        }
+      }
+    },
+    "overview.trend.axis.month" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月份"
+          }
+        }
+      }
+    },
+    "overview.trend.empty.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record at least one monthly snapshot to see the curve."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "至少记录一个月度快照后，将会显示净资产曲线。"
+          }
+        }
+      }
+    },
+    "overview.trend.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No trend yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无趋势数据"
+          }
+        }
+      }
+    },
+    "overview.trend.range" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Range"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "区间"
+          }
+        }
+      }
+    },
+    "overview.trend.range.1y" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1Y"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1年"
+          }
+        }
+      }
+    },
+    "overview.trend.range.2y" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2Y"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2年"
+          }
+        }
+      }
+    },
+    "overview.trend.range.5y" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5Y"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5年"
+          }
+        }
+      }
+    },
+    "overview.trend.range.6m" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6M"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6个月"
+          }
+        }
+      }
+    },
+    "overview.updateThisMonth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update this month"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新本月"
+          }
+        }
+      }
+    },
+    "reminder.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record this month's snapshot in Cairn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Cairn 中记录本月资产快照。"
+          }
+        }
+      }
+    },
+    "reminder.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time for your monthly check-up"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "到了每月资产盘点时间"
+          }
+        }
       }
     },
     "settings.backup.export" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Export backup…" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导出备份…" } }
-      }
-    },
-    "settings.backup.import" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Import from backup…" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "从备份恢复…" } }
-      }
-    },
-    "settings.backup.footer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cairn stores data locally. Export a backup to move it between Macs (drop the file into iCloud Drive, Dropbox, etc.)." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Cairn 的数据保存在本地。导出备份后可通过 iCloud Drive、Dropbox 等方式在不同 Mac 间迁移。" } }
-      }
-    },
-    "settings.backup.export.success" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Backup exported." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "备份已导出。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export backup…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出备份…"
+          }
+        }
       }
     },
     "settings.backup.export.failure" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Export failed." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导出失败。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export failed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出失败。"
+          }
+        }
       }
     },
-    "settings.backup.import.confirm.title" : {
+    "settings.backup.export.success" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Replace all data?" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "替换全部数据？" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup exported."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份已导出。"
+          }
+        }
       }
     },
-    "settings.backup.import.confirm.message" : {
+    "settings.backup.footer" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Importing will erase everything currently on this Mac and replace it with the backup file. This cannot be undone." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导入将清除当前 Mac 上的全部数据并替换为备份文件中的内容，操作无法撤销。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn stores data locally. Export a backup to move it between Macs (drop the file into iCloud Drive, Dropbox, etc.)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn 的数据保存在本地。导出备份后可通过 iCloud Drive、Dropbox 等方式在不同 Mac 间迁移。"
+          }
+        }
+      }
+    },
+    "settings.backup.import" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import from backup…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从备份恢复…"
+          }
+        }
       }
     },
     "settings.backup.import.confirm.action" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Replace" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "替换" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "替换"
+          }
+        }
       }
     },
-    "settings.backup.import.success" : {
+    "settings.backup.import.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Backup imported." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "备份已导入。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importing will erase everything currently on this Mac and replace it with the backup file. This cannot be undone."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入将清除当前 Mac 上的全部数据并替换为备份文件中的内容，操作无法撤销。"
+          }
+        }
+      }
+    },
+    "settings.backup.import.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replace all data?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "替换全部数据？"
+          }
+        }
       }
     },
     "settings.backup.import.failure" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Import failed. The file may be invalid." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "导入失败，备份文件可能无效。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import failed. The file may be invalid."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入失败，备份文件可能无效。"
+          }
+        }
+      }
+    },
+    "settings.backup.import.success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup imported."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份已导入。"
+          }
+        }
+      }
+    },
+    "settings.homeCurrency.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home currency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本币"
+          }
+        }
+      }
+    },
+    "settings.language.english" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        }
+      }
+    },
+    "settings.language.followSystem" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow system"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随系统"
+          }
+        }
+      }
+    },
+    "settings.language.simplifiedChinese" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "简体中文"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "简体中文"
+          }
+        }
+      }
+    },
+    "settings.language.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语言"
+          }
+        }
+      }
+    },
+    "settings.reminder.denied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification permission denied. Enable it in System Settings to receive reminders."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知权限被拒绝，请到系统设置中开启以接收提醒。"
+          }
+        }
+      }
+    },
+    "settings.reminder.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn will send a local notification on the 1st of each month to remind you to record your snapshot."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn 会在每月 1 号向你发送本地通知，提醒你录入快照。"
+          }
+        }
+      }
+    },
+    "settings.reminder.time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时间"
+          }
+        }
+      }
+    },
+    "settings.reminder.toggle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly reminder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月度提醒"
+          }
+        }
+      }
+    },
+    "settings.section.backup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份"
+          }
+        }
+      }
+    },
+    "settings.section.about" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于"
+          }
+        }
+      }
+    },
+    "settings.about.version" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版本"
+          }
+        }
+      }
+    },
+    "settings.section.general" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用"
+          }
+        }
+      }
+    },
+    "settings.section.reminder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reminder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提醒"
+          }
+        }
+      }
+    },
+    "settings.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
+          }
+        }
+      }
+    },
+    "snapshot.delete.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This snapshot will be removed. You can re-create it later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将删除该快照，你可以稍后重新创建。"
+          }
+        }
+      }
+    },
+    "snapshot.delete.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete snapshot?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除快照？"
+          }
+        }
+      }
+    },
+    "snapshot.edit.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit snapshot"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑快照"
+          }
+        }
+      }
+    },
+    "snapshot.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No snapshots yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有快照"
+          }
+        }
+      }
+    },
+    "snapshot.empty.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Record this month's value to start a trend."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记录本月金额以开启走势曲线。"
+          }
+        }
+      }
+    },
+    "snapshot.form.amount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amount"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "金额"
+          }
+        }
+      }
+    },
+    "snapshot.form.month" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月份"
+          }
+        }
+      }
+    },
+    "snapshot.new.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New snapshot"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建快照"
+          }
+        }
+      }
+    },
+    "holding.snapshot.none" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No snapshot"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无快照"
+          }
+        }
       }
     }
-  }
+  },
+  "version" : "1.0"
 }
