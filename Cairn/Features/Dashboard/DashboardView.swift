@@ -77,15 +77,32 @@ struct DashboardView: View {
             missingCurrencies: mergedMissing
         )
 
+        // Fold physical assets into the financial per-kind buckets so the
+        // dashboard allocation donut + category tiles reflect the family's
+        // full balance sheet. Physical categories map to account kinds as:
+        //   realEstate / vehicle     -> AccountKind.realEstate
+        //   electronics / other      -> AccountKind.device
         var byKind: [AccountKind: Decimal] = [:]
-        byKind.reserveCapacity(financial.byKind.count)
+        byKind.reserveCapacity(financial.byKind.count + physical.byCategory.count)
         for entry in financial.byKind { byKind[entry.kind] = entry.amount }
+        for entry in physical.byCategory {
+            let kind: AccountKind
+            switch entry.category {
+            case .realEstate, .vehicle: kind = .realEstate
+            case .electronics, .other: kind = .device
+            }
+            byKind[kind, default: 0] += entry.amount
+        }
+        let combinedAllocation = byKind
+            .filter { $0.value != 0 }
+            .map { NetWorthCalculator.KindTotal(kind: $0.key, amount: $0.value) }
+            .sorted { $0.amount > $1.amount }
 
         return Derivation(
             totals: financial.totals,
             physicalTotals: physical.totals,
             combinedTotals: combined,
-            allocation: financial.byKind,
+            allocation: combinedAllocation,
             allocationByKind: byKind,
             delta: financial.monthOverMonthDelta
         )

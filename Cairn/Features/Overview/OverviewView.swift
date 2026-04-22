@@ -387,19 +387,6 @@ struct OverviewView: View {
                     .menuStyle(.borderlessButton)
                     .font(.callout)
                 }
-                if !portfolioSnapshots.isEmpty {
-                    Button {
-                        isUpdating = true
-                    } label: {
-                        Label {
-                            Text("overview.addSnapshot")
-                        } icon: {
-                            Image(systemName: "plus")
-                        }
-                    }
-                    .buttonStyle(.borderless)
-                    .font(.callout)
-                }
             }
             if portfolioSnapshots.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
@@ -453,7 +440,9 @@ struct OverviewView: View {
 
     private func snapshotRow(_ snapshot: PortfolioSnapshot) -> some View {
         HStack(spacing: 12) {
+#if os(macOS)
             GlyphBadge(systemName: "camera.aperture", tint: .accentColor)
+#endif
             VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: snapshot.periodMonth.formatted(.dateTime.year().month(.abbreviated).locale(Locale(identifier: "en"))))
                     .font(.callout.weight(.medium))
@@ -474,7 +463,9 @@ struct OverviewView: View {
             Spacer()
             Text(
                 snapshot.totalAmount,
-                format: .number.precision(.fractionLength(0)).locale(locale)
+                format: .currency(code: snapshot.homeCurrency)
+                    .locale(locale)
+                    .precision(.fractionLength(0))
             )
             .monospacedDigit()
             .font(.callout.weight(.semibold))

@@ -236,10 +236,12 @@ struct AssetsView: View {
             editingAsset = asset
         } label: {
             HStack(spacing: 12) {
+#if os(macOS)
                 GlyphBadge(
                     systemName: asset.iconName ?? asset.category.iconName,
                     tint: asset.category.tint
                 )
+#endif
                 VStack(alignment: .leading, spacing: 3) {
                     Text(verbatim: asset.name)
                         .font(.callout.weight(.medium))
@@ -353,6 +355,9 @@ struct AssetsView: View {
 
     private func presentNewAsset() {
         guard let defaultMember = members.first else { return }
+        // Create an unmanaged draft. We insert into the context only on
+        // explicit save; dropping the sheet via swipe-down or click-outside
+        // lets the draft deallocate, so no empty row is ever persisted.
         let draft = Asset(
             name: "",
             category: .realEstate,
@@ -361,7 +366,6 @@ struct AssetsView: View {
             purchaseDate: .now,
             member: defaultMember
         )
-        context.insert(draft)
         newAssetDraft = draft
     }
 }
@@ -400,7 +404,7 @@ private struct AssetsSheetsModifier: ViewModifier {
         content
             .sheet(item: $newAssetDraft) { draft in
                 AssetFormView(asset: draft, isNew: true) { saved in
-                    if !saved { context.delete(draft) }
+                    if saved { context.insert(draft) }
                     newAssetDraft = nil
                 }
             }

@@ -79,7 +79,7 @@ struct SettingsView: View {
                     )
                 }
             } header: {
-                NotionSectionHeader("settings.section.general", systemImage: "gearshape.fill")
+                NotionSectionHeader("settings.section.general")
             }
 
             Section {
@@ -103,7 +103,7 @@ struct SettingsView: View {
                     }
                 }
             } header: {
-                NotionSectionHeader("settings.section.reminder", systemImage: "bell.badge.fill")
+                NotionSectionHeader("settings.section.reminder")
             } footer: {
                 Text("settings.reminder.footer")
                     .font(.footnote)
@@ -142,7 +142,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
             } header: {
-                NotionSectionHeader("settings.section.backup", systemImage: "externaldrive.fill")
+                NotionSectionHeader("settings.section.backup")
             } footer: {
                 Text("settings.backup.footer")
                     .font(.footnote)
@@ -162,7 +162,7 @@ struct SettingsView: View {
                     )
                 }
             } header: {
-                NotionSectionHeader("settings.section.about", systemImage: "app.badge.fill")
+                NotionSectionHeader("settings.section.about")
             }
         }
         .formStyle(.grouped)
@@ -255,12 +255,8 @@ struct SettingsView: View {
 
     @ViewBuilder
     private func currencyRow(_ code: String) -> some View {
-        HStack {
-            Text(verbatim: code)
-                .font(.body.monospaced())
-            Text(verbatim: CurrencyCatalog.displayName(code))
-                .foregroundStyle(.secondary)
-        }
+        Text(verbatim: code)
+            .font(.body.monospaced())
     }
 
     private var appearanceBinding: Binding<AppAppearance> {

@@ -1,17 +1,19 @@
 import SwiftUI
 import SwiftData
 
-/// Lists the accounts belonging to a given `Member`, grouped by kind.
-/// Each account expands inline to reveal its holding's snapshots so the
-/// user can review and edit balances without an extra navigation step.
+/// Detail view for a `Member`: shows the account list grouped by kind.
+/// Tapping an account navigates deeper to `AccountDetailView`. Toolbar
+/// provides edit-member and new-account actions.
 struct MemberDetailView: View {
     @Bindable var member: Member
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
 
-    @State private var newAccountDraft: Account?
-    @State private var accountPendingDeletion: Account?
     @State private var editingMember = false
+    @State private var newAccountDraft: Account?
+    @State private var pendingAccountDraft: Account?
+    @State private var didSaveAccountDraft = false
+    @State private var accountPendingDeletion: Account?
 
     var body: some View {
         ScrollView {
@@ -38,14 +40,15 @@ struct MemberDetailView: View {
             }
         }
         .ambientBackground()
-        .navigationTitle(Text(verbatim: member.name))
+        .navigationTitle(Text(verbatim: member.name.isEmpty ? " " : member.name))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button {
-                        let draft = Account(name: "", kind: .cash, member: member)
-                        context.insert(draft)
-                        newAccountDraft = draft
+                        newAccountDraft = makeAccountDraft()
                     } label: {
                         Label {
                             Text("account.new.title")
@@ -67,15 +70,25 @@ struct MemberDetailView: View {
                 }
             }
         }
-        .sheet(item: $newAccountDraft) { draft in
-            AccountFormView(account: draft, isNew: true) { saved in
-                if !saved {
-                    context.delete(draft)
-                }
-            }
-        }
         .sheet(isPresented: $editingMember) {
             MemberFormView(member: member, isNew: false)
+        }
+        .sheet(item: $newAccountDraft, onDismiss: {
+            if !didSaveAccountDraft, let draft = pendingAccountDraft {
+                // Sheet was swiped away without tapping Save; roll back the
+                // draft so a stray empty account doesn't linger.
+                context.delete(draft)
+            }
+            pendingAccountDraft = nil
+            didSaveAccountDraft = false
+        }) { draft in
+            AccountFormView(account: draft, isNew: true) { saved in
+                didSaveAccountDraft = saved
+                if !saved {
+                    context.delete(draft)
+                    pendingAccountDraft = nil
+                }
+            }
         }
         .confirmationDialog(
             Text("account.delete.confirm.title"),
@@ -101,8 +114,6 @@ struct MemberDetailView: View {
         }
     }
 
-    // MARK: - Sections
-
     @ViewBuilder
     private func kindSection(for kind: AccountKind, accounts: [Account]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -119,286 +130,13 @@ struct MemberDetailView: View {
 
             VStack(spacing: 10) {
                 ForEach(accounts) { account in
-                    ExpandableAccountRow(
-                        account: account,
-                        tint: kind.tint,
-                        onDelete: { accountPendingDeletion = account }
-                    )
-                }
-            }
-        }
-    }
-
-    private func accounts(for kind: AccountKind) -> [Account] {
-        (member.accounts ?? [])
-            .filter { $0.kind == kind }
-            .sorted { $0.createdAt < $1.createdAt }
-    }
-}
-
-// MARK: - Expandable account row
-
-private struct ExpandableAccountRow: View {
-    @Bindable var account: Account
-    let tint: Color
-    let onDelete: () -> Void
-
-    @Environment(\.modelContext) private var context
-    @Environment(\.locale) private var locale
-
-    @State private var isExpanded = false
-    @State private var presentingSnapshotForm = false
-    @State private var editingSnapshot: Snapshot?
-    @State private var snapshotPendingDeletion: Snapshot?
-    @State private var editingAccount = false
-    @State private var editingHolding = false
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Button {
-                withAnimation(.snappy) { isExpanded.toggle() }
-            } label: {
-                summaryRow
-            }
-            .buttonStyle(.plain)
-            .contextMenu {
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Label {
-                        Text("common.action.delete")
-                    } icon: {
-                        Image(systemName: "trash")
+                    NavigationLink(value: account) {
+                        MemberAccountRow(account: account, tint: kind.tint, locale: locale)
                     }
-                }
-            }
-
-            if isExpanded {
-                expandedContent
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .glassCard(cornerRadius: 14, padding: 14)
-        .sheet(isPresented: $presentingSnapshotForm) {
-            if let primary = primaryHolding {
-                SnapshotFormView(holding: primary, existing: nil)
-            }
-        }
-        .sheet(item: $editingSnapshot) { snapshot in
-            if let primary = primaryHolding {
-                SnapshotFormView(holding: primary, existing: snapshot)
-            }
-        }
-        .sheet(isPresented: $editingAccount) {
-            AccountFormView(account: account, isNew: false)
-        }
-        .sheet(isPresented: $editingHolding) {
-            if let primary = primaryHolding {
-                HoldingEditView(holding: primary)
-            }
-        }
-        .confirmationDialog(
-            Text("snapshot.delete.confirm.title"),
-            isPresented: Binding(
-                get: { snapshotPendingDeletion != nil },
-                set: { if !$0 { snapshotPendingDeletion = nil } }
-            ),
-            presenting: snapshotPendingDeletion
-        ) { snapshot in
-            Button(role: .destructive) {
-                context.delete(snapshot)
-                snapshotPendingDeletion = nil
-            } label: {
-                Text("common.action.delete")
-            }
-            Button(role: .cancel) {
-                snapshotPendingDeletion = nil
-            } label: {
-                Text("common.action.cancel")
-            }
-        } message: { _ in
-            Text("snapshot.delete.confirm.message")
-        }
-    }
-
-    private var summaryRow: some View {
-        HStack(spacing: 14) {
-            GlyphBadge(systemName: account.kind.iconName, tint: tint)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: account.name.isEmpty ? " " : account.name)
-                    .font(.headline)
-                HStack(spacing: 6) {
-                    if account.isArchived {
-                        Text("common.label.archived")
-                            .font(.caption2.weight(.medium))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.secondary.opacity(0.18), in: Capsule())
-                    }
-                    if let note = account.note, !note.isEmpty {
-                        Text(verbatim: note)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-            }
-
-            Spacer()
-
-            HStack(spacing: 6) {
-                ForEach(activeCurrencies.prefix(3), id: \.self) { code in
-                    Text(verbatim: code)
-                        .font(.caption.monospaced().weight(.semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(tint.opacity(0.15), in: Capsule())
-                        .foregroundStyle(tint)
-                }
-            }
-
-            if let primary = primaryHolding, let latest = sortedSnapshots(for: primary).first {
-                Text(
-                    latest.amount,
-                    format: .currency(code: primary.currency)
-                        .locale(locale)
-                        .precision(.fractionLength(0))
-                )
-                .font(.callout.monospacedDigit().weight(.semibold))
-            }
-
-            Image(systemName: "chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .rotationEffect(.degrees(isExpanded ? 180 : 0))
-        }
-        .contentShape(Rectangle())
-    }
-
-    @ViewBuilder
-    private var expandedContent: some View {
-        Divider().opacity(0.4)
-        if let primary = primaryHolding {
-            VStack(alignment: .leading, spacing: 12) {
-                actionBar(for: primary)
-                snapshotList(for: primary)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("holding.empty")
-                    .font(.callout.weight(.medium))
-                Text("holding.empty.hint")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                HStack {
-                    Spacer()
-                    Button {
-                        editingAccount = true
-                    } label: {
-                        Label {
-                            Text("account.edit.title")
-                        } icon: {
-                            Image(systemName: "pencil")
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-            }
-        }
-    }
-
-    private func actionBar(for holding: Holding) -> some View {
-        HStack(spacing: 10) {
-            Button {
-                presentingSnapshotForm = true
-            } label: {
-                Label {
-                    Text("snapshot.new.title")
-                } icon: {
-                    Image(systemName: "plus")
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-
-            Spacer()
-
-            Menu {
-                Button {
-                    editingAccount = true
-                } label: {
-                    Label {
-                        Text("account.edit.title")
-                    } icon: {
-                        Image(systemName: "pencil")
-                    }
-                }
-                Button {
-                    editingHolding = true
-                } label: {
-                    Label {
-                        Text("holding.edit.title")
-                    } icon: {
-                        Image(systemName: "tag")
-                    }
-                }
-                Button {
-                    holding.isArchived.toggle()
-                } label: {
-                    Label {
-                        Text(holding.isArchived ? "common.action.unarchive" : "common.action.archive")
-                    } icon: {
-                        Image(systemName: holding.isArchived ? "tray.and.arrow.up" : "archivebox")
-                    }
-                }
-                Divider()
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Label {
-                        Text("common.action.delete")
-                    } icon: {
-                        Image(systemName: "trash")
-                    }
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-        }
-    }
-
-    @ViewBuilder
-    private func snapshotList(for holding: Holding) -> some View {
-        let snapshots = sortedSnapshots(for: holding)
-        if snapshots.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("snapshot.empty")
-                    .font(.callout.weight(.medium))
-                Text("snapshot.empty.hint")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        } else {
-            VStack(spacing: 8) {
-                ForEach(Array(snapshots.enumerated()), id: \.element.id) { index, snapshot in
-                    SnapshotRow(
-                        snapshot: snapshot,
-                        previous: index + 1 < snapshots.count ? snapshots[index + 1] : nil,
-                        currency: holding.currency,
-                        locale: locale
-                    )
-                    .onTapGesture {
-                        editingSnapshot = snapshot
-                    }
+                    .buttonStyle(.plain)
                     .contextMenu {
                         Button(role: .destructive) {
-                            snapshotPendingDeletion = snapshot
+                            accountPendingDeletion = account
                         } label: {
                             Label {
                                 Text("common.action.delete")
@@ -412,7 +150,37 @@ private struct ExpandableAccountRow: View {
         }
     }
 
-    // MARK: - Derived
+    private func accounts(for kind: AccountKind) -> [Account] {
+        (member.accounts ?? [])
+            .filter { $0.kind == kind }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    private func makeAccountDraft() -> Account {
+        let draft = Account(name: "", kind: .cash, member: member)
+        context.insert(draft)
+        pendingAccountDraft = draft
+        didSaveAccountDraft = false
+        return draft
+    }
+
+    private func cleanupUnsavedDraft() {
+        guard let draft = pendingAccountDraft else { return }
+        context.delete(draft)
+        pendingAccountDraft = nil
+    }
+}
+
+struct MemberAccountRow: View {
+    @Bindable var account: Account
+    let tint: Color
+    let locale: Locale
+
+    private var primaryHolding: Holding? {
+        let all = account.holdings ?? []
+        return all.first { !$0.isArchived }
+            ?? all.sorted { $0.createdAt < $1.createdAt }.first
+    }
 
     private var activeCurrencies: [String] {
         var seen: Set<String> = []
@@ -422,82 +190,66 @@ private struct ExpandableAccountRow: View {
             .filter { seen.insert($0).inserted }
     }
 
-    private var primaryHolding: Holding? {
-        let all = account.holdings ?? []
-        return all.first { !$0.isArchived }
-            ?? all.sorted { $0.createdAt < $1.createdAt }.first
-    }
-
-    private func sortedSnapshots(for holding: Holding) -> [Snapshot] {
-        (holding.snapshots ?? []).sorted { $0.periodMonth > $1.periodMonth }
-    }
-}
-
-private struct SnapshotRow: View {
-    let snapshot: Snapshot
-    let previous: Snapshot?
-    let currency: String
-    let locale: Locale
-
-    private var delta: Decimal? {
-        guard let previous else { return nil }
-        return snapshot.amount - previous.amount
+    private var latestSnapshot: Snapshot? {
+        guard let primary = primaryHolding else { return nil }
+        return (primary.snapshots ?? []).sorted { $0.periodMonth > $1.periodMonth }.first
     }
 
     var body: some View {
         HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(snapshot.periodMonth, format: .dateTime.year().locale(locale))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(snapshot.periodMonth, format: .dateTime.month(.wide).locale(locale))
+            GlyphBadge(systemName: account.kind.iconName, tint: tint)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(verbatim: account.name.isEmpty ? " " : account.name)
                     .font(.callout.weight(.semibold))
+                HStack(spacing: 6) {
+                    if account.isArchived {
+                        Text("common.label.archived")
+                            .font(.caption2.weight(.medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.secondary.opacity(0.18), in: Capsule())
+                    }
+                    ForEach(activeCurrencies.prefix(2), id: \.self) { code in
+                        Text(verbatim: code)
+                            .font(.caption.monospaced().weight(.semibold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(tint.opacity(0.15), in: Capsule())
+                            .foregroundStyle(tint)
+                    }
+                }
             }
-            .frame(width: 96, alignment: .leading)
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
+            if let primary = primaryHolding, let latest = latestSnapshot {
                 Text(
-                    snapshot.amount,
-                    format: .currency(code: currency).locale(locale)
+                    latest.amount,
+                    format: .currency(code: primary.currency)
+                        .locale(locale)
+                        .precision(.fractionLength(0))
                 )
                 .font(.callout.monospacedDigit().weight(.semibold))
-
-                if let delta, delta != 0 {
-                    let positive = delta >= 0
-                    HStack(spacing: 2) {
-                        Image(systemName: positive ? "arrow.up.right" : "arrow.down.right")
-                        Text(
-                            delta,
-                            format: .currency(code: currency).locale(locale).precision(.fractionLength(0))
-                        )
-                    }
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(positive ? Color.green : Color.red)
-                }
             }
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
-        .padding(12)
-        .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(Rectangle())
     }
 }
 
-#Preview("MemberDetail · with accounts") {
+#if DEBUG
+#Preview("MemberDetail · seeded") {
     let env = PreviewSampleData.seededContainer()
     return NavigationStack {
         MemberDetailView(member: env.seed.alice)
     }
     .modelContainer(env.container)
 }
-
-#Preview("MemberDetail · empty") {
-    let container = PreviewSampleData.emptyContainer()
-    let blank = Member(name: "New member")
-    container.mainContext.insert(blank)
-    return NavigationStack {
-        MemberDetailView(member: blank)
-    }
-    .modelContainer(container)
-}
+#endif

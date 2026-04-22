@@ -1,6 +1,10 @@
 import SwiftUI
 import SwiftData
 
+/// Lists every `Member`. Tapping the row navigates to
+/// `MemberDetailView` (account list). A trailing chevron button on each
+/// card also lets the user expand an inline preview of the accounts
+/// without leaving the list.
 struct MembersListView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
@@ -15,11 +19,11 @@ struct MembersListView: View {
 
     @State private var newMemberDraft: Member?
     @State private var memberPendingDeletion: Member?
+    @State private var expandedMemberIDs: Set<UUID> = []
+    @State private var editingMember: Member?
 
     private var memberTotals: [UUID: Decimal] {
         _ = holdings.count + snapshots.count + rates.count + members.count
-        // Single-pass bundle so the per-row totals share one fetch + one
-        // FX cache load, rather than re-fetching for each member.
         let bundle = NetWorthCalculator.bundle(
             homeCurrency: homeCurrency,
             includeMemberBreakdown: true,
@@ -44,26 +48,16 @@ struct MembersListView: View {
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(members) { member in
-                        NavigationLink(value: member) {
-                            MemberCard(
-                                member: member,
-                                total: totals[member.id] ?? 0,
-                                homeCurrency: homeCurrency,
-                                locale: locale
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                memberPendingDeletion = member
-                            } label: {
-                                Label {
-                                    Text("common.action.delete")
-                                } icon: {
-                                    Image(systemName: "trash")
-                                }
-                            }
-                        }
+                        MemberRowCard(
+                            member: member,
+                            total: totals[member.id] ?? 0,
+                            homeCurrency: homeCurrency,
+                            locale: locale,
+                            isExpanded: expandedMemberIDs.contains(member.id),
+                            toggle: { toggle(member: member) },
+                            onEditMember: { editingMember = member },
+                            onDeleteMember: { memberPendingDeletion = member }
+                        )
                     }
                 }
                 .padding(.horizontal, 24)
@@ -76,6 +70,9 @@ struct MembersListView: View {
         .navigationTitle("members.title")
         .navigationDestination(for: Member.self) { member in
             MemberDetailView(member: member)
+        }
+        .navigationDestination(for: Account.self) { account in
+            AccountDetailView(account: account)
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -98,6 +95,9 @@ struct MembersListView: View {
                     context.delete(draft)
                 }
             }
+        }
+        .sheet(item: $editingMember) { member in
+            MemberFormView(member: member, isNew: false)
         }
         .confirmationDialog(
             Text("member.delete.confirm.title"),
@@ -122,19 +122,84 @@ struct MembersListView: View {
             Text("member.delete.confirm.message")
         }
     }
+
+    private func toggle(member: Member) {
+        withAnimation(.snappy) {
+            if expandedMemberIDs.contains(member.id) {
+                expandedMemberIDs.remove(member.id)
+            } else {
+                expandedMemberIDs.insert(member.id)
+            }
+        }
+    }
 }
 
-private struct MemberCard: View {
-    let member: Member
+// MARK: - Member row card
+
+private struct MemberRowCard: View {
+    @Bindable var member: Member
     let total: Decimal
     let homeCurrency: String
     let locale: Locale
+    let isExpanded: Bool
+    let toggle: () -> Void
+    let onEditMember: () -> Void
+    let onDeleteMember: () -> Void
 
     private var accountCount: Int {
         (member.accounts ?? []).count
     }
 
     var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                NavigationLink(value: member) {
+                    summaryContent
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button {
+                        onEditMember()
+                    } label: {
+                        Label {
+                            Text("member.edit.title")
+                        } icon: {
+                            Image(systemName: "pencil")
+                        }
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        onDeleteMember()
+                    } label: {
+                        Label {
+                            Text("common.action.delete")
+                        } icon: {
+                            Image(systemName: "trash")
+                        }
+                    }
+                }
+
+                Button(action: toggle) {
+                    Image(systemName: "chevron.down")
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .frame(width: 32, height: 32)
+                        .background(.secondary.opacity(0.12), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(isExpanded ? "common.action.collapse" : "common.action.expand"))
+            }
+
+            if isExpanded {
+                expandedContent
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .glassCard(cornerRadius: 16, padding: 16)
+    }
+
+    private var summaryContent: some View {
         HStack(spacing: 16) {
             MemberAvatarView(
                 name: member.name,
@@ -156,20 +221,44 @@ private struct MemberCard: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(
-                    total,
-                    format: .currency(code: homeCurrency)
-                        .locale(locale)
-                        .precision(.fractionLength(0))
-                )
-                .font(.title3.weight(.semibold).monospacedDigit())
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+            Text(
+                total,
+                format: .currency(code: homeCurrency)
+                    .locale(locale)
+                    .precision(.fractionLength(0))
+            )
+            .font(.callout.weight(.semibold).monospacedDigit())
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+        }
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var expandedContent: some View {
+        Divider().opacity(0.4)
+        VStack(alignment: .leading, spacing: 8) {
+            if sortedAccounts.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("account.empty")
+                        .font(.callout.weight(.medium))
+                    Text("account.empty.hint")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                ForEach(sortedAccounts) { account in
+                    NavigationLink(value: account) {
+                        MemberAccountRow(account: account, tint: account.kind.tint, locale: locale)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
-        .glassCard(cornerRadius: 16, padding: 16)
+    }
+
+    private var sortedAccounts: [Account] {
+        (member.accounts ?? []).sorted { $0.createdAt < $1.createdAt }
     }
 }
 
