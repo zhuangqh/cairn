@@ -4,6 +4,9 @@
     "" : {
 
     },
+    " " : {
+
+    },
     "account.delete.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -275,6 +278,9 @@
           }
         }
       }
+    },
+    "amount" : {
+
     },
     "app.name" : {
       "extractionState" : "manual",
@@ -894,13 +900,81 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Asset total"
+            "value" : "Total purchase cost"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "资产合计"
+            "value" : "总购置成本"
+          }
+        }
+      }
+    },
+    "asset.row.purchaseCost" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchase cost"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购置成本"
+          }
+        }
+      }
+    },
+    "asset.row.purchasedOn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchased {date}"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购置于 {date}"
+          }
+        }
+      }
+    },
+    "asset.row.estimatedValueNotSet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimated value not set"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未设置估值"
+          }
+        }
+      }
+    },
+    "asset.section.itemCount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{count} items"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{count} 项"
           }
         }
       }
@@ -911,13 +985,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Asset purchases"
+            "value" : "Cumulative purchase cost"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "资产购置趋势"
+            "value" : "累计购置成本"
           }
         }
       }
@@ -1704,6 +1778,23 @@
         }
       }
     },
+    "dashboard.allocation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asset Allocation"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资产配置"
+          }
+        }
+      }
+    },
     "dashboard.allocation.axis.amount" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1785,6 +1876,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "实物资产"
+          }
+        }
+      }
+    },
+    "dashboard.composition" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Composition"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资产构成"
           }
         }
       }
@@ -1887,6 +1995,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "趋势"
+          }
+        }
+      }
+    },
+    "dashboard.vsLastMonth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vs last month"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对比上月"
           }
         }
       }
@@ -2367,6 +2492,9 @@
         }
       }
     },
+    "month" : {
+
+    },
     "onboarding.continue" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2815,7 +2943,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Assets"
+            "value" : "Physical"
           }
         },
         "zh-Hans" : {

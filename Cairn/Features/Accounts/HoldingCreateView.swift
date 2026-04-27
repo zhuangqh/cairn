@@ -58,6 +58,7 @@ struct HoldingCreateView: View {
                     }
                 }
             }
+            .keyboardDismissable()
             .navigationTitle("holding.new.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

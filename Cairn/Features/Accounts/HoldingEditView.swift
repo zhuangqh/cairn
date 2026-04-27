@@ -38,6 +38,7 @@ struct HoldingEditView: View {
             }
             .formStyle(.grouped)
             .glassListStyle()
+            .keyboardDismissable()
             .navigationTitle("holding.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

@@ -96,6 +96,7 @@ struct AccountFormView: View {
             }
             .formStyle(.grouped)
             .glassListStyle()
+            .keyboardDismissable()
             .navigationTitle(isNew ? "account.new.title" : "account.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

@@ -72,6 +72,7 @@ struct MemberFormView: View {
             }
             .formStyle(.grouped)
             .glassListStyle()
+            .keyboardDismissable()
             .navigationTitle(isNew ? "member.new.title" : "member.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

@@ -44,13 +44,20 @@ struct OverviewView: View {
     @State private var selectedYear: Int? = nil
     @State private var selectedTab: Tab = .financial
 
-    /// One-shot derivation for the financial tab. Replaces what used to be
-    /// two independent computed properties (`totals` + `memberTotals`),
-    /// each of which performed its own holdings fetch and FX-rate
-    /// resolution per body render.
+    /// One-shot derivation for the financial tab. Computed in a single
+    /// pass per `body` render so the hero, members, and snapshot cards
+    /// share one holdings fetch + FX cache + sorted-snapshot index.
     private struct FinancialDerivation {
         var totals: NetWorthCalculator.Totals
         var memberTotals: [NetWorthCalculator.MemberTotal]
+        /// Month-over-month percentage delta for the household total.
+        var monthDeltaPercent: Double?
+        /// Month-over-month absolute delta in `homeCurrency`.
+        var monthDeltaAmount: Decimal?
+        /// Per-member month-over-month percentage deltas, keyed by id.
+        var memberDeltaPercent: [UUID: Double]
+        /// Last six months of net worth — used for the hero sparkline.
+        var sparkline: [OverviewSparkline.Point]
     }
 
     private func deriveFinancial() -> FinancialDerivation {
@@ -60,7 +67,57 @@ struct OverviewView: View {
             includeMemberBreakdown: true,
             context: context
         )
-        return FinancialDerivation(totals: bundle.totals, memberTotals: bundle.byMember)
+
+        // Prior month — computed once, reused for absolute delta + per-member.
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        let thisMonth = Snapshot.normalize(.now)
+        let lastMonth = calendar.date(byAdding: .month, value: -1, to: thisMonth)
+
+        var deltaAmount: Decimal?
+        var memberDeltas: [UUID: Double] = [:]
+
+        if let lastMonth {
+            let prevTotal = NetWorthCalculator.total(
+                homeCurrency: homeCurrency,
+                asOf: lastMonth,
+                context: context
+            )
+            deltaAmount = bundle.totals.amount - prevTotal.amount
+
+            let prevMembers = NetWorthCalculator.totalsByMember(
+                homeCurrency: homeCurrency,
+                asOf: lastMonth,
+                context: context
+            )
+            let prevById = Dictionary(uniqueKeysWithValues: prevMembers.map { ($0.memberId, $0.amount) })
+            for entry in bundle.byMember {
+                guard let prior = prevById[entry.memberId], prior != 0 else { continue }
+                let change = (entry.amount - prior) / prior
+                memberDeltas[entry.memberId] = NSDecimalNumber(decimal: change).doubleValue
+            }
+        }
+
+        let trend = NetWorthCalculator.trend(
+            homeCurrency: homeCurrency,
+            months: 6,
+            context: context
+        )
+        let sparkline = trend.map {
+            OverviewSparkline.Point(
+                period: $0.period,
+                amount: NSDecimalNumber(decimal: $0.amount).doubleValue
+            )
+        }
+
+        return FinancialDerivation(
+            totals: bundle.totals,
+            memberTotals: bundle.byMember,
+            monthDeltaPercent: bundle.monthOverMonthDelta,
+            monthDeltaAmount: deltaAmount,
+            memberDeltaPercent: memberDeltas,
+            sparkline: sparkline
+        )
     }
 
     var body: some View {
@@ -252,30 +309,55 @@ struct OverviewView: View {
     }
 
     private func heroTextBlock(derivation: FinancialDerivation) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
+            // Eyebrow row — net worth label + tiny home currency tag.
             HStack(spacing: 6) {
                 Text("overview.netWorth")
-                    .font(.headline)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
                 Text(verbatim: "·")
                     .foregroundStyle(.tertiary)
                 Text(verbatim: homeCurrency)
-                    .font(.caption.monospaced().weight(.semibold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.secondary.opacity(0.15), in: Capsule())
+                    .font(.caption2.monospaced().weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
+
             Text(
                 derivation.totals.amount,
                 format: .currency(code: homeCurrency)
                     .locale(locale)
                     .precision(.fractionLength(0))
             )
-                .font(.system(size: 38, weight: .bold, design: .rounded))
+                .font(.system(size: 40, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
+                .foregroundStyle(Color.notionInk)
 
+            // Delta line — the "decision dashboard" headline number.
+            if derivation.monthDeltaPercent != nil {
+                DeltaBadge(
+                    percent: derivation.monthDeltaPercent,
+                    amount: derivation.monthDeltaAmount,
+                    currencyCode: homeCurrency,
+                    locale: locale,
+                    style: .full
+                )
+            }
+
+            // Sparkline — silent trend indicator.
+            if derivation.sparkline.count >= 2 {
+                OverviewSparkline(
+                    points: derivation.sparkline,
+                    isPositive: derivation.monthDeltaPercent.map { $0 >= 0 }
+                )
+                .padding(.top, 2)
+            }
+
+            // Subtle context: missing-rates warning OR (de-emphasized)
+            // "Rates as of …" footnote.
             if !derivation.totals.missingCurrencies.isEmpty {
                 Label {
                     Text(missingRatesMessage(derivation.totals.missingCurrencies))
@@ -284,11 +366,12 @@ struct OverviewView: View {
                 }
                 .foregroundStyle(.orange)
                 .font(.footnote)
-            }
-            if let latest = rates.map(\.date).max(), derivation.totals.missingCurrencies.isEmpty {
+                .padding(.top, 4)
+            } else if let latest = rates.map(\.date).max() {
                 Text(latestRatesFootnote(date: latest))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 4)
             }
         }
     }
@@ -315,31 +398,32 @@ struct OverviewView: View {
     private func membersCard(derivation: FinancialDerivation) -> some View {
         let memberTotals = derivation.memberTotals
         let membersById = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0) })
-        return VStack(alignment: .leading, spacing: 12) {
+        let totalAmount = derivation.totals.amount
+        let totalDouble = NSDecimalNumber(decimal: totalAmount).doubleValue
+        return VStack(alignment: .leading, spacing: 8) {
             Text("overview.byMember")
                 .font(.headline)
+                .foregroundStyle(Color.notionInk)
+                .padding(.bottom, 2)
             VStack(spacing: 0) {
                 ForEach(Array(memberTotals.enumerated()), id: \.element.id) { index, entry in
-                    HStack {
-                        MemberAvatarView(
-                            name: entry.memberName,
-                            avatarData: membersById[entry.memberId]?.avatarData,
-                            seed: entry.memberId,
-                            size: 32
-                        )
-                        Text(verbatim: entry.memberName)
-                            .font(.callout)
-                        Spacer()
-                        Text(
-                            entry.amount,
-                            format: .currency(code: homeCurrency).locale(locale)
-                        )
-                        .monospacedDigit()
-                        .font(.callout.weight(.semibold))
-                    }
-                    .padding(.vertical, 10)
+                    let share: Double = {
+                        guard totalDouble > 0 else { return 0 }
+                        let value = NSDecimalNumber(decimal: entry.amount).doubleValue
+                        return max(0, min(1, value / totalDouble))
+                    }()
+                    OverviewMemberRow(
+                        memberId: entry.memberId,
+                        memberName: entry.memberName,
+                        avatarData: membersById[entry.memberId]?.avatarData,
+                        amount: entry.amount,
+                        share: share,
+                        monthDelta: derivation.memberDeltaPercent[entry.memberId],
+                        currencyCode: homeCurrency,
+                        locale: locale
+                    )
                     if index < memberTotals.count - 1 {
-                        Divider().opacity(0.4)
+                        Divider().opacity(0.35)
                     }
                 }
             }
@@ -407,15 +491,25 @@ struct OverviewView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(filteredSnapshots.enumerated()), id: \.element.id) { index, snapshot in
+                        // `filteredSnapshots` is sorted newest-first, so the
+                        // chronologically prior (older) snapshot is the next
+                        // one in the array. Used to compute the row's delta.
+                        let previous: PortfolioSnapshot? = (index + 1) < filteredSnapshots.count
+                            ? filteredSnapshots[index + 1]
+                            : nil
+                        let isLast = index == filteredSnapshots.count - 1
                         NavigationLink {
                             PortfolioSnapshotDetailView(snapshot: snapshot)
                         } label: {
-                            snapshotRow(snapshot)
+                            OverviewSnapshotRow(
+                                snapshot: snapshot,
+                                previous: previous,
+                                isLast: isLast,
+                                homeCurrency: homeCurrency,
+                                locale: locale
+                            )
                         }
                         .buttonStyle(.plain)
-                        if index < filteredSnapshots.count - 1 {
-                            Divider().opacity(0.4)
-                        }
                     }
                 }
             }
@@ -436,45 +530,6 @@ struct OverviewView: View {
         return portfolioSnapshots.filter {
             calendar.component(.year, from: $0.periodMonth) == selectedYear
         }
-    }
-
-    private func snapshotRow(_ snapshot: PortfolioSnapshot) -> some View {
-        HStack(spacing: 12) {
-#if os(macOS)
-            GlyphBadge(systemName: "camera.aperture", tint: .accentColor)
-#endif
-            VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: snapshot.periodMonth.formatted(.dateTime.year().month(.abbreviated).locale(Locale(identifier: "en"))))
-                    .font(.callout.weight(.medium))
-                HStack(spacing: 6) {
-                    Text(verbatim: snapshot.homeCurrency)
-                        .font(.caption.monospaced().weight(.semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.secondary.opacity(0.15), in: Capsule())
-                    if let note = snapshot.note, !note.isEmpty {
-                        Text(verbatim: note)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-            }
-            Spacer()
-            Text(
-                snapshot.totalAmount,
-                format: .currency(code: snapshot.homeCurrency)
-                    .locale(locale)
-                    .precision(.fractionLength(0))
-            )
-            .monospacedDigit()
-            .font(.callout.weight(.semibold))
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
     }
 
     private func missingRatesMessage(_ currencies: [String]) -> String {

@@ -77,6 +77,7 @@ struct SnapshotFormView: View {
             }
             .formStyle(.grouped)
             .glassListStyle()
+            .keyboardDismissable()
             .navigationTitle(existing == nil ? "snapshot.new.title" : "snapshot.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

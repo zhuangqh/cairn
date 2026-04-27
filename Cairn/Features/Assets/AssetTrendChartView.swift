@@ -109,10 +109,16 @@ struct AssetTrendChartView: View {
                 picker.frame(maxWidth: .infinity)
             }
         } else {
+            // Pin the picker to a fixed trailing width so hover-date
+            // text changes only reflow the title side — the range bar
+            // stays put while the cursor moves over the chart.
             HStack(spacing: 8) {
                 title
-                Spacer(minLength: 12)
-                picker.frame(maxWidth: 280)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(0)
+                picker
+                    .frame(width: 280)
+                    .layoutPriority(1)
             }
         }
     }

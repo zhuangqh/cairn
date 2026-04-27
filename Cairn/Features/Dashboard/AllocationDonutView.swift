@@ -1,11 +1,21 @@
 import SwiftUI
 import Charts
 
-/// Donut-style allocation chart driven by `NetWorthCalculator.KindTotal`
-/// entries. Renders a neutral "no data" state when totals are empty.
+/// Donut + detailed allocation list. Drives off
+/// `NetWorthCalculator.KindTotal` entries plus an optional per-kind
+/// month-over-month delta. Each list row shows the localized category
+/// name, the converted home-currency value, its share of the total,
+/// and (when a baseline exists) the signed change vs last month.
+///
+/// Layout adapts to width: at wide widths the donut sits on the left
+/// with the list on the right; below ~520pt the donut stacks above
+/// the list.
 struct AllocationDonutView: View {
     let entries: [NetWorthCalculator.KindTotal]
     let homeCurrency: String
+    /// Per-kind month-over-month percentage change. Missing keys render
+    /// without a delta badge (used for the cold-start case).
+    var deltas: [AccountKind: Double] = [:]
 
     @Environment(\.locale) private var locale
 
@@ -15,17 +25,17 @@ struct AllocationDonutView: View {
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 24) {
+            HStack(alignment: .top, spacing: 28) {
                 chart
-                    .frame(width: 180, height: 180)
-                legend
-                Spacer(minLength: 0)
+                    .frame(width: 168, height: 168)
+                list
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 20) {
                 chart
                     .frame(width: 160, height: 160)
                     .frame(maxWidth: .infinity, alignment: .center)
-                legend
+                list
             }
         }
     }
@@ -34,55 +44,85 @@ struct AllocationDonutView: View {
     private var chart: some View {
         if entries.isEmpty {
             ZStack {
-                Circle().strokeBorder(.secondary.opacity(0.25), lineWidth: 18)
+                Circle()
+                    .strokeBorder(Color.notionBorder, lineWidth: 16)
                 Image(systemName: "chart.pie")
-                    .font(.title)
-                    .foregroundStyle(.secondary)
+                    .font(.title2)
+                    .foregroundStyle(Color.notionInkMuted)
             }
         } else {
             Chart(entries) { entry in
                 SectorMark(
                     angle: .value("dashboard.allocation.axis.amount", entry.amountDouble),
-                    innerRadius: .ratio(0.62),
+                    innerRadius: .ratio(0.66),
                     angularInset: 1.5
                 )
-                .cornerRadius(4)
+                .cornerRadius(3)
                 .foregroundStyle(entry.kind.tint)
-                .annotation(position: .overlay) {
-                    let value = percentage(for: entry)
-                    if value >= 0.05 {
-                        Text(value, format: .percent.precision(.fractionLength(0)))
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.35), radius: 1, x: 0, y: 0)
-                    }
-                }
             }
             .chartLegend(.hidden)
         }
     }
 
     @ViewBuilder
-    private var legend: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(entries) { entry in
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(entry.kind.tint)
-                        .frame(width: 10, height: 10)
-                    Text(LocalizedStringKey(entry.kind.localizationKey))
-                        .font(.callout)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    Spacer(minLength: 8)
-                    Text(percentage(for: entry), format: .percent.precision(.fractionLength(0)))
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+    private var list: some View {
+        if entries.isEmpty {
+            Text("dashboard.recentActivities.empty")
+                .font(.callout)
+                .foregroundStyle(Color.notionInkSecondary)
+        } else {
+            VStack(spacing: 0) {
+                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                    row(for: entry)
+                    if index != entries.count - 1 {
+                        Divider()
+                            .overlay(Color.notionBorder)
+                            .padding(.leading, 22)
+                    }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func row(for entry: NetWorthCalculator.KindTotal) -> some View {
+        let pct = percentage(for: entry)
+        HStack(alignment: .center, spacing: 12) {
+            Circle()
+                .fill(entry.kind.tint)
+                .frame(width: 10, height: 10)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(LocalizedStringKey(entry.kind.localizationKey))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.notionInk)
+                    .lineLimit(1)
+                Text(pct, format: .percent.precision(.fractionLength(0)))
+                    .font(.system(size: 12).monospacedDigit())
+                    .foregroundStyle(Color.notionInkSecondary)
+            }
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(CompactCurrencyFormatter.string(
+                    amount: entry.amount,
+                    code: homeCurrency,
+                    locale: locale
+                ))
+                .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                .foregroundStyle(Color.notionInk)
+                .lineLimit(1)
+
+                if let delta = deltas[entry.kind] {
+                    DeltaBadge(percent: delta)
+                } else {
+                    Text(" ")
+                        .font(.system(size: 11))
+                }
+            }
+        }
+        .padding(.vertical, 8)
     }
 
     private func percentage(for entry: NetWorthCalculator.KindTotal) -> Double {
@@ -124,6 +164,11 @@ extension AccountKind {
     }
 }
 
+/// Small signed-percentage badge shared with the Overview screen lives in
+/// `OverviewComponents.swift` (`DeltaBadge`). It accepts a `Double?` and is
+/// hidden when the baseline is `nil` — exactly the semantics the
+/// allocation list and composition card need here.
+
 #Preview("Allocation · populated") {
     AllocationDonutView(
         entries: [
@@ -132,7 +177,8 @@ extension AccountKind {
             .init(kind: .cash, amount: 25_000),
             .init(kind: .device, amount: 2_400)
         ],
-        homeCurrency: "USD"
+        homeCurrency: "USD",
+        deltas: [.realEstate: 0.012, .stock: -0.034, .cash: 0.0]
     )
     .padding()
 }

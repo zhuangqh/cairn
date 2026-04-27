@@ -24,39 +24,73 @@ struct AssetsView: View {
     @State private var assetPendingDeletion: Asset?
 
     /// Per-render derivation: pre-bucket assets by sold/active and by
-    /// category, and compute the home-currency total once. Avoids the
-    /// previous shape where `summaryCard`, `categorizedCards`, and the
-    /// active/sold computed properties each re-iterated the full asset
-    /// list (and `summaryCard` re-fetched + re-FX-converted everything on
-    /// every body re-render).
+    /// category, and compute the home-currency *purchase-cost* total
+    /// once. The Assets tab is intentionally a purchase-cost ledger and
+    /// does not surface manual revaluations or any depreciation model,
+    /// so we ignore `currentValue` here and sum `purchasePrice` directly.
     private struct Derivation {
-        var totals: AssetService.Totals
+        var purchaseCostTotal: Decimal
+        var missingCurrencies: [String]
         var active: [Asset]
         var sold: [Asset]
         var byCategory: [AssetCategory: [Asset]]
+        var categoryPurchaseCost: [AssetCategory: Decimal]
     }
 
     private func derive() -> Derivation {
         _ = rates.count // keep reactive to FX updates
+        let cache = FXService.RateCache.load(in: context)
         var active: [Asset] = []
         var sold: [Asset] = []
         var byCategory: [AssetCategory: [Asset]] = [:]
+        var categoryPurchaseCost: [AssetCategory: Decimal] = [:]
+        var total: Decimal = 0
+        var missing: Set<String> = []
         active.reserveCapacity(assets.count)
         for asset in assets {
             if asset.isSold {
                 sold.append(asset)
+                continue
+            }
+            active.append(asset)
+            byCategory[asset.category, default: []].append(asset)
+            let converted: Decimal?
+            if asset.purchaseCurrency == homeCurrency {
+                converted = asset.purchasePrice
             } else {
-                active.append(asset)
-                byCategory[asset.category, default: []].append(asset)
+                converted = cache.convert(
+                    amount: asset.purchasePrice,
+                    from: asset.purchaseCurrency,
+                    to: homeCurrency
+                )
+            }
+            if let value = converted {
+                total += value
+                categoryPurchaseCost[asset.category, default: 0] += value
+            } else {
+                missing.insert(asset.purchaseCurrency)
             }
         }
-        let totals = AssetService.total(homeCurrency: homeCurrency, context: context)
-        return Derivation(totals: totals, active: active, sold: sold, byCategory: byCategory)
+        return Derivation(
+            purchaseCostTotal: total,
+            missingCurrencies: missing.sorted(),
+            active: active,
+            sold: sold,
+            byCategory: byCategory,
+            categoryPurchaseCost: categoryPurchaseCost
+        )
     }
 
     var body: some View {
         let derivation: Derivation = members.isEmpty || assets.isEmpty
-            ? Derivation(totals: .init(amount: 0, missingCurrencies: []), active: [], sold: [], byCategory: [:])
+            ? Derivation(
+                purchaseCostTotal: 0,
+                missingCurrencies: [],
+                active: [],
+                sold: [],
+                byCategory: [:],
+                categoryPurchaseCost: [:]
+            )
             : derive()
         return content(derivation: derivation)
             .modifier(toolbarModifier())
@@ -121,40 +155,45 @@ struct AssetsView: View {
     }
 
     private func summaryCardText(derivation: Derivation) -> some View {
-        let totals = derivation.totals
-        return VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
+            // Eyebrow row — mirrors the Financial hero ("NET WORTH · CNY").
             HStack(spacing: 6) {
                 Text("asset.total.title")
-                    .font(.headline)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
                 Text(verbatim: "·")
                     .foregroundStyle(.tertiary)
                 Text(verbatim: homeCurrency)
-                    .font(.caption.monospaced().weight(.semibold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.secondary.opacity(0.15), in: Capsule())
+                    .font(.caption2.monospaced().weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
             Text(
-                totals.amount,
+                derivation.purchaseCostTotal,
                 format: .currency(code: homeCurrency)
                     .locale(locale)
                     .precision(.fractionLength(0))
             )
-                .font(.system(size: 38, weight: .bold, design: .rounded))
+                .font(.system(size: 40, weight: .bold, design: .rounded))
                 .monospacedDigit()
-            if !totals.missingCurrencies.isEmpty {
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .foregroundStyle(Color.notionInk)
+            if !derivation.missingCurrencies.isEmpty {
                 Label {
-                    Text(missingRatesMessage(totals.missingCurrencies))
+                    Text(missingRatesMessage(derivation.missingCurrencies))
                 } icon: {
                     Image(systemName: "exclamationmark.triangle.fill")
                 }
                 .foregroundStyle(.orange)
                 .font(.footnote)
+                .padding(.top, 4)
             }
             Text(assetCountFootnote(activeCount: derivation.active.count))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .padding(.top, 4)
         }
     }
 
@@ -170,12 +209,20 @@ struct AssetsView: View {
     private func categorizedCards(derivation: Derivation) -> some View {
         ForEach(AssetCategory.allCases, id: \.self) { category in
             if let bucket = derivation.byCategory[category], !bucket.isEmpty {
-                categorySection(category: category, assets: bucket)
+                categorySection(
+                    category: category,
+                    assets: bucket,
+                    purchaseCost: derivation.categoryPurchaseCost[category] ?? 0
+                )
             }
         }
     }
 
-    private func categorySection(category: AssetCategory, assets: [Asset]) -> some View {
+    private func categorySection(
+        category: AssetCategory,
+        assets: [Asset],
+        purchaseCost: Decimal
+    ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: category.iconName)
@@ -185,9 +232,22 @@ struct AssetsView: View {
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
                 Spacer()
-                Text(verbatim: "\(assets.count)")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.tertiary)
+                HStack(spacing: 6) {
+                    Text(itemCountFootnote(count: assets.count))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Text(verbatim: "·")
+                        .foregroundStyle(.tertiary)
+                    Text(
+                        purchaseCost,
+                        format: .currency(code: homeCurrency)
+                            .locale(locale)
+                            .precision(.fractionLength(0))
+                    )
+                    .font(.caption.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                }
             }
             VStack(spacing: 0) {
                 ForEach(Array(assets.enumerated()), id: \.element.id) { index, asset in
@@ -235,54 +295,64 @@ struct AssetsView: View {
         Button {
             editingAsset = asset
         } label: {
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
 #if os(macOS)
                 GlyphBadge(
                     systemName: asset.iconName ?? asset.category.iconName,
                     tint: asset.category.tint
                 )
 #endif
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
+                    // Line 1: name
                     Text(verbatim: asset.name)
-                        .font(.callout.weight(.medium))
+                        .font(.callout.weight(.semibold))
                         .foregroundStyle(.primary)
+
+                    // Line 2: category · owner · currency
+                    Text(verbatim: rowSubtitle(for: asset))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    // Line 3: purchase cost
                     HStack(spacing: 6) {
-                        if let member = asset.member {
-                            Text(verbatim: member.name)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Text(verbatim: asset.purchaseCurrency)
-                            .font(.caption.monospaced().weight(.semibold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.secondary.opacity(0.15), in: Capsule())
-                        if asset.isSold {
-                            Text("asset.badge.sold")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        } else if asset.currentValue != nil {
-                            Text("asset.badge.revalued")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
+                        Text("asset.row.purchaseCost")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                        Text(
+                            asset.purchasePrice,
+                            format: .currency(code: asset.purchaseCurrency).locale(locale)
+                        )
+                        .font(.callout.weight(.medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
                     }
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(
-                        valueForDisplay(asset),
-                        format: .currency(code: asset.purchaseCurrency).locale(locale)
-                    )
-                    .monospacedDigit()
-                    .font(.callout.weight(.semibold))
-                    Text(valueLabel(for: asset))
+
+                    // Line 4: purchased {date}
+                    Text(purchasedOnText(for: asset))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
+
+                    // Line 5: subtle valuation placeholder (active only) —
+                    // reserved for a future revaluation feature. Kept
+                    // secondary so it never competes with the purchase
+                    // ledger. Sold assets show their sale info instead.
+                    if asset.isSold {
+                        Text("asset.badge.sold")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("asset.row.estimatedValueNotSet")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary.opacity(0.7))
+                    }
                 }
+                Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
+                    .padding(.top, 2)
             }
             .padding(.vertical, 10)
             .contentShape(Rectangle())
@@ -326,23 +396,32 @@ struct AssetsView: View {
 
     // MARK: - Derived
 
-    private func valueForDisplay(_ asset: Asset) -> Decimal {
-        if asset.isSold {
-            return asset.salePrice ?? asset.purchasePrice
+    /// Compose the secondary line: "Category · Owner · CUR".
+    /// Owner is omitted when missing so the dot separators stay clean.
+    private func rowSubtitle(for asset: Asset) -> String {
+        let category = NSLocalizedString(asset.category.localizationKey, comment: "")
+        var parts: [String] = [category]
+        if let member = asset.member {
+            parts.append(member.name)
         }
-        return asset.currentValue ?? asset.purchasePrice
+        parts.append(asset.purchaseCurrency)
+        return parts.joined(separator: " · ")
     }
 
-    private func valueLabel(for asset: Asset) -> LocalizedStringKey {
-        if asset.isSold {
-            return "asset.value.label.sale"
-        }
-        return asset.currentValue == nil ? "asset.value.label.purchase" : "asset.value.label.current"
+    private func purchasedOnText(for asset: Asset) -> String {
+        let date = asset.purchaseDate.formatted(.dateTime.year().month(.abbreviated).locale(locale))
+        let template = String(localized: "asset.row.purchasedOn")
+        return template.replacingOccurrences(of: "{date}", with: date)
     }
 
     private func assetCountFootnote(activeCount: Int) -> String {
         let template = String(localized: "asset.count.active")
         return template.replacingOccurrences(of: "{count}", with: String(activeCount))
+    }
+
+    private func itemCountFootnote(count: Int) -> String {
+        let template = String(localized: "asset.section.itemCount")
+        return template.replacingOccurrences(of: "{count}", with: String(count))
     }
 
     private func missingRatesMessage(_ currencies: [String]) -> String {

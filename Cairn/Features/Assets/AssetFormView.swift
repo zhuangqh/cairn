@@ -44,6 +44,7 @@ struct AssetFormView: View {
             }
             .formStyle(.grouped)
             .glassListStyle()
+            .keyboardDismissable()
             .navigationTitle(isNew ? "asset.new.title" : "asset.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
