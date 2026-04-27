@@ -136,4 +136,97 @@ final class BackupServiceTests: XCTestCase {
         let assets = try other.mainContext.fetch(FetchDescriptor<Asset>())
         XCTAssertTrue(assets.isEmpty)
     }
+
+    func testParseRejectsBackupFromNewerVersion() throws {
+        let future = BackupService.currentVersion + 1
+        let json = """
+        {
+          "version": \(future),
+          "exportedAt": "2026-01-01T00:00:00Z",
+          "members": [],
+          "accounts": [],
+          "holdings": [],
+          "snapshots": [],
+          "fxRates": []
+        }
+        """.data(using: .utf8)!
+        XCTAssertThrowsError(try BackupService.parse(json)) { error in
+            guard case DomainError.backupTooNew(let fileVersion, let supported) = error else {
+                XCTFail("expected backupTooNew, got \(error)")
+                return
+            }
+            XCTAssertEqual(fileVersion, future)
+            XCTAssertEqual(supported, BackupService.currentVersion)
+        }
+    }
+
+    func testParseRejectsCorruptPayload() throws {
+        let garbage = Data("not json at all".utf8)
+        XCTAssertThrowsError(try BackupService.parse(garbage)) { error in
+            XCTAssertEqual(error as? DomainError, .backupUnreadable)
+        }
+    }
+
+    func testRestorePreservesMemberAvatarData() throws {
+        let context = container.mainContext
+        let avatar = Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46])
+        let member = Member(name: "Alice", avatarData: avatar)
+        context.insert(member)
+        try context.save()
+
+        let backup = try BackupService.makeBackup(in: context)
+        let other = try PersistenceController.makeContainer(.inMemory)
+        _ = try BackupService.restoreReplacing(from: backup, context: other.mainContext)
+
+        let restored = try other.mainContext.fetch(FetchDescriptor<Member>())
+        XCTAssertEqual(restored.count, 1)
+        XCTAssertEqual(restored.first?.avatarData, avatar)
+    }
+
+    func testRestorePreservesEntityIDs() throws {
+        let context = container.mainContext
+        let member = Member(name: "Alice")
+        let account = Account(name: "Primary", kind: .cash, member: member)
+        let holding = Holding(currency: "USD", account: account)
+        context.insert(member)
+        context.insert(account)
+        context.insert(holding)
+        let memberId = member.id
+        let accountId = account.id
+        let holdingId = holding.id
+        try context.save()
+
+        let backup = try BackupService.makeBackup(in: context)
+        let other = try PersistenceController.makeContainer(.inMemory)
+        _ = try BackupService.restoreReplacing(from: backup, context: other.mainContext)
+
+        let members = try other.mainContext.fetch(FetchDescriptor<Member>())
+        let accounts = try other.mainContext.fetch(FetchDescriptor<Account>())
+        let holdings = try other.mainContext.fetch(FetchDescriptor<Holding>())
+        XCTAssertEqual(members.first?.id, memberId)
+        XCTAssertEqual(accounts.first?.id, accountId)
+        XCTAssertEqual(holdings.first?.id, holdingId)
+    }
+
+    func testRestoreIsIdempotentAcrossRepeatedImports() throws {
+        let context = container.mainContext
+        let member = Member(name: "Alice")
+        let account = Account(name: "Primary", kind: .cash, member: member)
+        let holding = Holding(currency: "USD", account: account)
+        context.insert(member)
+        context.insert(account)
+        context.insert(holding)
+        try context.save()
+
+        let backup = try BackupService.makeBackup(in: context)
+        let other = try PersistenceController.makeContainer(.inMemory)
+        _ = try BackupService.restoreReplacing(from: backup, context: other.mainContext)
+        let firstMemberId = try other.mainContext.fetch(FetchDescriptor<Member>()).first?.id
+
+        // Importing the same backup again must not duplicate or change ids.
+        _ = try BackupService.restoreReplacing(from: backup, context: other.mainContext)
+        let members = try other.mainContext.fetch(FetchDescriptor<Member>())
+        XCTAssertEqual(members.count, 1)
+        XCTAssertEqual(members.first?.id, firstMemberId)
+    }
 }

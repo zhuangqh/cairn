@@ -7,7 +7,17 @@ import SwiftData
 /// email, etc.) — the open-source build does not use CloudKit.
 @MainActor
 public enum BackupService {
-    public static let currentVersion: Int = 1
+    /// Backup format version. Bump when the on-disk schema changes in a
+    /// way older builds cannot safely round-trip. Newer files are rejected
+    /// by `parse` with `DomainError.backupTooNew` so the user is asked to
+    /// upgrade rather than silently losing fields.
+    ///
+    /// History:
+    /// - 1: initial release (members, accounts, holdings, snapshots, FX).
+    /// - 2: added `portfolioSnapshots` and `assets` (decoded as nil on
+    ///   older clients via optionals).
+    /// - 3: added `Member.avatarData`.
+    public static let currentVersion: Int = 3
     public static let fileExtension: String = "cairn"
 
     // MARK: - Export
@@ -44,45 +54,81 @@ public enum BackupService {
 
     /// Parses a previously exported payload. Does *not* write to the store —
     /// callers decide how to merge (see `restoreReplacing(from:context:)`).
+    ///
+    /// Throws `DomainError.backupUnreadable` when the bytes are not valid
+    /// Cairn backup JSON, and `DomainError.backupTooNew` when the file was
+    /// produced by a newer build than this one supports.
     public static func parse(_ data: Data) throws -> BackupPayload {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(BackupPayload.self, from: data)
+        let payload: BackupPayload
+        do {
+            payload = try decoder.decode(BackupPayload.self, from: data)
+        } catch {
+            throw DomainError.backupUnreadable
+        }
+        guard payload.version <= currentVersion else {
+            throw DomainError.backupTooNew(
+                fileVersion: payload.version,
+                supportedVersion: currentVersion
+            )
+        }
+        return payload
     }
 
     /// Replaces the entire store with the contents of `data`. All existing
     /// members, accounts, holdings, snapshots, and FX rates are deleted
     /// before the backup is inserted. Returns the parsed payload.
+    ///
+    /// The wipe + insert + save runs inside a single `ModelContext`
+    /// transaction so a failure mid-import rolls back to the prior state
+    /// instead of leaving the user with an empty store.
     @discardableResult
     public static func restoreReplacing(from data: Data, context: ModelContext) throws -> BackupPayload {
         let payload = try parse(data)
-        try wipe(context: context)
-        let memberById = insertMembers(payload.members, context: context)
-        let accountById = insertAccounts(payload.accounts, memberById: memberById, context: context)
-        let holdingById = insertHoldings(payload.holdings, accountById: accountById, context: context)
-        insertSnapshots(payload.snapshots, holdingById: holdingById, context: context)
-        insertFXRates(payload.fxRates, context: context)
-        insertPortfolioSnapshots(payload.portfolioSnapshots ?? [], context: context)
-        insertAssets(payload.assets ?? [], memberById: memberById, context: context)
-        try context.save()
+        do {
+            try context.transaction {
+                wipe(context: context)
+                let memberById = insertMembers(payload.members, context: context)
+                let accountById = insertAccounts(payload.accounts, memberById: memberById, context: context)
+                let holdingById = insertHoldings(payload.holdings, accountById: accountById, context: context)
+                insertSnapshots(payload.snapshots, holdingById: holdingById, context: context)
+                insertFXRates(payload.fxRates, context: context)
+                insertPortfolioSnapshots(payload.portfolioSnapshots ?? [], context: context)
+                insertAssets(payload.assets ?? [], memberById: memberById, context: context)
+            }
+        } catch {
+            throw DomainError.backupWriteFailed
+        }
         return payload
     }
 
-    // Bottom-up delete to avoid dangling references.
-    private static func wipe(context: ModelContext) throws {
-        try context.delete(model: PortfolioSnapshot.self)
-        try context.delete(model: Snapshot.self)
-        try context.delete(model: Holding.self)
-        try context.delete(model: Account.self)
-        try context.delete(model: Asset.self)
-        try context.delete(model: Member.self)
-        try context.delete(model: FXRate.self)
+    // Bottom-up delete to avoid dangling references. Iterates fetched
+    // objects so the deletes participate in the surrounding transaction
+    // (the `delete(model:)` batch variant bypasses the context cache and
+    // is committed eagerly, defeating rollback).
+    private static func wipe(context: ModelContext) {
+        let portfolio = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
+        portfolio.forEach(context.delete)
+        let snapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
+        snapshots.forEach(context.delete)
+        let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
+        holdings.forEach(context.delete)
+        let accounts = (try? context.fetch(FetchDescriptor<Account>())) ?? []
+        accounts.forEach(context.delete)
+        let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
+        assets.forEach(context.delete)
+        let members = (try? context.fetch(FetchDescriptor<Member>())) ?? []
+        members.forEach(context.delete)
+        let rates = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
+        rates.forEach(context.delete)
     }
 
     private static func insertMembers(_ dtos: [MemberDTO], context: ModelContext) -> [UUID: Member] {
         var map: [UUID: Member] = [:]
         for dto in dtos {
             let member = Member(name: dto.name, avatarData: dto.avatarData, createdAt: dto.createdAt)
+            member.id = dto.id
             context.insert(member)
             map[dto.id] = member
         }
@@ -105,6 +151,7 @@ public enum BackupService {
                 isArchived: dto.isArchived,
                 createdAt: dto.createdAt
             )
+            account.id = dto.id
             context.insert(account)
             map[dto.id] = account
         }
@@ -125,6 +172,7 @@ public enum BackupService {
                 isArchived: dto.isArchived,
                 createdAt: dto.createdAt
             )
+            holding.id = dto.id
             context.insert(holding)
             map[dto.id] = holding
         }
@@ -144,6 +192,7 @@ public enum BackupService {
                 holding: holding,
                 recordedAt: dto.recordedAt
             )
+            snapshot.id = dto.id
             context.insert(snapshot)
         }
     }
@@ -156,6 +205,7 @@ public enum BackupService {
                 rate: dto.rate,
                 date: dto.date
             )
+            rate.id = dto.id
             context.insert(rate)
         }
     }
@@ -174,6 +224,7 @@ public enum BackupService {
                 note: dto.note,
                 recordedAt: dto.recordedAt
             )
+            snapshot.id = dto.id
             context.insert(snapshot)
         }
     }
@@ -200,6 +251,7 @@ public enum BackupService {
                 member: dto.memberId.flatMap { memberById[$0] },
                 createdAt: dto.createdAt
             )
+            asset.id = dto.id
             context.insert(asset)
         }
     }

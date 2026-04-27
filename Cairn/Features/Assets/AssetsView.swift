@@ -21,6 +21,11 @@ struct AssetsView: View {
 
     @State private var editingAsset: Asset?
     @State private var newAssetDraft: Asset?
+    @State private var newAssetSaved: Bool = false
+    /// Strong reference to the in-flight draft. The sheet's `item`
+    /// binding is set to `nil` *before* `onDismiss` fires, so we can't
+    /// rely on it to clean up the draft on swipe-down dismissal.
+    @State private var pendingNewAsset: Asset?
     @State private var assetPendingDeletion: Asset?
 
     /// Per-render derivation: pre-bucket assets by sold/active and by
@@ -96,6 +101,8 @@ struct AssetsView: View {
             .modifier(toolbarModifier())
             .modifier(AssetsSheetsModifier(
                 newAssetDraft: $newAssetDraft,
+                newAssetSaved: $newAssetSaved,
+                pendingNewAsset: $pendingNewAsset,
                 editingAsset: $editingAsset,
                 assetPendingDeletion: $assetPendingDeletion,
                 context: context
@@ -434,9 +441,11 @@ struct AssetsView: View {
 
     private func presentNewAsset() {
         guard let defaultMember = members.first else { return }
-        // Create an unmanaged draft. We insert into the context only on
-        // explicit save; dropping the sheet via swipe-down or click-outside
-        // lets the draft deallocate, so no empty row is ever persisted.
+        // Note: assigning a managed `Member` to the draft's relationship
+        // causes SwiftData to auto-insert the draft into the same context.
+        // We therefore explicitly insert here and rely on the sheet's
+        // `onDismiss` to delete the draft if the user cancels or swipes
+        // the sheet away without saving.
         let draft = Asset(
             name: "",
             category: .realEstate,
@@ -445,6 +454,9 @@ struct AssetsView: View {
             purchaseDate: .now,
             member: defaultMember
         )
+        context.insert(draft)
+        newAssetSaved = false
+        pendingNewAsset = draft
         newAssetDraft = draft
     }
 }
@@ -475,16 +487,30 @@ private struct AssetsToolbarModifier: ViewModifier {
 /// `AssetsView.body` stays comfortably under the function-length budget.
 private struct AssetsSheetsModifier: ViewModifier {
     @Binding var newAssetDraft: Asset?
+    @Binding var newAssetSaved: Bool
+    @Binding var pendingNewAsset: Asset?
     @Binding var editingAsset: Asset?
     @Binding var assetPendingDeletion: Asset?
     let context: ModelContext
 
     func body(content: Content) -> some View {
         content
-            .sheet(item: $newAssetDraft) { draft in
+            .sheet(
+                item: $newAssetDraft,
+                onDismiss: {
+                    // Covers both Cancel taps and interactive swipe-down
+                    // dismissal on iOS. By the time `onDismiss` fires the
+                    // sheet's `item` binding is already nil, so we use
+                    // `pendingNewAsset` to reach the draft we inserted.
+                    if !newAssetSaved, let draft = pendingNewAsset {
+                        context.delete(draft)
+                    }
+                    pendingNewAsset = nil
+                    newAssetSaved = false
+                }
+            ) { draft in
                 AssetFormView(asset: draft, isNew: true) { saved in
-                    if saved { context.insert(draft) }
-                    newAssetDraft = nil
+                    newAssetSaved = saved
                 }
             }
             .sheet(item: $editingAsset) { asset in
@@ -492,7 +518,13 @@ private struct AssetsSheetsModifier: ViewModifier {
                     editingAsset = nil
                 }
             }
-            .confirmationDialog(
+            // Use `.alert` rather than `.confirmationDialog` here: when
+            // triggered from a row's context menu inside a `LazyVStack`,
+            // a confirmation dialog on iOS can race with the menu's
+            // dismissal animation (requiring a second tap) and anchors
+            // its popover oddly on iPad. An alert is system-modal and
+            // centered, which avoids both issues.
+            .alert(
                 Text("asset.delete.confirm.title"),
                 isPresented: Binding(
                     get: { assetPendingDeletion != nil },

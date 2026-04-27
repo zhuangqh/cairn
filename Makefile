@@ -1,4 +1,4 @@
-.PHONY: gen open build test lint clean archive export dmg
+.PHONY: gen open build test lint clean archive export dmg install reinstall
 
 PROJECT := Cairn.xcodeproj
 SCHEME  := Cairn
@@ -71,3 +71,24 @@ dmg: export
 	hdiutil create -volname "Cairn" -srcfolder $(BUILD_DIR)/dmg-stage \
 		-ov -format UDZO $(DMG_PATH)
 	@echo "DMG => $(DMG_PATH)"
+
+# Local-only: kill any running Cairn instance and replace
+# /Applications/Cairn.app with the freshly exported build.
+install: export
+	@echo "Stopping running Cairn instances…"
+	-@osascript -e 'tell application "Cairn" to quit' >/dev/null 2>&1 || true
+	-@pkill -x Cairn >/dev/null 2>&1 || true
+	@for i in 1 2 3 4 5; do \
+		pgrep -x Cairn >/dev/null 2>&1 || break; \
+		sleep 0.3; \
+	done
+	-@pkill -9 -x Cairn >/dev/null 2>&1 || true
+	@echo "Installing $(EXPORT_PATH)/Cairn.app to /Applications…"
+	rm -rf /Applications/Cairn.app
+	cp -R $(EXPORT_PATH)/Cairn.app /Applications/Cairn.app
+	@xattr -dr com.apple.quarantine /Applications/Cairn.app 2>/dev/null || true
+	@echo "Launching Cairn…"
+	open -a /Applications/Cairn.app
+
+# Convenience alias.
+reinstall: install

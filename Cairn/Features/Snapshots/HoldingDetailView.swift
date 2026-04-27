@@ -64,9 +64,9 @@ struct HoldingDetailView: View {
                     }
                 }
             }
-            .padding(.horizontal, 24)
+            .pageHorizontalPadding()
             .padding(.vertical, 20)
-            .frame(maxWidth: 900)
+            .frame(maxWidth: 1100)
             .frame(maxWidth: .infinity)
         }
         .ambientBackground()

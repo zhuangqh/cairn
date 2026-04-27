@@ -56,6 +56,10 @@ public final class PortfolioSnapshot {
         public var holdingId: UUID?
         public var memberName: String
         public var accountName: String
+        /// Captured `AccountKind` raw value at the time of snapshot. Optional
+        /// so older snapshots written before this field existed still decode.
+        /// Read via the `accountKind` accessor which falls back to `.cash`.
+        public var accountKindRawValue: String?
         public var holdingLabel: String?
         public var currency: String
         /// Amount in the holding's native currency.
@@ -69,6 +73,7 @@ public final class PortfolioSnapshot {
             holdingId: UUID?,
             memberName: String,
             accountName: String,
+            accountKindRawValue: String? = nil,
             holdingLabel: String?,
             currency: String,
             amount: Decimal,
@@ -78,10 +83,18 @@ public final class PortfolioSnapshot {
             self.holdingId = holdingId
             self.memberName = memberName
             self.accountName = accountName
+            self.accountKindRawValue = accountKindRawValue
             self.holdingLabel = holdingLabel
             self.currency = currency
             self.amount = amount
             self.convertedAmount = convertedAmount
+        }
+
+        /// Resolved `AccountKind`. Returns `nil` for snapshots written
+        /// before the field was captured, so callers can choose their own
+        /// fallback strategy (e.g. live lookup or `.cash`).
+        public var accountKind: AccountKind? {
+            accountKindRawValue.flatMap(AccountKind.init(rawValue:))
         }
     }
 

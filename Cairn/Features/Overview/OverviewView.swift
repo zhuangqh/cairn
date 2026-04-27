@@ -175,7 +175,7 @@ struct OverviewView: View {
         VStack(spacing: 0) {
             tabPicker
                 .frame(maxWidth: 420)
-                .padding(.horizontal, 24)
+                .pageHorizontalPadding()
                 .padding(.top, 12)
                 .padding(.bottom, 4)
 
@@ -188,7 +188,7 @@ struct OverviewView: View {
                         AssetsView()
                     }
                 }
-                .padding(.horizontal, 24)
+                .pageHorizontalPadding()
                 .padding(.vertical, 20)
                 .frame(maxWidth: 1100)
                 .frame(maxWidth: .infinity)
@@ -211,7 +211,7 @@ struct OverviewView: View {
     private var iosBody: some View {
         VStack(spacing: 0) {
             tabPicker
-                .padding(.horizontal, 16)
+                .pageHorizontalPadding()
                 .padding(.top, 8)
                 .padding(.bottom, 4)
 
@@ -220,7 +220,7 @@ struct OverviewView: View {
                     VStack(spacing: 20) {
                         financialTab
                     }
-                    .padding(.horizontal, 24)
+                    .pageHorizontalPadding()
                     .padding(.vertical, 20)
                     .frame(maxWidth: 1100)
                     .frame(maxWidth: .infinity)
@@ -232,7 +232,7 @@ struct OverviewView: View {
                     VStack(spacing: 20) {
                         AssetsView()
                     }
-                    .padding(.horizontal, 24)
+                    .pageHorizontalPadding()
                     .padding(.vertical, 20)
                     .frame(maxWidth: 1100)
                     .frame(maxWidth: .infinity)
@@ -499,7 +499,7 @@ struct OverviewView: View {
                             : nil
                         let isLast = index == filteredSnapshots.count - 1
                         NavigationLink {
-                            PortfolioSnapshotDetailView(snapshot: snapshot)
+                            PortfolioSnapshotDetailView(snapshot: snapshot, previous: previous)
                         } label: {
                             OverviewSnapshotRow(
                                 snapshot: snapshot,

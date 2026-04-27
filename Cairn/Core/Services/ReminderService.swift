@@ -18,9 +18,10 @@ public enum ReminderService {
     }
 
     /// Schedules (or re-schedules) the monthly reminder at `hour:minute` local
-    /// time, on day 1 of each month. Any previously scheduled Cairn reminder
-    /// is removed first.
-    public static func schedule(hour: Int, minute: Int) async {
+    /// time, on the given `day` of each month. `day` is clamped to 1...28 so
+    /// the reminder fires reliably every month (including February). Any
+    /// previously scheduled Cairn reminder is removed first.
+    public static func schedule(day: Int, hour: Int, minute: Int) async {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
 
@@ -29,7 +30,7 @@ public enum ReminderService {
         content.body = String(localized: "reminder.body")
 
         var components = DateComponents()
-        components.day = 1
+        components.day = max(1, min(28, day))
         components.hour = max(0, min(23, hour))
         components.minute = max(0, min(59, minute))
 

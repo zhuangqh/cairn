@@ -208,6 +208,7 @@ public enum PortfolioSnapshotService {
                     holdingId: holding.id,
                     memberName: account.member?.name ?? "",
                     accountName: account.name,
+                    accountKindRawValue: account.kindRawValue,
                     holdingLabel: holding.label,
                     currency: holding.currency,
                     amount: amount,

@@ -2,6 +2,10 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
+    fileprivate static let repositoryURL = URL(string: "https://github.com/zhuangqh/cairn")!
+    fileprivate static let starURL = URL(string: "https://github.com/zhuangqh/cairn/stargazers")!
+    fileprivate static let bugReportURL = URL(string: "https://github.com/zhuangqh/cairn/issues/new")!
+
     @Environment(LocalizationService.self) private var localization
     @Environment(\.modelContext) private var context
 
@@ -19,6 +23,9 @@ struct SettingsView: View {
 
     @AppStorage(AppSettingsKeys.reminderMinute)
     private var reminderMinute: Int = AppSettingsKeys.defaultReminderMinute
+
+    @AppStorage(AppSettingsKeys.reminderDay)
+    private var reminderDay: Int = AppSettingsKeys.defaultReminderDay
 
     @State private var exportDocument: BackupDocument?
     @State private var isExporting: Bool = false
@@ -91,6 +98,19 @@ struct SettingsView: View {
                     )
                 }
                 if reminderEnabled {
+                    Picker(selection: $reminderDay) {
+                        ForEach(1...AppSettingsKeys.reminderDayMax, id: \.self) { day in
+                            Text(day, format: .number).tag(day)
+                        }
+                    } label: {
+                        settingsRowLabel(
+                            titleKey: "settings.reminder.day",
+                            systemImage: "calendar",
+                            tint: .notionPurple
+                        )
+                    }
+                    .pickerStyle(.menu)
+
                     DatePicker(
                         selection: reminderTimeBinding,
                         displayedComponents: [.hourAndMinute]
@@ -116,6 +136,9 @@ struct SettingsView: View {
                 Task { await applyReminder(enabled: reminderEnabled) }
             }
             .onChange(of: reminderMinute) { _, _ in
+                Task { await applyReminder(enabled: reminderEnabled) }
+            }
+            .onChange(of: reminderDay) { _, _ in
                 Task { await applyReminder(enabled: reminderEnabled) }
             }
 
@@ -161,8 +184,54 @@ struct SettingsView: View {
                         tint: .notionInkSecondary
                     )
                 }
+
+                Link(destination: Self.repositoryURL) {
+                    HStack {
+                        settingsRowLabel(
+                            titleKey: "settings.about.sourceCode",
+                            systemImage: "chevron.left.forwardslash.chevron.right",
+                            tint: .notionInk
+                        )
+                        Spacer(minLength: 8)
+                        Image(systemName: "arrow.up.right.square")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                Link(destination: Self.starURL) {
+                    HStack {
+                        settingsRowLabel(
+                            titleKey: "settings.about.star",
+                            systemImage: "star.fill",
+                            tint: .notionOrange
+                        )
+                        Spacer(minLength: 8)
+                        Image(systemName: "arrow.up.right.square")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                Link(destination: Self.bugReportURL) {
+                    HStack {
+                        settingsRowLabel(
+                            titleKey: "settings.about.bugReport",
+                            systemImage: "ladybug.fill",
+                            tint: .notionPink
+                        )
+                        Spacer(minLength: 8)
+                        Image(systemName: "arrow.up.right.square")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
             } header: {
                 NotionSectionHeader("settings.section.about")
+            } footer: {
+                Text("settings.about.footer")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -285,7 +354,7 @@ struct SettingsView: View {
         if enabled {
             let granted = await ReminderService.requestAuthorization()
             if granted {
-                await ReminderService.schedule(hour: reminderHour, minute: reminderMinute)
+                await ReminderService.schedule(day: reminderDay, hour: reminderHour, minute: reminderMinute)
             } else {
                 reminderEnabled = false
                 resultMessage = "settings.reminder.denied"
@@ -322,6 +391,8 @@ struct SettingsView: View {
             let data = try Data(contentsOf: url)
             _ = try BackupService.parse(data)
             importConfirmation = data
+        } catch let error as DomainError {
+            resultMessage = LocalizedStringKey(error.localizationKey)
         } catch {
             resultMessage = "settings.backup.import.failure"
         }
@@ -334,6 +405,8 @@ struct SettingsView: View {
         do {
             _ = try BackupService.restoreReplacing(from: data, context: context)
             resultMessage = "settings.backup.import.success"
+        } catch let error as DomainError {
+            resultMessage = LocalizedStringKey(error.localizationKey)
         } catch {
             resultMessage = "settings.backup.import.failure"
         }

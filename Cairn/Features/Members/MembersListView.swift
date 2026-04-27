@@ -18,6 +18,11 @@ struct MembersListView: View {
     @Query private var rates: [FXRate]
 
     @State private var newMemberDraft: Member?
+    @State private var newMemberSaved: Bool = false
+    /// Strong reference to the in-flight draft so we can delete it on
+    /// dismissal (including interactive swipe-down on iOS, which does
+    /// not fire the form's `onFinish` callback).
+    @State private var pendingNewDraft: Member?
     @State private var memberPendingDeletion: Member?
     @State private var expandedMemberIDs: Set<UUID> = []
     @State private var editingMember: Member?
@@ -37,36 +42,39 @@ struct MembersListView: View {
 
     var body: some View {
         let totals = memberTotals
-        return ScrollView {
+        return ZStack {
+            AppBackground()
+
             if members.isEmpty {
                 ContentUnavailableView(
                     "member.empty",
                     systemImage: "person.2",
                     description: Text("member.empty.hint")
                 )
-                .padding(.top, 64)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(members) { member in
-                        MemberRowCard(
-                            member: member,
-                            total: totals[member.id] ?? 0,
-                            homeCurrency: homeCurrency,
-                            locale: locale,
-                            isExpanded: expandedMemberIDs.contains(member.id),
-                            toggle: { toggle(member: member) },
-                            onEditMember: { editingMember = member },
-                            onDeleteMember: { memberPendingDeletion = member }
-                        )
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(members) { member in
+                            MemberRowCard(
+                                member: member,
+                                total: totals[member.id] ?? 0,
+                                homeCurrency: homeCurrency,
+                                locale: locale,
+                                isExpanded: expandedMemberIDs.contains(member.id),
+                                toggle: { toggle(member: member) },
+                                onEditMember: { editingMember = member },
+                                onDeleteMember: { memberPendingDeletion = member }
+                            )
+                        }
                     }
+                    .pageHorizontalPadding()
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: 1100)
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 20)
-                .frame(maxWidth: 900)
-                .frame(maxWidth: .infinity)
             }
         }
-        .ambientBackground()
         .navigationTitle("members.title")
         .navigationDestination(for: Member.self) { member in
             MemberDetailView(member: member)
@@ -79,6 +87,8 @@ struct MembersListView: View {
                 Button {
                     let draft = Member(name: "")
                     context.insert(draft)
+                    newMemberSaved = false
+                    pendingNewDraft = draft
                     newMemberDraft = draft
                 } label: {
                     Label {
@@ -89,11 +99,21 @@ struct MembersListView: View {
                 }
             }
         }
-        .sheet(item: $newMemberDraft) { draft in
-            MemberFormView(member: draft, isNew: true) { saved in
-                if !saved {
+        .sheet(
+            item: $newMemberDraft,
+            onDismiss: {
+                // Covers both explicit Cancel taps and interactive
+                // swipe-down dismissal on iOS, which would otherwise
+                // leave an empty draft member behind.
+                if !newMemberSaved, let draft = pendingNewDraft {
                     context.delete(draft)
                 }
+                pendingNewDraft = nil
+                newMemberSaved = false
+            }
+        ) { draft in
+            MemberFormView(member: draft, isNew: true) { saved in
+                newMemberSaved = saved
             }
         }
         .sheet(item: $editingMember) { member in

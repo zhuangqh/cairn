@@ -72,7 +72,11 @@ struct MemberFormView: View {
             }
             .formStyle(.grouped)
             .glassListStyle()
-            .keyboardDismissable()
+            // Note: intentionally no `.keyboardDismissable()` here.
+            // Its tap-anywhere `simultaneousGesture` interferes with
+            // `PhotosPicker` activation on iOS (the system picker fails
+            // to present). The name field uses the standard keyboard
+            // with a Return key, so manual dismiss isn't required.
             .navigationTitle(isNew ? "member.new.title" : "member.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)

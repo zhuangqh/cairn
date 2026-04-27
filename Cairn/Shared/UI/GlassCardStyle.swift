@@ -139,6 +139,16 @@ public extension View {
         scrollContentBackground(.hidden)
             .background(AppBackground())
     }
+
+    /// Standard page horizontal padding. Tighter on iOS so cards have more
+    /// breathing room on small screens; roomier on macOS.
+    func pageHorizontalPadding() -> some View {
+        #if os(iOS)
+        padding(.horizontal, 16)
+        #else
+        padding(.horizontal, 24)
+        #endif
+    }
 }
 
 // MARK: - Glyph badge

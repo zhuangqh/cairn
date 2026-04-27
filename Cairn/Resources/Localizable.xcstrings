@@ -877,36 +877,19 @@
         }
       }
     },
-    "asset.section.sold" : {
+    "asset.row.estimatedValueNotSet" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sold"
+            "value" : "Estimated value not set"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已出售"
-          }
-        }
-      }
-    },
-    "asset.total.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total purchase cost"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "总购置成本"
+            "value" : "尚未设置估值"
           }
         }
       }
@@ -945,23 +928,6 @@
         }
       }
     },
-    "asset.row.estimatedValueNotSet" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estimated value not set"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尚未设置估值"
-          }
-        }
-      }
-    },
     "asset.section.itemCount" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -975,6 +941,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "{count} 项"
+          }
+        }
+      }
+    },
+    "asset.section.sold" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sold"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已出售"
+          }
+        }
+      }
+    },
+    "asset.total.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total purchase cost"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总购置成本"
           }
         }
       }
@@ -3314,8 +3314,175 @@
         }
       }
     },
-    "portfolioSnapshot.detail.currency.noRate" : {
-
+    "portfolioSnapshot.detail.change.fx" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FX impact"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "汇率影响"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.change.fx.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effect of FX rate changes on prior balances"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "汇率变化对上期余额的影响"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.change.fxNote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 {currency} → {home}: {old} → {new}"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 {currency} → {home}：{old} → {new}"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.change.manual" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual updates"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手动调整"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.change.manual.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Holdings added or removed since last snapshot"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相比上次快照新增或移除的持仓"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.change.market" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Market movement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "市场变动"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.change.market.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change in native amounts at this period's rates"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本期汇率下，原币金额的变化"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.change.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change breakdown"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "变动构成"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.change.vs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vs {month}"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对比 {month}"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.member.unassigned" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unassigned"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未归属成员"
+          }
+        }
+      }
     },
     "portfolioSnapshot.detail.rates" : {
       "extractionState" : "manual",
@@ -3523,6 +3690,74 @@
     },
     "series" : {
 
+    },
+    "settings.about.bugReport" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report a bug"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反馈问题"
+          }
+        }
+      }
+    },
+    "settings.about.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn is open source. Contributions and feedback are welcome on GitHub."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn 是开源项目，欢迎在 GitHub 提交反馈或贡献代码。"
+          }
+        }
+      }
+    },
+    "settings.about.sourceCode" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source code on GitHub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 开源仓库"
+          }
+        }
+      }
+    },
+    "settings.about.star" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Star on GitHub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "去 GitHub 点个 Star"
+          }
+        }
+      }
     },
     "settings.about.version" : {
       "extractionState" : "manual",
@@ -3762,6 +3997,57 @@
         }
       }
     },
+    "settings.backup.import.failure.tooNew" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This backup was created by a newer version of Cairn. Please update the app and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此备份由较新版本的 Cairn 创建，请升级 App 后再试。"
+          }
+        }
+      }
+    },
+    "settings.backup.import.failure.unreadable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file is not a valid Cairn backup."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该文件不是有效的 Cairn 备份。"
+          }
+        }
+      }
+    },
+    "settings.backup.import.failure.write" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore failed while writing data. Your previous data has been kept."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写入备份时出错，原有数据已保留。"
+          }
+        }
+      }
+    },
     "settings.backup.import.success" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3864,6 +4150,23 @@
         }
       }
     },
+    "settings.reminder.day" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Day of month"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提醒日期"
+          }
+        }
+      }
+    },
     "settings.reminder.denied" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3887,13 +4190,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cairn will send a local notification on the 1st of each month to remind you to record your snapshot."
+            "value" : "Cairn will send a local notification each month on the day and time you choose to remind you to record your snapshot."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cairn 会在每月 1 号向你发送本地通知，提醒你录入快照。"
+            "value" : "Cairn 会在你选择的每月日期和时间发送本地通知，提醒你录入快照。"
           }
         }
       }

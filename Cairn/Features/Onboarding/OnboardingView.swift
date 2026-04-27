@@ -33,7 +33,7 @@ struct OnboardingView: View {
                 }
                 .glassCard(cornerRadius: 24, padding: 28)
                 .frame(maxWidth: 520)
-                .padding(.horizontal, 24)
+                .pageHorizontalPadding()
             }
             .padding(.vertical, 40)
         }

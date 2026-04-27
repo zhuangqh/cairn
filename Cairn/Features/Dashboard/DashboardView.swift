@@ -203,7 +203,8 @@ struct DashboardView: View {
                         allocationCard(derivation: derivation)
                     }
                 }
-                .padding(isCompact ? 16 : 24)
+                .pageHorizontalPadding()
+                .padding(.vertical, 20)
                 .frame(maxWidth: 1100)
                 .frame(maxWidth: .infinity)
             }
