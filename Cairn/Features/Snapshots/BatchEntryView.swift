@@ -102,6 +102,7 @@ struct BatchEntryView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar { toolbarContent }
+            .keyboardDismissable(showsToolbar: false)
             .safeAreaInset(edge: .bottom) {
                 if !groupedRows.isEmpty {
                     footer
@@ -155,9 +156,13 @@ struct BatchEntryView: View {
     // MARK: - Header / toolbar
 
     private var navTitle: String {
-        let template = String(localized: "batch.title")
-        let formatted = periodMonth.formatted(.dateTime.year().month(.wide).locale(locale))
-        return template.replacingOccurrences(of: "{month}", with: formatted)
+        if isMonthLocked {
+            let template = String(localized: "batch.title")
+            let formatted = periodMonth.formatted(.dateTime.year().month(.wide).locale(locale))
+            return template.replacingOccurrences(of: "{month}", with: formatted)
+        } else {
+            return String(localized: "batch.title.add")
+        }
     }
 
     @ToolbarContentBuilder
@@ -189,15 +194,6 @@ struct BatchEntryView: View {
         }
         ToolbarItem(placement: .secondaryAction) {
             Menu {
-                Button {
-                    fillFromLast()
-                } label: {
-                    Label {
-                        Text("batch.fillFromLast")
-                    } icon: {
-                        Image(systemName: "arrow.down.to.line")
-                    }
-                }
                 Button(role: .destructive) {
                     showClearConfirm = true
                 } label: {
@@ -238,7 +234,9 @@ struct BatchEntryView: View {
     private var monthCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 12) {
+                #if os(macOS)
                 GlyphBadge(systemName: "calendar", tint: .accentColor, size: 36)
+                #endif
                 VStack(alignment: .leading, spacing: 2) {
                     Text("batch.monthCard.title")
                         .font(.caption.weight(.semibold))
@@ -263,39 +261,16 @@ struct BatchEntryView: View {
                     let day = Snapshot.normalizeDay(newValue)
                     if day != periodMonth { periodMonth = day }
                 }
-            }
-
-            Divider().opacity(0.4)
-
-            HStack(alignment: .firstTextBaseline, spacing: 16) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("batch.total")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(totalInHome, format: .currency(code: homeCurrency).locale(locale))
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("batch.summary.filled")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(verbatim: filledSummary)
-                        .font(.callout.monospacedDigit().weight(.semibold))
-                }
                 Button {
                     fillFromLast()
                 } label: {
-                    Label {
-                        Text("batch.fillFromLast")
-                    } icon: {
-                        Image(systemName: "arrow.down.to.line")
-                    }
+                    Image(systemName: "arrow.down.to.line")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderless)
                 .controlSize(.small)
                 .disabled(!hasBlankWithPrevious)
+                .help(Text("batch.fillFromLast"))
+                .accessibilityLabel(Text("batch.fillFromLast"))
             }
 
             ratesSection
