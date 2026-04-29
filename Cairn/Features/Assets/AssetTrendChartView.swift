@@ -137,7 +137,11 @@ struct AssetTrendChartView: View {
                 AxisGridLine()
                 AxisValueLabel {
                     if let amount = value.as(Double.self) {
-                        Text(amount.formatted(.currency(code: homeCurrency).locale(locale).precision(.fractionLength(0))))
+                        Text(CompactCurrencyFormatter.string(
+                            amount: Decimal(amount),
+                            code: homeCurrency,
+                            locale: locale
+                        ))
                     }
                 }
             }

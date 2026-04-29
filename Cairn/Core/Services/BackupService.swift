@@ -86,7 +86,7 @@ public enum BackupService {
         var rows: [[String]] = [header]
 
         for snapshot in snapshots {
-            let date = batchDate(for: snapshot, holdingSnapshots: holdingSnapshots)
+            let date = PortfolioSnapshotService.capturedDate(for: snapshot, holdingSnapshots: holdingSnapshots)
             let rateByKey = Dictionary(
                 snapshot.rates.compactMap { rate -> (CSVRateColumn.Key, String)? in
                     guard let key = CSVRateColumn.Key(rate: rate, homeCurrency: snapshot.homeCurrency),
@@ -555,36 +555,6 @@ public enum BackupService {
         return nil
     }
 
-    private static func batchDate(for snapshot: PortfolioSnapshot, holdingSnapshots: [Snapshot]) -> Date {
-        let holdingIds = Set(snapshot.entries.compactMap(\.holdingId))
-        guard !holdingIds.isEmpty else { return snapshot.periodMonth }
-
-        let monthStart = snapshot.periodMonth
-        let monthEnd = nextMonthStart(after: monthStart)
-        let expectedAmountByHoldingId = Dictionary(
-            snapshot.entries.compactMap { entry -> (UUID, Decimal)? in
-                guard let holdingId = entry.holdingId else { return nil }
-                return (holdingId, entry.amount)
-            },
-            uniquingKeysWith: { first, _ in first }
-        )
-
-        var matchesByDate: [Date: Int] = [:]
-        for row in holdingSnapshots {
-            guard let holdingId = row.holding?.id, holdingIds.contains(holdingId) else { continue }
-            guard row.periodMonth >= monthStart && row.periodMonth < monthEnd else { continue }
-            guard expectedAmountByHoldingId[holdingId] == row.amount else { continue }
-            matchesByDate[row.periodMonth, default: 0] += 1
-        }
-
-        return matchesByDate
-            .sorted { lhs, rhs in
-                if lhs.value == rhs.value { return lhs.key < rhs.key }
-                return lhs.value > rhs.value
-            }
-            .first?.key ?? snapshot.periodMonth
-    }
-
     private static var csvDateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .iso8601)
@@ -624,11 +594,6 @@ public enum BackupService {
         return "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
     }
 
-    private static func nextMonthStart(after monthStart: Date) -> Date {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        return calendar.date(byAdding: .month, value: 1, to: monthStart) ?? monthStart
-    }
 }
 
 // MARK: - Payload

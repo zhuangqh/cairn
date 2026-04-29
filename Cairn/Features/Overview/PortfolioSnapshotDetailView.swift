@@ -28,6 +28,7 @@ struct PortfolioSnapshotDetailView: View {
     @State private var showEditSheet: Bool = false
     @State private var errorMessage: String?
     @State private var resolvedPrevious: PortfolioSnapshot?
+    @State private var resolvedCapturedDate: Date?
 
     init(snapshot: PortfolioSnapshot, previous: PortfolioSnapshot? = nil) {
         self.snapshot = snapshot
@@ -60,7 +61,10 @@ struct PortfolioSnapshotDetailView: View {
         #if !os(macOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .onAppear { resolvePreviousIfNeeded() }
+        .onAppear {
+            resolvePreviousIfNeeded()
+            resolveCapturedDateIfNeeded()
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -80,7 +84,7 @@ struct PortfolioSnapshotDetailView: View {
         }
         .sheet(isPresented: $showEditSheet) {
             BatchEntryView(
-                initialPeriodMonth: snapshot.periodMonth,
+                initialPeriodMonth: capturedDate,
                 lockedRates: lockedRatesForEdit,
                 lockedBaseline: lockedBaselineForEdit,
                 initialNote: snapshot.note ?? ""
@@ -140,9 +144,12 @@ struct PortfolioSnapshotDetailView: View {
             if let totalDelta {
                 headerDeltaLine(totalDelta)
             }
-            Text(capturedFootnote)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("portfolioSnapshot.detail.batchDate \(capturedDate, format: footnoteDateFormat)")
+                Text("portfolioSnapshot.detail.capturedAt \(snapshot.recordedAt, format: footnoteDateFormat)")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
             if let note = snapshot.note, !note.isEmpty {
                 Text(verbatim: note)
                     .font(.callout)
@@ -620,10 +627,17 @@ struct PortfolioSnapshotDetailView: View {
         return template.replacingOccurrences(of: "{month}", with: label)
     }
 
-    private var capturedFootnote: String {
-        let template = String(localized: "portfolioSnapshot.detail.capturedAt")
-        let date = snapshot.recordedAt.formatted(.dateTime.year().month().day().locale(locale))
-        return template.replacingOccurrences(of: "{date}", with: date)
+    private var footnoteDateFormat: Date.FormatStyle {
+        Date.FormatStyle.dateTime.year().month().day().locale(locale)
+    }
+
+    private var capturedDate: Date {
+        resolvedCapturedDate ?? snapshot.periodMonth
+    }
+
+    private func resolveCapturedDateIfNeeded() {
+        guard resolvedCapturedDate == nil else { return }
+        resolvedCapturedDate = PortfolioSnapshotService.capturedDate(for: snapshot, context: context)
     }
 
     private func delete() {

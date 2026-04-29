@@ -22,4 +22,18 @@ final class CurrencyCatalogTests: XCTestCase {
         XCTAssertTrue(CurrencyCatalog.pinned.contains("HKD"))
         XCTAssertTrue(CurrencyCatalog.pinned.contains("AUD"))
     }
+
+    @MainActor
+    func testCompactCurrencyFormatterAbbreviatesLargeValues() {
+        let locale = Locale(identifier: "en_US")
+
+        XCTAssertEqual(
+            CompactCurrencyFormatter.string(amount: Decimal(12_345), code: "USD", locale: locale),
+            "$12.3K"
+        )
+        XCTAssertEqual(
+            CompactCurrencyFormatter.string(amount: Decimal(1_234_567), code: "USD", locale: locale),
+            "$1.23M"
+        )
+    }
 }

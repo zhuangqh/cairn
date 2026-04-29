@@ -103,7 +103,47 @@ public enum PortfolioSnapshotService {
         return (try? context.fetch(descriptor)) ?? []
     }
 
+    /// Best-effort reconstruction of the concrete day the user picked when
+    /// saving a monthly portfolio snapshot. The portfolio row itself is keyed
+    /// by month, while the underlying per-holding `Snapshot` rows are
+    /// day-granular, so we choose the day in that month with the most matching
+    /// captured holding amounts.
+    public static func capturedDate(for snapshot: PortfolioSnapshot, context: ModelContext) -> Date {
+        let holdingSnapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
+        return capturedDate(for: snapshot, holdingSnapshots: holdingSnapshots)
+    }
+
     // MARK: - Internals
+
+    static func capturedDate(for snapshot: PortfolioSnapshot, holdingSnapshots: [Snapshot]) -> Date {
+        let holdingIds = Set(snapshot.entries.compactMap(\.holdingId))
+        guard !holdingIds.isEmpty else { return snapshot.periodMonth }
+
+        let monthStart = snapshot.periodMonth
+        let monthEnd = nextMonthStart(after: monthStart)
+        let expectedAmountByHoldingId = Dictionary(
+            snapshot.entries.compactMap { entry -> (UUID, Decimal)? in
+                guard let holdingId = entry.holdingId else { return nil }
+                return (holdingId, entry.amount)
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        var matchesByDate: [Date: Int] = [:]
+        for row in holdingSnapshots {
+            guard let holdingId = row.holding?.id, holdingIds.contains(holdingId) else { continue }
+            guard row.periodMonth >= monthStart && row.periodMonth < monthEnd else { continue }
+            guard expectedAmountByHoldingId[holdingId] == row.amount else { continue }
+            matchesByDate[row.periodMonth, default: 0] += 1
+        }
+
+        return matchesByDate
+            .sorted { lhs, rhs in
+                if lhs.value == rhs.value { return lhs.key < rhs.key }
+                return lhs.value > rhs.value
+            }
+            .first?.key ?? snapshot.periodMonth
+    }
 
     /// The date we ask the FX provider about: the exact picked day, capped at
     /// `now` because future rates are not available.

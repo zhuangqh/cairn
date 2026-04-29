@@ -53,27 +53,27 @@ struct SettingsView: View {
                     )
                 }
 
-                Picker(selection: $homeCurrency) {
-                    Section("currency.picker.pinned") {
-                        ForEach(CurrencyCatalog.pinned, id: \.self) { code in
-                            currencyRow(code).tag(code)
-                        }
-                    }
-                    Section("currency.picker.other") {
-                        ForEach(CurrencyCatalog.rest, id: \.self) { code in
-                            currencyRow(code).tag(code)
-                        }
-                    }
+                NavigationLink {
+                    CurrencyPickerView(selection: $homeCurrency)
                 } label: {
-                    settingsRowLabel(
-                        titleKey: "settings.homeCurrency.title",
-                        systemImage: "dollarsign.circle.fill",
-                        tint: .notionGreen
-                    )
+                    HStack {
+                        settingsRowLabel(
+                            titleKey: "settings.homeCurrency.title",
+                            systemImage: "dollarsign.circle.fill",
+                            tint: .notionGreen
+                        )
+                        Spacer(minLength: 12)
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(verbatim: homeCurrency)
+                                .font(.callout.monospaced().weight(.semibold))
+                                .foregroundStyle(Color.notionInk)
+                            Text(verbatim: CurrencyCatalog.displayName(homeCurrency))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
                 }
-                #if !os(macOS)
-                .pickerStyle(.navigationLink)
-                #endif
 
                 Picker(selection: appearanceBinding) {
                     ForEach(AppAppearance.allCases, id: \.self) { option in
@@ -349,12 +349,6 @@ struct SettingsView: View {
         return "\(version) (\(build))"
     }
 
-    @ViewBuilder
-    private func currencyRow(_ code: String) -> some View {
-        Text(verbatim: code)
-            .font(.body.monospaced())
-    }
-
     private var appearanceBinding: Binding<AppAppearance> {
         Binding(
             get: { AppAppearance(rawValue: appearanceRaw) ?? .default },
@@ -454,6 +448,53 @@ struct SettingsView: View {
         } catch {
             resultMessage = "settings.backup.import.failure"
         }
+    }
+}
+
+private struct CurrencyPickerView: View {
+    @Binding var selection: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            Section("currency.picker.pinned") {
+                ForEach(CurrencyCatalog.pinned, id: \.self) { code in
+                    row(code)
+                }
+            }
+            Section("currency.picker.other") {
+                ForEach(CurrencyCatalog.rest, id: \.self) { code in
+                    row(code)
+                }
+            }
+        }
+        .navigationTitle("currency.picker.title")
+    }
+
+    private func row(_ code: String) -> some View {
+        Button {
+            selection = code
+            dismiss()
+        } label: {
+            HStack(spacing: 12) {
+                Text(verbatim: code)
+                    .font(.body.monospaced().weight(.semibold))
+                    .foregroundStyle(Color.notionInk)
+                    .frame(width: 44, alignment: .leading)
+                Text(verbatim: CurrencyCatalog.displayName(code))
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer()
+                if code == selection {
+                    Image(systemName: "checkmark")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

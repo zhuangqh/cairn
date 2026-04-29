@@ -3297,19 +3297,36 @@
         }
       }
     },
-    "portfolioSnapshot.detail.capturedAt" : {
+    "portfolioSnapshot.detail.capturedAt %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Captured on {date}"
+            "value" : "Record created on %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拍摄于 {date}"
+            "value" : "记录创建于 %@"
+          }
+        }
+      }
+    },
+    "portfolioSnapshot.detail.batchDate %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snapshot date %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快照日期 %@"
           }
         }
       }
