@@ -9,6 +9,7 @@ import SwiftData
 extension BatchEntryView {
     struct HoldingRow {
         let holding: Holding
+        let savedAmount: Decimal?
         let previousAmount: Decimal?
     }
 
@@ -32,45 +33,50 @@ extension BatchEntryView {
             guard !holdings.isEmpty else { return nil }
 
             let rows = holdings.map { holding in
-                HoldingRow(
+                let amounts = amounts(for: holding, at: periodMonth)
+                return HoldingRow(
                     holding: holding,
-                    previousAmount: latestPriorAmount(for: holding, before: periodMonth)
+                    savedAmount: lockedBaseline?[holding.id] ?? amounts.saved,
+                    previousAmount: amounts.previous
                 )
             }
             return MemberGroup(member: member, rows: rows)
         }
     }
 
-    func latestPriorAmount(for holding: Holding, before month: Date) -> Decimal? {
-        (holding.snapshots ?? [])
-            .filter { $0.periodMonth < month }
-            .sorted { $0.periodMonth > $1.periodMonth }
-            .first?.amount
+    func amounts(for holding: Holding, at month: Date) -> (saved: Decimal?, previous: Decimal?) {
+        var saved: Decimal?
+        var latestPriorDate: Date?
+        var latestPriorAmount: Decimal?
+        for snapshot in holding.snapshots ?? [] {
+            if snapshot.periodMonth == month {
+                saved = snapshot.amount
+            } else if snapshot.periodMonth < month,
+                      latestPriorDate == nil || snapshot.periodMonth > latestPriorDate! {
+                latestPriorDate = snapshot.periodMonth
+                latestPriorAmount = snapshot.amount
+            }
+        }
+        return (saved, latestPriorAmount)
     }
 
-    func snapshot(for holding: Holding, periodMonth: Date) -> Snapshot? {
-        (holding.snapshots ?? []).first { $0.periodMonth == periodMonth }
-    }
-
-    func binding(for holdingId: UUID) -> Binding<Decimal?> {
-        Binding(
-            get: { edits[holdingId] ?? currentSavedAmount(for: holdingId) },
+    func binding(for row: HoldingRow) -> Binding<Decimal?> {
+        let holdingId = row.holding.id
+        let savedAmount = row.savedAmount
+        return Binding(
+            get: { edits[holdingId] ?? savedAmount },
             set: { newValue in edits[holdingId] = newValue }
         )
     }
 
-    func currentSavedAmount(for holdingId: UUID) -> Decimal? {
-        if let lockedBaseline, let value = lockedBaseline[holdingId] {
-            return value
-        }
-        let rows = groupedRows.flatMap(\.rows)
-        guard let holding = rows.first(where: { $0.holding.id == holdingId })?.holding else { return nil }
-        return snapshot(for: holding, periodMonth: periodMonth)?.amount
+    func currentSavedAmount(for holdingId: UUID, in rows: [HoldingRow]) -> Decimal? {
+        rows.first { $0.holding.id == holdingId }?.savedAmount
     }
 
-    func currentAmount(for holdingId: UUID) -> Decimal? {
+    func currentAmount(for row: HoldingRow) -> Decimal? {
+        let holdingId = row.holding.id
         if let staged = edits[holdingId] { return staged }
-        return currentSavedAmount(for: holdingId)
+        return row.savedAmount
     }
 
     /// Converts `amount` (in `from`) to the home currency using the same
@@ -96,7 +102,7 @@ extension BatchEntryView {
     }
 
     func approxHome(for row: HoldingRow) -> Decimal? {
-        guard let amount = currentAmount(for: row.holding.id) else { return nil }
+        guard let amount = currentAmount(for: row) else { return nil }
         return convertToHome(amount: amount, from: row.holding.currency)
     }
 
@@ -110,7 +116,7 @@ extension BatchEntryView {
     var unresolvedCurrencies: [String] {
         var codes: Set<String> = []
         for row in groupedRows.flatMap(\.rows) {
-            guard let amount = currentAmount(for: row.holding.id), amount != 0 else { continue }
+            guard let amount = currentAmount(for: row), amount != 0 else { continue }
             if row.holding.currency == homeCurrency { continue }
             if convertToHome(amount: amount, from: row.holding.currency) == nil {
                 codes.insert(row.holding.currency)
@@ -126,21 +132,22 @@ extension BatchEntryView {
 
     var hasUnsavedEdits: Bool {
         if note != originalNote { return true }
+        let rows = groupedRows.flatMap(\.rows)
         return edits.contains { key, value in
-            value != currentSavedAmount(for: key)
+            value != currentSavedAmount(for: key, in: rows)
         }
     }
 
     var filledSummary: String {
         let rows = groupedRows.flatMap(\.rows)
         let total = rows.count
-        let filled = rows.filter { currentAmount(for: $0.holding.id) != nil }.count
+        let filled = rows.filter { currentAmount(for: $0) != nil }.count
         return "\(filled) / \(total)"
     }
 
     var hasBlankWithPrevious: Bool {
         groupedRows.flatMap(\.rows).contains { row in
-            currentAmount(for: row.holding.id) == nil && row.previousAmount != nil
+            currentAmount(for: row) == nil && row.previousAmount != nil
         }
     }
 
@@ -148,7 +155,7 @@ extension BatchEntryView {
 
     func fillFromLast() {
         for row in groupedRows.flatMap(\.rows) {
-            let current = currentAmount(for: row.holding.id)
+            let current = currentAmount(for: row)
             if current == nil, let last = row.previousAmount {
                 edits[row.holding.id] = last
             }
@@ -162,7 +169,7 @@ extension BatchEntryView {
     func prefillIfNeeded() {
         guard !didPrefill else { return }
         didPrefill = true
-        for row in groupedRows.flatMap(\.rows) where currentAmount(for: row.holding.id) == nil {
+        for row in groupedRows.flatMap(\.rows) where currentAmount(for: row) == nil {
             if let previous = row.previousAmount {
                 edits[row.holding.id] = previous
             }

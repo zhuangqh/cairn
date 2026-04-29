@@ -491,12 +491,7 @@ struct OverviewView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(filteredSnapshots.enumerated()), id: \.element.id) { index, snapshot in
-                        // `filteredSnapshots` is sorted newest-first, so the
-                        // chronologically prior (older) snapshot is the next
-                        // one in the array. Used to compute the row's delta.
-                        let previous: PortfolioSnapshot? = (index + 1) < filteredSnapshots.count
-                            ? filteredSnapshots[index + 1]
-                            : nil
+                        let previous = previousSnapshot(for: snapshot)
                         let isLast = index == filteredSnapshots.count - 1
                         NavigationLink {
                             PortfolioSnapshotDetailView(snapshot: snapshot, previous: previous)
@@ -516,6 +511,13 @@ struct OverviewView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard()
+    }
+
+    private func previousSnapshot(for snapshot: PortfolioSnapshot) -> PortfolioSnapshot? {
+        portfolioSnapshots.first {
+            $0.homeCurrency == snapshot.homeCurrency &&
+            $0.periodMonth < snapshot.periodMonth
+        }
     }
 
     private var availableYears: [Int] {

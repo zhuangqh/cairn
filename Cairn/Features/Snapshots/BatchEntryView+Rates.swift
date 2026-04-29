@@ -69,6 +69,10 @@ extension BatchEntryView {
     /// periods.
     @MainActor
     func loadNoteForCurrentMonth() {
+        if isMonthLocked {
+            originalNote = initialNote ?? note
+            return
+        }
         let normalized = Snapshot.normalize(periodMonth)
         let currency = homeCurrency
         var descriptor = FetchDescriptor<PortfolioSnapshot>(
@@ -78,7 +82,6 @@ extension BatchEntryView {
         let existing = (try? context.fetch(descriptor))?.first
         note = existing?.note ?? ""
         originalNote = note
-        didPrefillNote = true
     }
 
     /// Day-granular reference date for FX lookups: use the exact day the

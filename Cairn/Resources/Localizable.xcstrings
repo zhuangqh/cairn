@@ -3861,6 +3861,23 @@
         }
       }
     },
+    "settings.backup.exportCSV" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export snapshots CSV…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出快照 CSV…"
+          }
+        }
+      }
+    },
     "settings.backup.export.failure" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3891,6 +3908,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "备份已导出。"
+          }
+        }
+      }
+    },
+    "settings.backup.exportCSV.success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snapshots CSV exported."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快照 CSV 已导出。"
           }
         }
       }

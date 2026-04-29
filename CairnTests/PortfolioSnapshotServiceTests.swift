@@ -194,4 +194,78 @@ final class PortfolioSnapshotServiceTests: XCTestCase {
         let delta = (converted - expected).magnitude
         XCTAssertLessThan(delta, Decimal(0.01))
     }
+
+    func testCaptureFetchesRatesForPickedSnapshotDay() async throws {
+        let context = container.mainContext
+        let account = Account(name: "Travel", kind: .cash)
+        let holding = Holding(currency: "EUR", account: account)
+        context.insert(account)
+        context.insert(holding)
+
+        let pickedDay = Snapshot.normalizeDay(date("2026-02-15T00:00:00Z"))
+        context.insert(Snapshot(periodMonth: pickedDay, amount: 100, holding: holding))
+        try context.save()
+
+        let fetcher = ExactDateFetcher(
+            expectedDate: pickedDay,
+            response: FXRateResponse(base: "USD", date: pickedDay, rates: ["EUR": 0.9])
+        )
+
+        let portfolio = try await PortfolioSnapshotService.captureForMonth(
+            pickedDay,
+            homeCurrency: "USD",
+            fetcher: fetcher,
+            context: context,
+            now: date("2026-04-01T00:00:00Z")
+        )
+
+        XCTAssertEqual(portfolio.rates.first?.rate, 0.9)
+    }
+
+    func testCaptureCanClearExistingNote() async throws {
+        let context = container.mainContext
+        let account = Account(name: "Primary", kind: .cash)
+        let holding = Holding(currency: "USD", account: account)
+        context.insert(account)
+        context.insert(holding)
+
+        let month = Snapshot.normalize(.now)
+        context.insert(Snapshot(periodMonth: month, amount: 100, holding: holding))
+        try context.save()
+
+        _ = try await PortfolioSnapshotService.captureForMonth(
+            month,
+            homeCurrency: "USD",
+            note: "Original note",
+            context: context
+        )
+        let updated = try await PortfolioSnapshotService.captureForMonth(
+            month,
+            homeCurrency: "USD",
+            note: nil,
+            context: context
+        )
+
+        XCTAssertNil(updated.note)
+    }
+
+    private func date(_ iso8601: String) -> Date {
+        ISO8601DateFormatter().date(from: iso8601)!
+    }
+}
+
+private struct ExactDateFetcher: FXRateFetching {
+    let expectedDate: Date
+    let response: FXRateResponse
+
+    func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse {
+        throw NSError(domain: "ExactDateFetcher", code: 1)
+    }
+
+    func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse {
+        guard date == expectedDate else {
+            throw NSError(domain: "ExactDateFetcher", code: 2)
+        }
+        return response
+    }
 }

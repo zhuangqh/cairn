@@ -82,7 +82,8 @@ struct PortfolioSnapshotDetailView: View {
             BatchEntryView(
                 initialPeriodMonth: snapshot.periodMonth,
                 lockedRates: lockedRatesForEdit,
-                lockedBaseline: lockedBaselineForEdit
+                lockedBaseline: lockedBaselineForEdit,
+                initialNote: snapshot.note ?? ""
             )
         }
         .confirmationDialog(

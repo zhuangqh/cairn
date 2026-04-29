@@ -12,13 +12,12 @@ import SwiftData
 @MainActor
 public enum PortfolioSnapshotService {
 
-    /// Creates or updates the `PortfolioSnapshot` for the given month
+    /// Creates or updates the `PortfolioSnapshot` for the given snapshot date
     /// using whatever `Snapshot` rows are currently saved.
     ///
-    /// FX rates are sourced from `fetcher` at the *target month's
-    /// reference date* (end of month, or today if the month is current /
-    /// future) so historical snapshots reflect the rate that was in
-    /// effect at the time of the month, not today's rate. On network
+    /// FX rates are sourced from `fetcher` at the exact picked day (capped at
+    /// today for future dates) so captured batches reflect the rate date the
+    /// user saw in the batch entry sheet. On network
     /// failure we fall back to the local FX cache so the snapshot is
     /// still saved.
     ///
@@ -32,10 +31,11 @@ public enum PortfolioSnapshotService {
         context: ModelContext,
         now: Date = .now
     ) async throws -> PortfolioSnapshot {
-        let normalized = Snapshot.normalize(periodMonth)
-        let referenceDate = referenceDate(for: normalized, now: now)
+        let day = Snapshot.normalizeDay(periodMonth)
+        let normalized = Snapshot.normalize(day)
+        let referenceDate = referenceDate(for: day, now: now)
         let data = try await buildSnapshotData(
-            periodMonth: normalized,
+            periodMonth: day,
             referenceDate: referenceDate,
             homeCurrency: homeCurrency,
             fetcher: fetcher,
@@ -47,7 +47,7 @@ public enum PortfolioSnapshotService {
             existing.entries = data.entries
             existing.rates = data.rates
             existing.recordedAt = now
-            if let note { existing.note = note }
+            existing.note = note
             try context.save()
             return existing
         }
@@ -105,20 +105,10 @@ public enum PortfolioSnapshotService {
 
     // MARK: - Internals
 
-    /// The date we ask the FX provider about for a given month. We use
-    /// the last day of the month so that the snapshot reflects the
-    /// period's closing rate. For the current / future month we fall
-    /// back to `now` because the closing rate isn't known yet.
-    private static func referenceDate(for normalizedMonth: Date, now: Date) -> Date {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        let currentMonth = Snapshot.normalize(now)
-        if normalizedMonth >= currentMonth { return now }
-        guard let nextMonth = calendar.date(byAdding: .month, value: 1, to: normalizedMonth),
-              let lastDay = calendar.date(byAdding: .day, value: -1, to: nextMonth) else {
-            return normalizedMonth
-        }
-        return lastDay
+    /// The date we ask the FX provider about: the exact picked day, capped at
+    /// `now` because future rates are not available.
+    private static func referenceDate(for periodDay: Date, now: Date) -> Date {
+        min(Snapshot.normalizeDay(periodDay), now)
     }
 
     private static func find(

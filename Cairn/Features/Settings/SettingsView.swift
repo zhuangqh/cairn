@@ -28,7 +28,9 @@ struct SettingsView: View {
     private var reminderDay: Int = AppSettingsKeys.defaultReminderDay
 
     @State private var exportDocument: BackupDocument?
+    @State private var csvExportDocument: CSVExportDocument?
     @State private var isExporting: Bool = false
+    @State private var isExportingCSV: Bool = false
     @State private var isImporting: Bool = false
     @State private var importConfirmation: Data?
     @State private var resultMessage: LocalizedStringKey?
@@ -155,6 +157,17 @@ struct SettingsView: View {
                 .buttonStyle(.plain)
 
                 Button {
+                    beginCSVExport()
+                } label: {
+                    settingsRowLabel(
+                        titleKey: "settings.backup.exportCSV",
+                        systemImage: "tablecells",
+                        tint: .notionGreen
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button {
                     isImporting = true
                 } label: {
                     settingsRowLabel(
@@ -247,6 +260,20 @@ struct SettingsView: View {
             switch result {
             case .success:
                 resultMessage = "settings.backup.export.success"
+            case .failure:
+                resultMessage = "settings.backup.export.failure"
+            }
+        }
+        .fileExporter(
+            isPresented: $isExportingCSV,
+            document: csvExportDocument,
+            contentType: .commaSeparatedText,
+            defaultFilename: defaultCSVExportFilename()
+        ) { result in
+            csvExportDocument = nil
+            switch result {
+            case .success:
+                resultMessage = "settings.backup.exportCSV.success"
             case .failure:
                 resultMessage = "settings.backup.export.failure"
             }
@@ -377,10 +404,27 @@ struct SettingsView: View {
         }
     }
 
+    @MainActor
+    private func beginCSVExport() {
+        do {
+            let data = try BackupService.makeSnapshotCSV(in: context)
+            csvExportDocument = CSVExportDocument(data: data)
+            isExportingCSV = true
+        } catch {
+            resultMessage = "settings.backup.export.failure"
+        }
+    }
+
     private func defaultExportFilename() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd-HHmm"
         return "cairn-backup-\(formatter.string(from: .now)).cairn"
+    }
+
+    private func defaultCSVExportFilename() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmm"
+        return "cairn-snapshots-\(formatter.string(from: .now)).csv"
     }
 
     private func loadImportCandidate(from url: URL) {

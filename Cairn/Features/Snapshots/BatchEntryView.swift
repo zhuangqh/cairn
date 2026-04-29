@@ -34,7 +34,6 @@ struct BatchEntryView: View {
 
     /// Free-form notes attached to the monthly `PortfolioSnapshot`.
     @State var note: String = ""
-    @State var didPrefillNote: Bool = false
     /// Snapshot of `note` at load time so we can detect note-only edits
     /// and let the user save without touching any amount.
     @State var originalNote: String = ""
@@ -55,12 +54,18 @@ struct BatchEntryView: View {
     /// portfolio snapshot's normalized month.
     var lockedBaseline: [UUID: Decimal]?
 
+    /// Optional note seed used when editing a captured `PortfolioSnapshot`.
+    /// Passing it in avoids an extra fetch before the sheet finishes
+    /// building its first frame.
+    var initialNote: String?
+
     var isMonthLocked: Bool { lockedRates != nil }
 
     init(
         initialPeriodMonth: Date? = nil,
         lockedRates: [String: Decimal]? = nil,
         lockedBaseline: [UUID: Decimal]? = nil,
+        initialNote: String? = nil,
         ratesFetcher: any FXRateFetching = FrankfurterFetcher()
     ) {
         if let initialPeriodMonth {
@@ -69,8 +74,13 @@ struct BatchEntryView: View {
         if let lockedRates {
             _historicalRates = State(initialValue: lockedRates)
         }
+        if let initialNote {
+            _note = State(initialValue: initialNote)
+            _originalNote = State(initialValue: initialNote)
+        }
         self.lockedRates = lockedRates
         self.lockedBaseline = lockedBaseline
+        self.initialNote = initialNote
         self.ratesFetcher = ratesFetcher
     }
 
@@ -217,7 +227,7 @@ struct BatchEntryView: View {
 
     private var entryScroll: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: 16) {
                 monthCard
                 ForEach(groupedRows, id: \.member.id) { group in
                     memberGroupCard(group)
@@ -310,7 +320,7 @@ struct BatchEntryView: View {
             convertedPreview: approxHome(for: row),
             isDirty: edits[row.holding.id] != nil,
             isSaved: savedOnce.contains(row.holding.id),
-            amount: binding(for: row.holding.id)
+            amount: binding(for: row)
         )
     }
 
@@ -352,13 +362,25 @@ struct BatchEntryView: View {
         // `PortfolioSnapshot` is still keyed by month so month-over-month
         // trend points stay stable.
         let day = Snapshot.normalizeDay(periodMonth)
-        let month = Snapshot.normalize(periodMonth)
         let rows: [BatchUpsertService.Row] = edits.compactMap { key, value in
             guard let value else { return nil }
             return BatchUpsertService.Row(holdingId: key, amount: value)
         }
+        let isReplacingCapturedSnapshot = lockedBaseline != nil
         do {
-            try BatchUpsertService.apply(rows, periodMonth: day, context: context)
+            if isReplacingCapturedSnapshot {
+                let replacementRows = groupedRows
+                    .flatMap(\.rows)
+                    .map { row in
+                        BatchUpsertService.Row(
+                            holdingId: row.holding.id,
+                            amount: currentAmount(for: row)
+                        )
+                    }
+                try BatchUpsertService.replaceMonth(replacementRows, periodMonth: day, context: context)
+            } else {
+                try BatchUpsertService.apply(rows, periodMonth: day, context: context)
+            }
         } catch {
             errorMessage = error.localizedDescription
             return
@@ -369,7 +391,7 @@ struct BatchEntryView: View {
             do {
                 let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
                 try await PortfolioSnapshotService.captureForMonth(
-                    month,
+                    day,
                     homeCurrency: homeCurrency,
                     note: trimmed.isEmpty ? nil : trimmed,
                     context: context
@@ -397,4 +419,3 @@ struct BatchEntryView: View {
         .modelContainer(PreviewSampleData.emptyContainer())
 }
 #endif
-
