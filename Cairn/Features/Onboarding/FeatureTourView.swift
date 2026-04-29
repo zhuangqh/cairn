@@ -108,8 +108,8 @@ struct FeatureTourView: View {
     @ViewBuilder
     private func pageContent(_ page: Page) -> some View {
         switch page {
-        case .highlight(let h):
-            HighlightPageView(highlight: h)
+        case .highlight(let highlight):
+            HighlightPageView(highlight: highlight)
         case .homeCurrency:
             HomeCurrencyPageView(homeCurrency: $homeCurrency)
         }
@@ -137,10 +137,10 @@ struct FeatureTourView: View {
 
     private var pageIndicator: some View {
         HStack(spacing: 6) {
-            ForEach(0..<pages.count, id: \.self) { i in
+            ForEach(0..<pages.count, id: \.self) { idx in
                 Capsule()
-                    .fill(i == index ? indicatorTint(for: pages[index]) : Color.notionInkMuted.opacity(0.35))
-                    .frame(width: i == index ? 22 : 6, height: 6)
+                    .fill(idx == index ? indicatorTint(for: pages[index]) : Color.notionInkMuted.opacity(0.35))
+                    .frame(width: idx == index ? 22 : 6, height: 6)
                     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: index)
             }
         }
@@ -179,7 +179,7 @@ struct FeatureTourView: View {
     }
 
     private func indicatorTint(for page: Page) -> Color {
-        if case .highlight(let h) = page { return h.tint }
+        if case .highlight(let highlight) = page { return highlight.tint }
         return .notionBlue
     }
 
