@@ -34,6 +34,7 @@ struct SettingsView: View {
     @State private var isImporting: Bool = false
     @State private var importConfirmation: Data?
     @State private var resultMessage: LocalizedStringKey?
+    @State private var isShowingFeatureTour: Bool = false
 
     var body: some View {
         @Bindable var localization = localization
@@ -186,6 +187,25 @@ struct SettingsView: View {
             }
 
             Section {
+                Button {
+                    isShowingFeatureTour = true
+                } label: {
+                    settingsRowLabel(
+                        titleKey: "settings.featureTour.show",
+                        systemImage: "sparkles",
+                        tint: .notionPurple
+                    )
+                }
+                .buttonStyle(.plain)
+            } header: {
+                NotionSectionHeader("settings.section.help")
+            } footer: {
+                Text("settings.featureTour.footer")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 LabeledContent {
                     Text(verbatim: appVersion)
                         .font(.callout.monospacedDigit())
@@ -324,6 +344,9 @@ struct SettingsView: View {
             } label: {
                 Text("common.action.done")
             }
+        }
+        .sheet(isPresented: $isShowingFeatureTour) {
+            FeatureTourView()
         }
     }
 

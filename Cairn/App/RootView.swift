@@ -8,15 +8,36 @@ struct RootView: View {
     @AppStorage(AppSettingsKeys.onboardingCompleted)
     private var onboardingCompleted: Bool = false
 
+    @AppStorage(AppSettingsKeys.featureTourSeen)
+    private var featureTourSeen: Bool = false
+
     @State private var selection: SidebarItem = .dashboard
+
+    /// First-run sheet selection. Drives the highlights tour first, then the
+    /// setup wizard. Resolves to `nil` once both are complete.
+    private enum FirstRunSheet: String, Identifiable {
+        case tour, setup
+        var id: String { rawValue }
+    }
+
+    private var firstRunSheet: FirstRunSheet? {
+        if !featureTourSeen { return .tour }
+        if !onboardingCompleted { return .setup }
+        return nil
+    }
 
     var body: some View {
         shell
-            .sheet(isPresented: .init(
-                get: { !onboardingCompleted },
+            .sheet(item: .init(
+                get: { firstRunSheet },
                 set: { _ in }
-            )) {
-                OnboardingView()
+            )) { sheet in
+                switch sheet {
+                case .tour:
+                    FeatureTourView()
+                case .setup:
+                    OnboardingView()
+                }
             }
     }
 
@@ -137,6 +158,7 @@ enum SidebarItem: CaseIterable, Hashable {
 
 #Preview("RootView · first run") {
     UserDefaults.standard.set(false, forKey: AppSettingsKeys.onboardingCompleted)
+    UserDefaults.standard.set(false, forKey: AppSettingsKeys.featureTourSeen)
     return RootView()
         .environment(LocalizationService())
         .modelContainer(PreviewSampleData.emptyContainer())

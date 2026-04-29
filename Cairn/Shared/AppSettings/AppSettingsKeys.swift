@@ -8,6 +8,11 @@ public enum AppSettingsKeys {
 
     public static let onboardingCompleted: String = "cairn.onboardingCompleted"
 
+    /// Marks whether the user has seen the feature highlights tour. Flipped to
+    /// `true` after the carousel is finished or skipped. Settings exposes a
+    /// button that re-presents the tour without resetting any other state.
+    public static let featureTourSeen: String = "cairn.featureTourSeen"
+
     public static let reminderEnabled: String = "cairn.reminderEnabled"
     public static let reminderHour: String = "cairn.reminderHour"     // 0-23
     public static let reminderMinute: String = "cairn.reminderMinute" // 0-59

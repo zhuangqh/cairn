@@ -203,6 +203,7 @@ public enum PreviewSampleData {
 public enum PreviewDefaults {
     public static func primeOnboarded(homeCurrency: String = "USD") {
         UserDefaults.standard.set(true, forKey: AppSettingsKeys.onboardingCompleted)
+        UserDefaults.standard.set(true, forKey: AppSettingsKeys.featureTourSeen)
         UserDefaults.standard.set(homeCurrency, forKey: AppSettingsKeys.homeCurrency)
     }
 }
