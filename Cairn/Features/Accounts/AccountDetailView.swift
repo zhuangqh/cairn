@@ -95,7 +95,7 @@ struct AccountDetailView: View {
                 HoldingEditView(holding: primary)
             }
         }
-        .confirmationDialog(
+        .alert(
             Text("snapshot.delete.confirm.title"),
             isPresented: Binding(
                 get: { snapshotPendingDeletion != nil },

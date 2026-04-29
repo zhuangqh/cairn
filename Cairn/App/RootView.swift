@@ -13,31 +13,21 @@ struct RootView: View {
 
     @State private var selection: SidebarItem = .dashboard
 
-    /// First-run sheet selection. Drives the highlights tour first, then the
-    /// setup wizard. Resolves to `nil` once both are complete.
-    private enum FirstRunSheet: String, Identifiable {
-        case tour, setup
-        var id: String { rawValue }
-    }
-
-    private var firstRunSheet: FirstRunSheet? {
-        if !featureTourSeen { return .tour }
-        if !onboardingCompleted { return .setup }
-        return nil
+    /// First-run sheet is the unified `FeatureTourView` running in
+    /// `.firstRun` mode, which itself rolls highlights → home currency →
+    /// first member into a single carousel. The sheet stays up until both
+    /// the tour has been seen and onboarding setup has completed.
+    private var showsFirstRun: Bool {
+        !featureTourSeen || !onboardingCompleted
     }
 
     var body: some View {
         shell
-            .sheet(item: .init(
-                get: { firstRunSheet },
+            .sheet(isPresented: .init(
+                get: { showsFirstRun },
                 set: { _ in }
-            )) { sheet in
-                switch sheet {
-                case .tour:
-                    FeatureTourView()
-                case .setup:
-                    OnboardingView()
-                }
+            )) {
+                FeatureTourView(mode: .firstRun)
             }
     }
 

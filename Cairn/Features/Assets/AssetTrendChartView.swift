@@ -63,8 +63,20 @@ struct AssetTrendChartView: View {
         var hasher = Hasher()
         hasher.combine(homeCurrency)
         hasher.combine(range)
-        hasher.combine(assets.count)
-        hasher.combine(rates.count)
+        for asset in assets.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            hasher.combine(asset.id)
+            hasher.combine(asset.name)
+            hasher.combine(asset.purchaseDate)
+            hasher.combine(asset.purchaseCurrency)
+            hasher.combine(NSDecimalNumber(decimal: asset.purchasePrice).stringValue)
+        }
+        for rate in rates.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            hasher.combine(rate.id)
+            hasher.combine(rate.base)
+            hasher.combine(rate.quote)
+            hasher.combine(NSDecimalNumber(decimal: rate.rate).stringValue)
+            hasher.combine(rate.date)
+        }
         return hasher.finalize()
     }
 
@@ -365,7 +377,7 @@ struct AssetTrendChartView: View {
         if windowed.first?.date != cutoff {
             windowed.insert(
                 AssetTrendPoint(
-                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+                    id: AssetTrendPoint.windowStartAnchorID,
                     date: cutoff,
                     cumulative: preCutoffTotal,
                     assetName: ""
@@ -379,7 +391,7 @@ struct AssetTrendChartView: View {
         if let lastDate = windowed.last?.date, lastDate < now {
             windowed.append(
                 AssetTrendPoint(
-                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+                    id: AssetTrendPoint.nowAnchorID,
                     date: now,
                     cumulative: finalTotal,
                     assetName: ""
@@ -402,6 +414,9 @@ struct AssetTrendChartView: View {
 }
 
 struct AssetTrendPoint: Identifiable, Equatable {
+    static let windowStartAnchorID = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1))
+    static let nowAnchorID = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2))
+
     let id: UUID
     let date: Date
     let cumulative: Decimal

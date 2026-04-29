@@ -3,7 +3,7 @@
 > Version: v0.2 (Draft)
 > Author: (you)
 > Target platforms: **macOS primary**; iOS / iPadOS sources stay buildable but are not supported for distribution
-> Distribution: open-source (Apache-2.0). No Apple Developer account is assumed — builds are ad-hoc signed, the shipped entitlements are sandbox + user-selected files only, and there is no App Store release pipeline.
+> Distribution: open-source (Apache-2.0). No Apple Developer account is assumed — macOS releases are ad-hoc signed DMGs built by GitHub Actions, and the shipped entitlements are sandbox + network client + user-selected files only. There is no App Store release pipeline.
 > Last updated: 2026-04-18
 > Working language: English. All code identifiers, comments, commit messages, and documentation are in English. All user-facing strings MUST go through `String(localized:)` / String Catalogs from day one (see §5.5).
 > Name origin: a *cairn* is a stack of stones left as a trail marker by hikers; each monthly snapshot in the app is one more stone on your family's financial trail.
@@ -228,9 +228,7 @@ enum AccountKind: String, Codable { case cash, stock, realEstate, device }
 - One row per Holding; only the "This month" column is editable.
 - If no snapshot exists yet for the month: the input shows last month's value as a greyed placeholder; tapping clears it for input.
 - If a snapshot exists: the existing value is shown in primary text color.
-- **Keyboard navigation**:
-  - iPad with external keyboard / Mac: `Tab` / `Shift+Tab` / `↑ ↓` to move between cells; `Enter` to the next row.
-  - iPhone: custom decimal keypad with toolbar `←`, `→`, `Done`.
+- Standard platform text-field focus behavior is supported. Custom spreadsheet keyboard navigation (`Tab`, arrows, `Enter`) is not part of the current implementation.
 - Inputs update the "≈ home" column and the footer total in real time.
 - Edited-but-unsaved rows show a yellow dot on the left; saved rows show a green dot.
 - Top-bar actions:
@@ -242,7 +240,7 @@ enum AccountKind: String, Codable { case cash, stock, realEstate, device }
 - Empty cell handling: if a Holding is left blank, **no snapshot is written**; the trend treats the month as missing (no carry-forward).
 
 **Performance**
-- `LazyVStack` + virtualized rendering; comfortable with 200+ Holdings.
+- `LazyVStack` rendering; comfortable with large household holding lists.
 - Amounts bound as `Decimal`; formatting and parsing use the current locale (decimal separator, grouping).
 
 #### F-SNAP-6 iPhone Adaptation (portrait & landscape)

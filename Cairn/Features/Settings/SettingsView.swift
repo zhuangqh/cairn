@@ -2,9 +2,13 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
-    fileprivate static let repositoryURL = URL(string: "https://github.com/zhuangqh/cairn")!
-    fileprivate static let starURL = URL(string: "https://github.com/zhuangqh/cairn/stargazers")!
-    fileprivate static let bugReportURL = URL(string: "https://github.com/zhuangqh/cairn/issues/new")!
+    fileprivate static let repositoryURL = externalURL("https://github.com/zhuangqh/cairn")
+    fileprivate static let starURL = externalURL("https://github.com/zhuangqh/cairn/stargazers")
+    fileprivate static let bugReportURL = externalURL("https://github.com/zhuangqh/cairn/issues/new")
+
+    private static func externalURL(_ string: String) -> URL {
+        URL(string: string) ?? URL(fileURLWithPath: "/")
+    }
 
     @Environment(LocalizationService.self) private var localization
     @Environment(\.modelContext) private var context
@@ -311,13 +315,12 @@ struct SettingsView: View {
                 resultMessage = "settings.backup.import.failure"
             }
         }
-        .confirmationDialog(
+        .alert(
             "settings.backup.import.confirm.title",
             isPresented: .init(
                 get: { importConfirmation != nil },
                 set: { if !$0 { importConfirmation = nil } }
-            ),
-            titleVisibility: .visible
+            )
         ) {
             Button(role: .destructive) {
                 performRestore()
@@ -346,7 +349,7 @@ struct SettingsView: View {
             }
         }
         .sheet(isPresented: $isShowingFeatureTour) {
-            FeatureTourView()
+            FeatureTourView(mode: .replay)
         }
     }
 

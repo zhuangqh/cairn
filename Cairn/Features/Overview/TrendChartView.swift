@@ -16,6 +16,7 @@ struct TrendChartView: View {
     @Query private var snapshots: [Snapshot]
     @Query private var rates: [FXRate]
     @Query private var holdings: [Holding]
+    @Query private var accounts: [Account]
     @Query private var assets: [Asset]
     @Query(sort: \PortfolioSnapshot.periodMonth)
     private var portfolioSnapshots: [PortfolioSnapshot]
@@ -144,11 +145,47 @@ struct TrendChartView: View {
         hasher.combine(homeCurrency)
         hasher.combine(range)
         hasher.combine(showAssetOverlay)
-        hasher.combine(snapshots.count)
-        hasher.combine(rates.count)
-        hasher.combine(holdings.count)
-        hasher.combine(assets.count)
-        hasher.combine(portfolioSnapshots.count)
+        for snapshot in snapshots.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            hasher.combine(snapshot.id)
+            hasher.combine(snapshot.periodMonth)
+            hasher.combine(NSDecimalNumber(decimal: snapshot.amount).stringValue)
+            hasher.combine(snapshot.recordedAt)
+            hasher.combine(snapshot.holding?.id)
+        }
+        for rate in rates.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            hasher.combine(rate.id)
+            hasher.combine(rate.base)
+            hasher.combine(rate.quote)
+            hasher.combine(NSDecimalNumber(decimal: rate.rate).stringValue)
+            hasher.combine(rate.date)
+        }
+        for holding in holdings.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            hasher.combine(holding.id)
+            hasher.combine(holding.currency)
+            hasher.combine(holding.isArchived)
+            hasher.combine(holding.account?.id)
+        }
+        for account in accounts.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            hasher.combine(account.id)
+            hasher.combine(account.kindRawValue)
+            hasher.combine(account.isArchived)
+            hasher.combine(account.member?.id)
+        }
+        for asset in assets.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            hasher.combine(asset.id)
+            hasher.combine(asset.purchaseDate)
+            hasher.combine(asset.purchaseCurrency)
+            hasher.combine(NSDecimalNumber(decimal: asset.purchasePrice).stringValue)
+        }
+        for snapshot in portfolioSnapshots.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            hasher.combine(snapshot.id)
+            hasher.combine(snapshot.periodMonth)
+            hasher.combine(snapshot.homeCurrency)
+            hasher.combine(NSDecimalNumber(decimal: snapshot.totalAmount).stringValue)
+            hasher.combine(snapshot.recordedAt)
+            hasher.combine(snapshot.entriesData)
+            hasher.combine(snapshot.ratesData)
+        }
         return hasher.finalize()
     }
 
@@ -368,10 +405,10 @@ struct TrendChartView: View {
         if showAssetOverlay, !assetByPeriod.isEmpty {
             ForEach(points) { point in
                 let amount = assetByPeriod[point.period] ?? 0
-                let y = NSDecimalNumber(decimal: amount).doubleValue
+                let assetAmountDouble = NSDecimalNumber(decimal: amount).doubleValue
                 LineMark(
                     x: .value("overview.trend.axis.month", point.period),
-                    y: .value("overview.trend.axis.amount", y),
+                    y: .value("overview.trend.axis.amount", assetAmountDouble),
                     series: .value("series", "asset")
                 )
                 .foregroundStyle(Color.green)
@@ -379,7 +416,7 @@ struct TrendChartView: View {
 
                 AreaMark(
                     x: .value("overview.trend.axis.month", point.period),
-                    y: .value("overview.trend.axis.amount", y),
+                    y: .value("overview.trend.axis.amount", assetAmountDouble),
                     series: .value("series", "asset")
                 )
                 .foregroundStyle(

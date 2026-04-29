@@ -119,7 +119,7 @@ struct MembersListView: View {
         .sheet(item: $editingMember) { member in
             MemberFormView(member: member, isNew: false)
         }
-        .confirmationDialog(
+        .alert(
             Text("member.delete.confirm.title"),
             isPresented: Binding(
                 get: { memberPendingDeletion != nil },

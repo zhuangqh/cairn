@@ -259,9 +259,9 @@ What makes Notion's visual language distinctive is its border philosophy. Rather
 ## 8. Accessibility & States
 
 ### Focus System
-- All interactive elements receive visible focus indicators
-- Focus outline: `2px solid` with focus color + shadow level 200
-- Tab navigation supported throughout all interactive components
+- Native SwiftUI focus indicators are preserved for platform controls
+- Custom controls should expose accessibility labels and avoid hiding system focus affordances
+- Spreadsheet-style custom keyboard traversal is not currently implemented
 - High contrast text: near-black on white exceeds WCAG AAA (>14:1 ratio)
 
 ### Interactive States

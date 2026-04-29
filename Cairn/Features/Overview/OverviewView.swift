@@ -196,8 +196,8 @@ struct OverviewView: View {
             // Avoid right-edge jitter: when the system scrollbar style is
             // "Always show", the vertical scroller toggles as content height
             // crosses the viewport, shifting card right-edges by ~15pt.
-            // Hiding the indicator keeps layout stable; trackpad scroll and
-            // keyboard navigation still work.
+            // Hiding the indicator keeps layout stable while preserving
+            // standard scroll input.
             .scrollIndicators(.hidden)
         }
     }

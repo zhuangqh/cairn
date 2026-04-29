@@ -52,7 +52,7 @@ extension BatchEntryView {
             if snapshot.periodMonth == month {
                 saved = snapshot.amount
             } else if snapshot.periodMonth < month,
-                      latestPriorDate == nil || snapshot.periodMonth > latestPriorDate! {
+                      latestPriorDate.map({ snapshot.periodMonth > $0 }) ?? true {
                 latestPriorDate = snapshot.periodMonth
                 latestPriorAmount = snapshot.amount
             }

@@ -90,7 +90,7 @@ struct MemberDetailView: View {
                 }
             }
         }
-        .confirmationDialog(
+        .alert(
             Text("account.delete.confirm.title"),
             isPresented: Binding(
                 get: { accountPendingDeletion != nil },

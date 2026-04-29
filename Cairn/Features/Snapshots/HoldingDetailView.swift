@@ -115,7 +115,7 @@ struct HoldingDetailView: View {
         .sheet(isPresented: $editingLabel) {
             HoldingEditView(holding: holding)
         }
-        .confirmationDialog(
+        .alert(
             Text("snapshot.delete.confirm.title"),
             isPresented: Binding(
                 get: { snapshotPendingDeletion != nil },

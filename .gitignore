@@ -22,3 +22,6 @@ Package.resolved
 
 # Tools
 .sourcekit-lsp/
+.vscode/
+.env
+.env.*

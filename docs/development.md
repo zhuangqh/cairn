@@ -12,7 +12,8 @@ Technical notes for building Cairn from source and contributing. Product spec li
   ```
 
 No Apple Developer account is required for local builds. The shipped entitlements are
-sandbox + user-selected files only, and the Makefile signs with an ad-hoc identity.
+sandbox + network client + user-selected files only, and the Makefile signs with an
+ad-hoc identity.
 
 ## Build & Run
 
@@ -28,12 +29,23 @@ make lint         # run SwiftLint (incl. i18n custom rules)
 make clean        # wipe project + build artifacts
 ```
 
+## Release Builds
+
+Pushing a tag named `v*` (for example `v0.1.0`) runs the GitHub release workflow:
+
+1. Install `xcodegen` and `swiftlint` on a macOS runner.
+2. Run SwiftLint and the macOS test suite with ad-hoc signing.
+3. Build `build/Cairn-x.y.z.dmg` with the shipped sandbox, network-client, and file-access entitlements.
+4. Publish the DMG to a GitHub Release with generated release notes.
+
+Manual `workflow_dispatch` runs build the same DMG and expose it as a workflow artifact.
+
 ## Project Structure
 
 ```
 Cairn/
 ├─ App/          # CairnApp, RootView, tab container
-├─ Features/     # Overview / Accounts / Snapshots / Settings
+├─ Features/     # Dashboard / Overview / Accounts / Snapshots / Assets / Settings
 ├─ Core/
 │  ├─ Models/         # SwiftData @Model types
 │  ├─ Persistence/    # ModelContainer (local-only)
@@ -45,7 +57,7 @@ Cairn/
 │  ├─ Localizable.xcstrings   # Single source of truth for user-facing strings
 │  └─ Assets.xcassets
 └─ Support/
-   └─ Cairn.entitlements      # Sandbox + user-selected file access only
+   └─ Cairn.entitlements      # Sandbox + network client + user-selected file access
 ```
 
 ## Localization

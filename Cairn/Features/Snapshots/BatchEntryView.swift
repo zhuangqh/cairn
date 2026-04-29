@@ -118,10 +118,9 @@ struct BatchEntryView: View {
                     footer
                 }
             }
-            .confirmationDialog(
+            .alert(
                 "batch.clear.confirm.title",
-                isPresented: $showClearConfirm,
-                titleVisibility: .visible
+                isPresented: $showClearConfirm
             ) {
                 Button(role: .destructive) {
                     clearAll()
@@ -132,10 +131,9 @@ struct BatchEntryView: View {
             } message: {
                 Text("batch.clear.confirm.message")
             }
-            .confirmationDialog(
+            .alert(
                 "batch.discard.confirm.title",
-                isPresented: $showDiscardConfirm,
-                titleVisibility: .visible
+                isPresented: $showDiscardConfirm
             ) {
                 Button(role: .destructive) {
                     dismiss()

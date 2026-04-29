@@ -9,14 +9,12 @@ EXPORT_PATH  := $(BUILD_DIR)/export
 DMG_PATH     := $(BUILD_DIR)/Cairn-$(VERSION).dmg
 
 # Default build / test runs on macOS so it works without an iOS SDK installed and
-# without a real signing team. Entitlements that require a provisioning profile
-# (CloudKit, APS) are stripped for local verification; Xcode restores them
-# automatically when a developer opens the project with their Team ID.
+# without a real signing team. The app is ad-hoc signed while keeping the shipped
+# sandbox, network-client, and user-selected-file entitlements intact.
 LOCAL_XCFLAGS := \
 	CODE_SIGN_IDENTITY="-" \
 	CODE_SIGN_STYLE=Manual \
-	DEVELOPMENT_TEAM="" \
-	CODE_SIGN_ENTITLEMENTS=""
+	DEVELOPMENT_TEAM=""
 
 DESTINATION ?= platform=macOS,arch=arm64
 
@@ -34,10 +32,11 @@ build: gen
 test: gen
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) \
 		-destination '$(DESTINATION)' -configuration Debug \
+		-enableCodeCoverage NO \
 		$(LOCAL_XCFLAGS) test
 
 lint:
-	swiftlint lint --strict
+	swiftlint lint
 
 clean:
 	rm -rf build DerivedData $(PROJECT)

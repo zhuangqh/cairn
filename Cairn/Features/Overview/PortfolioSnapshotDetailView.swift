@@ -90,10 +90,9 @@ struct PortfolioSnapshotDetailView: View {
                 initialNote: snapshot.note ?? ""
             )
         }
-        .confirmationDialog(
+        .alert(
             "portfolioSnapshot.delete.confirm.title",
-            isPresented: $showDeleteConfirm,
-            titleVisibility: .visible
+            isPresented: $showDeleteConfirm
         ) {
             Button(role: .destructive) {
                 delete()
@@ -145,8 +144,12 @@ struct PortfolioSnapshotDetailView: View {
                 headerDeltaLine(totalDelta)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text("portfolioSnapshot.detail.batchDate \(capturedDate, format: footnoteDateFormat)")
-                Text("portfolioSnapshot.detail.capturedAt \(snapshot.recordedAt, format: footnoteDateFormat)")
+                Text(LocalizedStringKey(
+                    "portfolioSnapshot.detail.batchDate \(capturedDate, format: footnoteDateFormat)"
+                ))
+                Text(LocalizedStringKey(
+                    "portfolioSnapshot.detail.capturedAt \(snapshot.recordedAt, format: footnoteDateFormat)"
+                ))
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
@@ -210,7 +213,7 @@ struct PortfolioSnapshotDetailView: View {
                     MemberAvatarView(
                         name: displayName,
                         avatarData: resolvedMember?.avatarData,
-                        seed: resolvedMember?.id ?? UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
+                        seed: resolvedMember?.id ?? Self.unassignedMemberSeed,
                         size: 20
                     )
                     Text(verbatim: displayName)
@@ -714,6 +717,10 @@ struct PortfolioSnapshotDetailView: View {
         }
         return map
     }
+}
+
+private extension PortfolioSnapshotDetailView {
+    static let unassignedMemberSeed = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
 }
 
 #Preview {

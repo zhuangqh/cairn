@@ -2693,143 +2693,178 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开始使用" } }
       }
     },
+    "tour.page.welcome.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Welcome to Cairn" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "欢迎使用 Cairn" } }
+      }
+    },
+    "tour.page.welcome.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "A monthly net-worth check-up app for your family. Each snapshot is one more stone on your family's financial trail — private, multi-currency, Apple-native." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为家庭打造的月度净资产盘点工具。每一份快照都是家庭财富之路上的一块石头——隐私、多币种、Apple 原生。" } }
+      }
+    },
+    "tour.page.welcome.bullet1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "For the family CFO" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为家庭主理财者设计" } }
+      }
+    },
+    "tour.page.welcome.bullet2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Under three minutes a month" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "每月不到三分钟即可完成" } }
+      }
+    },
+    "tour.page.welcome.bullet3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Runs on your Mac, iPhone and iPad" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Mac、iPhone、iPad 全平台支持" } }
+      }
+    },
     "tour.page.family.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your whole family, on one screen" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全家资产，一屏掌握" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Organized by family member" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "按家庭成员组织" } }
       }
     },
     "tour.page.family.body" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Group accounts under each family member, then flip between a single member and the aggregated household view with one tap." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为每位家庭成员组织账户，一键在单人视图和家庭汇总视图之间切换。" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Create a profile for each family member, group their accounts and assets underneath, and flip between a per-member view and the aggregated household view with a single tap." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为每位家庭成员创建档案，把账户与资产挂在他们名下，一键在单人视图与「全家」汇总视图之间切换。" } }
       }
     },
     "tour.page.family.bullet1" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Avatar-based member profiles" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "支持头像的成员档案" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Per-member profiles with avatars" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "每位成员独立档案，支持头像" } }
       }
     },
     "tour.page.family.bullet2" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Per-member or whole-family totals" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "支持单人或全家汇总" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cash, brokerage and physical assets together" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "现金、证券、实物资产统一管理" } }
       }
     },
     "tour.page.family.bullet3" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cash, brokerage and physical assets in one place" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "现金、证券、实物资产集中管理" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "One-tap switch between member and household" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "成员视图与全家视图一键切换" } }
       }
     },
     "tour.page.currency.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Multi-currency, no spreadsheets" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "多币种，无需表格" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Multi-currency without the spreadsheet gymnastics" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "多币种，无需再翻表格" } }
       }
     },
     "tour.page.currency.body" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hold positions in CNY, USD, HKD, AUD and more in the same account. Live ECB rates convert everything to your home currency on the fly." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "同一账户内可同时持有 CNY、USD、HKD、AUD 等多种货币，欧洲央行实时汇率自动换算为本币。" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "One account can hold positions in CNY, USD, HKD, AUD and more. Cairn fetches live ECB rates and converts everything to your home currency on the fly." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "同一账户内可同时持有 CNY、USD、HKD、AUD 等多种货币。Cairn 抓取欧洲央行实时汇率，自动换算为你的本币。" } }
       }
     },
     "tour.page.currency.bullet1" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Free, key-less ECB rates" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "免费、无需密钥的 ECB 汇率" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Free Frankfurter API, no API key" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "免费 Frankfurter API，无需 API Key" } }
       }
     },
     "tour.page.currency.bullet2" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Works offline with cached rates" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "离线状态下使用缓存汇率" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "See FX moves on your net worth at a glance" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "一眼看出财产受汇率的影响" } }
       }
     },
     "tour.page.currency.bullet3" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Switch home currency anytime" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "随时切换本币" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pick any home currency, switch anytime" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "任选本币，随时切换" } }
       }
     },
     "tour.page.batch.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Under three minutes a month" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "每月不到三分钟" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Excel-style monthly batch entry" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "类 Excel 的月度批量录入" } }
       }
     },
     "tour.page.batch.body" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "An Excel-style screen with last month's values pre-filled. Edit only what changed, hit Save all, and the running total updates live." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "类 Excel 录入界面，自动填入上月数据。只改有变动的行，点击「全部保存」，总额实时更新。" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "One screen, one row per holding, last month's values pre-filled. Edit only what changed, hit Save all — designed to take under three minutes a month." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "一屏一行一条持仓，自动填入上月数值。只改有变化的行，点击「全部保存」——设计目标是每月不到三分钟。" } }
       }
     },
     "tour.page.batch.bullet1" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Keyboard navigation: Tab, ↑↓, Enter" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "键盘导航：Tab、↑↓、Enter" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Keyboard navigation: Tab, ↑ ↓, Enter" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "键盘导航：Tab、↑ ↓、Enter" } }
       }
     },
     "tour.page.batch.bullet2" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Atomic save — all rows commit or none" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "原子保存——要么全部成功，要么全部回滚" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Live running total in your home currency" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "以本币显示的实时合计金额" } }
       }
     },
     "tour.page.batch.bullet3" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Backfill any past month" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "可以补录任意历史月份" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Atomic save · backfill any past month" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "原子保存 · 可补录任意历史月份" } }
       }
     },
     "tour.page.trend.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Watch your trail grow" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "见证财富轨迹生长" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Net-worth trend, at a glance" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "净资产趋势，一目了然" } }
       }
     },
     "tour.page.trend.body" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "A Swift Charts curve of total family net worth over 6M, 12M or all time, broken down by account, member or currency." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "用 Swift Charts 绘制 6 个月、12 个月或全部时间的家庭净资产曲线，按账户、成员或币种分解。" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "A Swift Charts curve of total family net worth over 6M, 12M or all time, with a cumulative physical-asset overlay on the same chart." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "用 Swift Charts 绘制家庭净资产 6 个月 / 12 个月 / 全部时间的曲线，并在同一张图上叠加实物资产累计价值。" } }
       }
     },
     "tour.page.trend.bullet1" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hover any point for that month's composition" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "悬停任意点查看当月构成" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Break down by account kind, member or currency" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "按账户类型、成员或币种分解" } }
       }
     },
     "tour.page.trend.bullet2" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Month-over-month change at a glance" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "一眼看清环比变化" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hover or long-press for that month's composition" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "悬停或长按查看当月构成与环比变化" } }
       }
     },
     "tour.page.trend.bullet3" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Physical assets overlay on the same chart" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Physical assets overlaid on the financial trend" } },
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "实物资产与金融资产同图叠加" } }
       }
     },
@@ -2843,29 +2878,36 @@
     "tour.page.privacy.body" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your data never leaves your Mac. The only network call fetches public FX rates — no accounts, no analytics, no cloud sync." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "数据始终保存在本机。唯一的网络请求只为获取公开汇率——无账户、无分析、无云端同步。" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your data never leaves your Mac. The only network call fetches public FX rates — no accounts, no analytics, no ad SDKs, no cloud sync." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "数据始终保存在本机。唯一的网络请求只为获取公开汇率——无账户、无分析、无广告 SDK、无云端同步。" } }
       }
     },
     "tour.page.privacy.bullet1" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Local-only SwiftData store" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仅本地的 SwiftData 存储" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Local-only SwiftData store, CloudKit sync off" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仅本地的 SwiftData 存储，CloudKit 同步默认关闭" } }
       }
     },
     "tour.page.privacy.bullet2" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Portable JSON backups you control" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "可自行掌控的 JSON 备份" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Portable, human-readable .cairn JSON backups" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "可读的 .cairn JSON 备份，便携可控" } }
       }
     },
     "tour.page.privacy.bullet3" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open source, Apache 2.0 licensed" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开源，采用 Apache 2.0 许可证" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open source · Apache 2.0 licensed" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开源 · Apache 2.0 许可证" } }
+      }
+    },
+    "tour.page.privacy.bullet4" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Export all your data to CSV anytime" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "随时将所有数据导出为 CSV" } }
       }
     },
     "overview.addSnapshot" : {
@@ -4070,13 +4112,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Export backup…"
+            "value" : "Export backup"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "导出备份…"
+            "value" : "导出备份"
           }
         }
       }
@@ -4087,13 +4129,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Export snapshots CSV…"
+            "value" : "Export snapshots CSV"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "导出快照 CSV…"
+            "value" : "导出快照 CSV"
           }
         }
       }
@@ -4172,13 +4214,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Import from backup…"
+            "value" : "Import from backup"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从备份恢复…"
+            "value" : "从备份恢复"
           }
         }
       }

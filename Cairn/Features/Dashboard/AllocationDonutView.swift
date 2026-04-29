@@ -117,7 +117,7 @@ struct AllocationDonutView: View {
                 if let delta = deltas[entry.kind] {
                     DeltaBadge(percent: delta)
                 } else {
-                    Text(" ")
+                    Text(verbatim: " ")
                         .font(.system(size: 11))
                 }
             }
