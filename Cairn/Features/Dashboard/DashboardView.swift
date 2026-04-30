@@ -21,6 +21,7 @@ import SwiftData
 struct DashboardView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
@@ -172,12 +173,11 @@ struct DashboardView: View {
     // MARK: - Body
 
     /// Breakpoints for the adaptive layout. Single-column below `compact`,
-    /// Breakpoints for the adaptive layout. Single-column below `compact`,
-    /// otherwise the wide layout kicks in. At `wide` and up the
-    /// composition + allocation cards share a single row.
+    /// at `wide` and up the trend + allocation cards share a single row
+    /// (macOS only — iPhone keeps everything stacked for readability).
     private enum Layout {
         static let compact: CGFloat = 560
-        static let wide: CGFloat = 880
+        static let wide: CGFloat = 930
     }
 
     var body: some View {
@@ -185,21 +185,27 @@ struct DashboardView: View {
         GeometryReader { proxy in
             let width = proxy.size.width
             let isCompact = width < Layout.compact
+            #if os(macOS)
             let isWide = width >= Layout.wide
+            #else
+            let isWide = false
+            #endif
 
             ScrollView {
                 VStack(spacing: isCompact ? 18 : 24) {
                     heroCard(isCompact: isCompact, derivation: derivation)
-                    trendCard
+                    if !members.isEmpty {
+                        membersCard(isCompact: isCompact)
+                    }
                     if isWide {
                         HStack(alignment: .top, spacing: 24) {
-                            compositionCard(isCompact: isCompact, derivation: derivation)
+                            trendCard
                                 .frame(maxWidth: .infinity)
                             allocationCard(derivation: derivation)
                                 .frame(maxWidth: .infinity)
                         }
                     } else {
-                        compositionCard(isCompact: isCompact, derivation: derivation)
+                        trendCard
                         allocationCard(derivation: derivation)
                     }
                 }
@@ -210,7 +216,13 @@ struct DashboardView: View {
             }
             .background(AppBackground())
         }
-        .navigationTitle("dashboard.title")
+        .navigationTitle(Text("dashboard.title", bundle: localization.bundle))
+        .navigationDestination(for: Member.self) { member in
+            MemberDetailView(member: member)
+        }
+        .navigationDestination(for: Account.self) { account in
+            AccountDetailView(account: account)
+        }
     }
 
     // MARK: - Hero
@@ -257,6 +269,77 @@ struct DashboardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(cornerRadius: 16, padding: isCompact ? 20 : 28)
+    }
+
+    // MARK: - Members
+
+    /// Standalone card listing every family member as an avatar + given
+    /// name chip. Horizontally scrollable so it adapts to both narrow
+    /// iPhone widths (overflow scrolls) and wider macOS surfaces (all
+    /// chips fit on a single row).
+    @ViewBuilder
+    private func membersCard(isCompact: Bool) -> some View {
+        let sorted = members.sorted { $0.createdAt < $1.createdAt }
+        VStack(alignment: .leading, spacing: 12) {
+            Text("dashboard.members")
+                .font(.system(size: 12, weight: .semibold))
+                .tracking(0.6)
+                .textCase(.uppercase)
+                .foregroundStyle(Color.notionInkSecondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(sorted) { member in
+                        memberChip(for: member)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .scrollClipDisabled()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 16, padding: isCompact ? 16 : 20)
+    }
+
+    @ViewBuilder
+    private func memberChip(for member: Member) -> some View {
+        NavigationLink(value: member) {
+            HStack(spacing: 8) {
+                MemberAvatarView(
+                    name: member.name,
+                    avatarData: member.avatarData,
+                    seed: member.id,
+                    size: 28
+                )
+                Text(givenName(of: member.name))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Color.notionInk)
+                    .lineLimit(1)
+            }
+            .padding(.leading, 4)
+            .padding(.trailing, 12)
+            .padding(.vertical, 4)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Color.notionSurface)
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(Color.notionBorder, lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Display the first whitespace-separated component as the
+    /// "given" name. Falls back to the full string when there is no
+    /// space (single-token names are common in CJK locales).
+    private func givenName(of name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let first = trimmed.split(separator: " ").first {
+            return String(first)
+        }
+        return trimmed
     }
 
     @ViewBuilder
@@ -324,104 +407,6 @@ struct DashboardView: View {
         }
     }
 
-    // MARK: - Composition
-
-    /// Replaces the old "balance sheet" two-card row. Renders a single
-    /// stacked bar for financial vs physical with per-segment value,
-    /// share, and signed delta.
-    @ViewBuilder
-    private func compositionCard(isCompact: Bool, derivation: Derivation) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("dashboard.composition")
-                .font(.notionCardTitle)
-                .tracking(-0.25)
-                .foregroundStyle(Color.notionInk)
-
-            stackedBar(derivation: derivation)
-
-            VStack(spacing: 14) {
-                compositionRow(
-                    titleKey: "dashboard.balance.financial",
-                    amount: derivation.financial,
-                    previous: derivation.financialPrev,
-                    total: derivation.combined,
-                    tint: .notionBlue
-                )
-                Divider().overlay(Color.notionBorder)
-                compositionRow(
-                    titleKey: "dashboard.balance.physical",
-                    amount: derivation.physical,
-                    previous: derivation.physicalPrev,
-                    total: derivation.combined,
-                    tint: .notionTeal
-                )
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 16, padding: isCompact ? 18 : 22)
-    }
-
-    @ViewBuilder
-    private func stackedBar(derivation: Derivation) -> some View {
-        let total = derivation.combined
-        GeometryReader { geo in
-            HStack(spacing: 2) {
-                if total > 0 {
-                    let fWidth = max(0, NSDecimalNumber(decimal: derivation.financial / total).doubleValue) * geo.size.width
-                    let pWidth = max(0, geo.size.width - fWidth - 2)
-                    Rectangle()
-                        .fill(Color.notionBlue)
-                        .frame(width: fWidth)
-                    Rectangle()
-                        .fill(Color.notionTeal)
-                        .frame(width: pWidth)
-                } else {
-                    Rectangle()
-                        .fill(Color.notionBorder)
-                }
-            }
-            .clipShape(Capsule())
-        }
-        .frame(height: 10)
-    }
-
-    @ViewBuilder
-    private func compositionRow(
-        titleKey: LocalizedStringKey,
-        amount: Decimal,
-        previous: Decimal,
-        total: Decimal,
-        tint: Color
-    ) -> some View {
-        let pct = total > 0 ? NSDecimalNumber(decimal: amount / total).doubleValue : 0
-        let deltaPct = Derivation.deltaPercent(current: amount, previous: previous)
-        HStack(alignment: .center, spacing: 12) {
-            Circle().fill(tint).frame(width: 10, height: 10)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(titleKey)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.notionInk)
-                Text(pct, format: .percent.precision(.fractionLength(0)))
-                    .font(.system(size: 12).monospacedDigit())
-                    .foregroundStyle(Color.notionInkSecondary)
-            }
-            Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 3) {
-                Text(CompactCurrencyFormatter.string(
-                    amount: amount,
-                    code: homeCurrency,
-                    locale: locale
-                ))
-                .font(.system(size: 15, weight: .semibold).monospacedDigit())
-                .foregroundStyle(Color.notionInk)
-                .lineLimit(1)
-                if let deltaPct {
-                    DeltaBadge(percent: deltaPct)
-                }
-            }
-        }
-    }
-
     // MARK: - Trend
 
     private var trendCard: some View {
@@ -471,6 +456,7 @@ struct DashboardView: View {
     return NavigationStack {
         DashboardView()
     }
+    .environment(LocalizationService())
     .modelContainer(PreviewSampleData.container())
 }
 
@@ -479,6 +465,7 @@ struct DashboardView: View {
     return NavigationStack {
         DashboardView()
     }
+    .environment(LocalizationService())
     .modelContainer(PreviewSampleData.emptyContainer())
 }
 #endif

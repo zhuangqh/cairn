@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import Charts
 
 // MARK: - Delta badge
 
@@ -72,61 +71,6 @@ struct DeltaBadge: View {
                 .precision(.fractionLength(0))
         )
         return (isPositive ? "+" : "−") + formatted
-    }
-}
-
-// MARK: - Sparkline
-
-/// Tiny non-interactive area+line chart used under the hero net-worth
-/// number. Color follows the trend direction.
-struct OverviewSparkline: View {
-    struct Point: Identifiable, Equatable {
-        let period: Date
-        let amount: Double
-        var id: Date { period }
-    }
-
-    let points: [Point]
-    /// Trend direction — `nil` falls back to a neutral accent tint.
-    let isPositive: Bool?
-
-    var body: some View {
-        let tint: Color = {
-            switch isPositive {
-            case .some(true): return .notionGreen
-            case .some(false): return .notionOrange
-            case .none: return .accentColor
-            }
-        }()
-        Chart(points) { point in
-            AreaMark(
-                x: .value("month", point.period),
-                y: .value("amount", point.amount)
-            )
-            .interpolationMethod(.monotone)
-            .foregroundStyle(
-                LinearGradient(
-                    colors: [tint.opacity(0.28), tint.opacity(0.0)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            LineMark(
-                x: .value("month", point.period),
-                y: .value("amount", point.amount)
-            )
-            .interpolationMethod(.monotone)
-            .lineStyle(StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
-            .foregroundStyle(tint)
-        }
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .chartLegend(.hidden)
-        .chartPlotStyle { plot in
-            plot.background(Color.clear)
-        }
-        .frame(height: 36)
-        .accessibilityHidden(true)
     }
 }
 

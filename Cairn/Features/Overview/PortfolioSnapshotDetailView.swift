@@ -187,18 +187,53 @@ struct PortfolioSnapshotDetailView: View {
 
     // MARK: - Holdings
 
+    @ViewBuilder
     private var holdingsCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("portfolioSnapshot.detail.breakdown")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-            ForEach(memberGroups, id: \.member) { group in
-                memberGroupSection(group)
+            #if os(macOS)
+            memberCardsGrid
+            #else
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(memberGroups, id: \.member) { group in
+                    memberGroupCard(group)
+                }
             }
+            #endif
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
+    }
+
+    #if os(macOS)
+    private var memberCardsGrid: some View {
+        let groups = memberGroups
+        let pairs: [[MemberGroup]] = stride(from: 0, to: groups.count, by: 2).map { start in
+            Array(groups[start..<min(start + 2, groups.count)])
+        }
+        return VStack(spacing: 12) {
+            ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(pair, id: \.member) { group in
+                        memberGroupCard(group)
+                            .frame(maxWidth: .infinity, alignment: .top)
+                    }
+                    if pair.count == 1 {
+                        Color.clear.frame(maxWidth: .infinity)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+    #endif
+
+    private func memberGroupCard(_ group: MemberGroup) -> some View {
+        memberGroupSection(group)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassCard()
     }
 
     @ViewBuilder

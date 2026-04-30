@@ -129,7 +129,6 @@ struct AssetsView: View {
         } else {
             VStack(spacing: 20) {
                 summaryCard(derivation: derivation)
-                trendCard
                 categorizedCards(derivation: derivation)
                 if !derivation.sold.isEmpty {
                     soldCard(derivation: derivation)
@@ -202,14 +201,6 @@ struct AssetsView: View {
                 .foregroundStyle(.tertiary)
                 .padding(.top, 4)
         }
-    }
-
-    /// Cumulative asset-purchase timeline. Styled to match `TrendChartView`
-    /// in the Financial tab (same `glassCard` wrapper + minHeight) so the
-    /// two tabs share a consistent visual rhythm.
-    private var trendCard: some View {
-        AssetTrendChartView()
-            .glassCard()
     }
 
     @ViewBuilder

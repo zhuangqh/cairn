@@ -273,7 +273,7 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .glassListStyle()
-        .navigationTitle("settings.title")
+        .navigationTitle(Text("settings.title", bundle: localization.bundle))
         .fileExporter(
             isPresented: $isExporting,
             document: exportDocument,

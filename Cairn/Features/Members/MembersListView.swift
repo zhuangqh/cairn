@@ -8,6 +8,7 @@ import SwiftData
 struct MembersListView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
@@ -75,7 +76,7 @@ struct MembersListView: View {
                 }
             }
         }
-        .navigationTitle("members.title")
+        .navigationTitle(Text("members.title", bundle: localization.bundle))
         .navigationDestination(for: Member.self) { member in
             MemberDetailView(member: member)
         }
@@ -286,6 +287,7 @@ private struct MemberRowCard: View {
     NavigationStack {
         MembersListView()
     }
+    .environment(LocalizationService())
     .modelContainer(PreviewSampleData.container())
 }
 
@@ -293,5 +295,6 @@ private struct MemberRowCard: View {
     NavigationStack {
         MembersListView()
     }
+    .environment(LocalizationService())
     .modelContainer(PreviewSampleData.emptyContainer())
 }

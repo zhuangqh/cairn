@@ -56,15 +56,19 @@ struct TrendChartView: View {
         self.onSelectionChange = onSelectionChange
     }
 
-    /// Title + hover month + range picker. Rendered in a single row at wide
-    /// widths; stacked into two rows at narrow widths so the segmented
-    /// picker doesn't squeeze the title.
+    /// Title + hover month + range picker on a single row. The picker
+    /// is pinned to the trailing edge; the hover-month text truncates
+    /// rather than wrapping the picker to a new line.
     @ViewBuilder
-    private func header(stacked: Bool) -> some View {
-        let title = HStack(spacing: 8) {
+    private func header() -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(LocalizedStringKey(showAssetOverlay ? "dashboard.trend" : "overview.trend"))
-                .font(.headline)
-            // Reserve space for the hover month so the header never jitters.
+                .font(showAssetOverlay ? .notionCardTitle : .headline)
+                .tracking(showAssetOverlay ? -0.25 : 0)
+                .foregroundStyle(showAssetOverlay ? Color.notionInk : Color.primary)
+                .fixedSize()
+                .layoutPriority(2)
+
             Text(hoverSelection.map {
                 $0.period.formatted(.dateTime.year().month(.wide).locale(locale))
             } ?? " ")
@@ -72,46 +76,29 @@ struct TrendChartView: View {
             .foregroundStyle(.secondary)
             .monospacedDigit()
             .lineLimit(1)
+            .truncationMode(.tail)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(0)
             .animation(.easeOut(duration: 0.12), value: hoverSelection)
-        }
 
-        let picker = Picker(selection: $range) {
-            ForEach(TrendRange.allCases, id: \.self) { option in
-                Text(LocalizedStringKey(option.localizationKey)).tag(option)
+            Picker(selection: $range) {
+                ForEach(TrendRange.allCases, id: \.self) { option in
+                    Text(LocalizedStringKey(option.localizationKey)).tag(option)
+                }
+            } label: {
+                Text("overview.trend.range")
             }
-        } label: {
-            Text("overview.trend.range")
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-
-        if stacked {
-            VStack(alignment: .leading, spacing: 8) {
-                title
-                picker.frame(maxWidth: .infinity)
-            }
-        } else {
-            // Pin the picker to a fixed trailing width so hover-month
-            // text changes only reflow the title side — the range bar
-            // stays put while the cursor moves over the chart.
-            HStack(spacing: 8) {
-                title
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .layoutPriority(0)
-                picker
-                    .frame(width: 280)
-                    .layoutPriority(1)
-            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .layoutPriority(1)
         }
     }
 
     var body: some View {
         let fingerprint = currentFingerprint()
         return VStack(alignment: .leading, spacing: 12) {
-            ViewThatFits(in: .horizontal) {
-                header(stacked: false)
-                header(stacked: true)
-            }
+            header()
 
             let points = cachedPoints
             let markers = cachedMarkers

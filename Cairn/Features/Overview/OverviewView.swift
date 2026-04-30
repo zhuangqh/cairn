@@ -1,11 +1,12 @@
 import SwiftUI
 import SwiftData
 
-/// Trend-focused view: net worth hero, multi-month chart, per-member breakdown.
-/// Complements the Dashboard (which emphasizes allocation + activity).
+/// Net worth hero, snapshots history, and per-member breakdown for the
+/// Financial tab. Complements the Dashboard (which emphasizes allocation
+/// + activity).
 ///
 /// Hosts a segmented tab at the top so the user can flip between the
-/// existing trend view and a dedicated "Assets" tab that manages physical
+/// financial view and a dedicated "Assets" tab that manages physical
 /// assets (PRD §4.7, v1.1).
 struct OverviewView: View {
     enum Tab: Hashable, CaseIterable {
@@ -29,6 +30,7 @@ struct OverviewView: View {
 
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
@@ -56,8 +58,6 @@ struct OverviewView: View {
         var monthDeltaAmount: Decimal?
         /// Per-member month-over-month percentage deltas, keyed by id.
         var memberDeltaPercent: [UUID: Double]
-        /// Last six months of net worth — used for the hero sparkline.
-        var sparkline: [OverviewSparkline.Point]
     }
 
     private func deriveFinancial() -> FinancialDerivation {
@@ -98,25 +98,12 @@ struct OverviewView: View {
             }
         }
 
-        let trend = NetWorthCalculator.trend(
-            homeCurrency: homeCurrency,
-            months: 6,
-            context: context
-        )
-        let sparkline = trend.map {
-            OverviewSparkline.Point(
-                period: $0.period,
-                amount: NSDecimalNumber(decimal: $0.amount).doubleValue
-            )
-        }
-
         return FinancialDerivation(
             totals: bundle.totals,
             memberTotals: bundle.byMember,
             monthDeltaPercent: bundle.monthOverMonthDelta,
             monthDeltaAmount: deltaAmount,
-            memberDeltaPercent: memberDeltas,
-            sparkline: sparkline
+            memberDeltaPercent: memberDeltas
         )
     }
 
@@ -129,7 +116,7 @@ struct OverviewView: View {
             #endif
         }
         .ambientBackground()
-        .navigationTitle("overview.title")
+        .navigationTitle(Text("overview.title", bundle: localization.bundle))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -272,13 +259,39 @@ struct OverviewView: View {
             let derivation = deriveFinancial()
             VStack(spacing: 20) {
                 heroCard(derivation: derivation)
-                trendCard
-                if !derivation.memberTotals.isEmpty {
-                    membersCard(derivation: derivation)
-                }
-                snapshotsCard
+                bottomRow(derivation: derivation)
             }
         }
+    }
+
+    /// Snapshots + by-member cards. On wide macOS windows they sit
+    /// side-by-side; everywhere else they stack vertically.
+    @ViewBuilder
+    private func bottomRow(derivation: FinancialDerivation) -> some View {
+        let hasMembers = !derivation.memberTotals.isEmpty
+        #if os(macOS)
+        if hasMembers {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 20) {
+                    membersCard(derivation: derivation)
+                        .frame(minWidth: 380, maxWidth: .infinity)
+                    snapshotsCard
+                        .frame(minWidth: 380, maxWidth: .infinity)
+                }
+                VStack(spacing: 20) {
+                    membersCard(derivation: derivation)
+                    snapshotsCard
+                }
+            }
+        } else {
+            snapshotsCard
+        }
+        #else
+        VStack(spacing: 20) {
+            if hasMembers { membersCard(derivation: derivation) }
+            snapshotsCard
+        }
+        #endif
     }
 
     // MARK: - Cards
@@ -347,15 +360,6 @@ struct OverviewView: View {
                 )
             }
 
-            // Sparkline — silent trend indicator.
-            if derivation.sparkline.count >= 2 {
-                OverviewSparkline(
-                    points: derivation.sparkline,
-                    isPositive: derivation.monthDeltaPercent.map { $0 >= 0 }
-                )
-                .padding(.top, 2)
-            }
-
             // Subtle context: missing-rates warning OR (de-emphasized)
             // "Rates as of …" footnote.
             if !derivation.totals.missingCurrencies.isEmpty {
@@ -388,11 +392,6 @@ struct OverviewView: View {
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
-    }
-
-    private var trendCard: some View {
-        TrendChartView()
-            .glassCard()
     }
 
     private func membersCard(derivation: FinancialDerivation) -> some View {
@@ -555,6 +554,7 @@ struct OverviewView: View {
     return NavigationStack {
         OverviewView()
     }
+    .environment(LocalizationService())
     .modelContainer(PreviewSampleData.container())
 }
 
@@ -563,6 +563,7 @@ struct OverviewView: View {
     return NavigationStack {
         OverviewView()
     }
+    .environment(LocalizationService())
     .modelContainer(PreviewSampleData.emptyContainer())
 }
 #endif

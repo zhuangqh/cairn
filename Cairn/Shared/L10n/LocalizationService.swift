@@ -51,4 +51,24 @@ public final class LocalizationService {
         guard let code = override.bcp47Code else { return nil }
         return Locale(identifier: code)
     }
+
+    /// Bundle to use when resolving localized strings for the override
+    /// language. Returns the per-language `.lproj` bundle when the user
+    /// has chosen a specific language, otherwise the main bundle (which
+    /// follows the system's preferred languages).
+    ///
+    /// SwiftUI honors `\.locale` for in-content `Text(LocalizedStringKey:)`
+    /// on modern OS versions, but platform-rendered chrome — navigation
+    /// bar titles, sidebar items, tab bar labels — falls back to
+    /// `Bundle.main.preferredLocalizations`. Pass this bundle explicitly
+    /// (e.g. `Text("key", bundle: localization.bundle)`) so the override
+    /// also drives those surfaces without requiring an app restart.
+    public var bundle: Bundle {
+        guard let code = override.bcp47Code,
+              let path = Bundle.main.path(forResource: code, ofType: "lproj"),
+              let languageBundle = Bundle(path: path) else {
+            return .main
+        }
+        return languageBundle
+    }
 }

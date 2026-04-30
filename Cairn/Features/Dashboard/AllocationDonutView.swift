@@ -18,26 +18,47 @@ struct AllocationDonutView: View {
     var deltas: [AccountKind: Double] = [:]
 
     @Environment(\.locale) private var locale
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     private var total: Decimal {
         entries.reduce(Decimal(0)) { $0 + $1.amount }
     }
 
+    /// Whether the donut + list should sit side-by-side. We pick this
+    /// from the platform / size class instead of measuring the
+    /// container, so the card renders with its true intrinsic height
+    /// (no `GeometryReader` swallowing it down to a fixed minHeight)
+    /// and won't flip layouts mid-interaction when sibling cards
+    /// resize on hover.
+    private var useHorizontalLayout: Bool {
+        #if os(macOS)
+        return true
+        #else
+        return horizontalSizeClass == .regular
+        #endif
+    }
+
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 28) {
-                chart
-                    .frame(width: 168, height: 168)
-                list
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            VStack(alignment: .leading, spacing: 20) {
-                chart
-                    .frame(width: 160, height: 160)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                list
+        Group {
+            if useHorizontalLayout {
+                HStack(alignment: .top, spacing: 28) {
+                    chart
+                        .frame(width: 168, height: 168)
+                    list
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 20) {
+                    chart
+                        .frame(width: 160, height: 160)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    list
+                }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -97,13 +118,17 @@ struct AllocationDonutView: View {
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(Color.notionInk)
                     .lineLimit(1)
+                    .truncationMode(.tail)
                 Text(pct, format: .percent.precision(.fractionLength(0)))
                     .font(.system(size: 12).monospacedDigit())
                     .foregroundStyle(Color.notionInkSecondary)
             }
+            .layoutPriority(0)
 
             Spacer(minLength: 8)
 
+            // Trailing column hugs its content so the delta badge can
+            // grow past +100% without being clipped or truncated.
             VStack(alignment: .trailing, spacing: 2) {
                 Text(CompactCurrencyFormatter.string(
                     amount: entry.amount,
@@ -116,11 +141,14 @@ struct AllocationDonutView: View {
 
                 if let delta = deltas[entry.kind] {
                     DeltaBadge(percent: delta)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 } else {
                     Text(verbatim: " ")
                         .font(.system(size: 11))
                 }
             }
+            .layoutPriority(1)
         }
         .padding(.vertical, 8)
     }

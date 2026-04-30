@@ -227,9 +227,7 @@ struct BatchEntryView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
                 monthCard
-                ForEach(groupedRows, id: \.member.id) { group in
-                    memberGroupCard(group)
-                }
+                memberGroupsSection
                 notesCard
             }
             .pageHorizontalPadding()
@@ -285,6 +283,13 @@ struct BatchEntryView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(cornerRadius: 14, padding: 16)
+    }
+
+    @ViewBuilder
+    private var memberGroupsSection: some View {
+        ForEach(groupedRows, id: \.member.id) { group in
+            memberGroupCard(group)
+        }
     }
 
     private func memberGroupCard(_ group: MemberGroup) -> some View {

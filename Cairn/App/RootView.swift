@@ -5,6 +5,8 @@ import SwiftUI
 /// platform-native pattern and avoids `List(selection:)` being unavailable
 /// on iOS outside of a split-view sidebar.
 struct RootView: View {
+    @Environment(LocalizationService.self) private var localization
+
     @AppStorage(AppSettingsKeys.onboardingCompleted)
     private var onboardingCompleted: Bool = false
 
@@ -59,14 +61,14 @@ struct RootView: View {
             Section {
                 ForEach(SidebarItem.allCases, id: \.self) { item in
                     Label {
-                        Text(LocalizedStringKey(item.titleKey))
+                        Text(LocalizedStringKey(item.titleKey), bundle: localization.bundle)
                     } icon: {
                         Image(systemName: item.systemImage)
                     }
                     .tag(item)
                 }
             } header: {
-                Text("app.name")
+                Text("app.name", bundle: localization.bundle)
                     .font(.title3.bold())
                     .foregroundStyle(.primary)
                     .textCase(nil)
@@ -74,7 +76,7 @@ struct RootView: View {
             }
         }
         .listStyle(.sidebar)
-        .navigationTitle("app.name")
+        .navigationTitle(Text("app.name", bundle: localization.bundle))
         .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
     }
     #endif
@@ -87,7 +89,7 @@ struct RootView: View {
                 detail(for: item)
                     .tabItem {
                         Label {
-                            Text(LocalizedStringKey(item.titleKey))
+                            Text(LocalizedStringKey(item.titleKey), bundle: localization.bundle)
                         } icon: {
                             Image(systemName: item.systemImage)
                         }
