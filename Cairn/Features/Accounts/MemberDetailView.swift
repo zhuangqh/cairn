@@ -17,15 +17,18 @@ struct MemberDetailView: View {
 
     var body: some View {
         ScrollView {
-            if (member.accounts ?? []).isEmpty {
-                ContentUnavailableView(
-                    "account.empty",
-                    systemImage: "wallet.pass",
-                    description: Text("account.empty.hint")
-                )
-                .padding(.top, 64)
-            } else {
-                VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 20) {
+                memberHeader
+
+                if (member.accounts ?? []).isEmpty {
+                    ContentUnavailableView(
+                        "account.empty",
+                        systemImage: "wallet.pass",
+                        description: Text("account.empty.hint")
+                    )
+                    .padding(.top, 32)
+                    .frame(maxWidth: .infinity)
+                } else {
                     ForEach(AccountKind.allCases, id: \.self) { kind in
                         let bucket = accounts(for: kind)
                         if !bucket.isEmpty {
@@ -33,11 +36,11 @@ struct MemberDetailView: View {
                         }
                     }
                 }
-                .pageHorizontalPadding()
-                .padding(.vertical, 20)
-                .frame(maxWidth: 1100)
-                .frame(maxWidth: .infinity)
             }
+            .pageHorizontalPadding()
+            .padding(.vertical, 20)
+            .frame(maxWidth: 1100)
+            .frame(maxWidth: .infinity)
         }
         .ambientBackground()
         .navigationTitle(Text(verbatim: member.name.isEmpty ? " " : member.name))
@@ -115,6 +118,32 @@ struct MemberDetailView: View {
     }
 
     @ViewBuilder
+    private var memberHeader: some View {
+        VStack(spacing: 12) {
+            MemberAvatarView(
+                name: member.name,
+                avatarData: member.avatarData,
+                seed: member.id,
+                size: 96
+            )
+            VStack(spacing: 4) {
+                Text(verbatim: member.name.isEmpty ? " " : member.name)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text((member.accounts ?? []).count, format: .number)
+                    Text("accounts.title")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder
     private func kindSection(for kind: AccountKind, accounts: [Account]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
@@ -132,6 +161,7 @@ struct MemberDetailView: View {
                 ForEach(accounts) { account in
                     NavigationLink(value: account) {
                         MemberAccountRow(account: account, tint: kind.tint, locale: locale)
+                            .glassCard(cornerRadius: 14, padding: 14)
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
@@ -237,9 +267,7 @@ struct MemberAccountRow: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 14)
-        .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(.vertical, 4)
         .contentShape(Rectangle())
     }
 }

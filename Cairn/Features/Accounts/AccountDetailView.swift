@@ -251,6 +251,7 @@ struct AccountDetailView: View {
                         currency: holding.currency,
                         locale: locale
                     )
+                    .glassCard(cornerRadius: 12, padding: 12)
                     .onTapGesture {
                         editingSnapshot = snapshot
                     }
@@ -357,8 +358,7 @@ private struct AccountSnapshotRow: View {
                 }
             }
         }
-        .padding(12)
-        .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.vertical, 2)
         .contentShape(Rectangle())
     }
 }
