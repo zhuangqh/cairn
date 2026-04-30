@@ -1,170 +1,331 @@
 import SwiftUI
 import SwiftData
 
-/// Lists physical `Asset` records (real estate, vehicles, electronics, …)
-/// grouped by category. Surfaced as the "Assets" tab inside `OverviewView`.
+/// Net worth hero, snapshots history, and per-member breakdown for the
+/// Financial tab. Complements the Dashboard (which emphasizes allocation
+/// + activity).
 ///
-/// Empty state guides the user to create their first asset. Each row shows
-/// the owner, current value in its native currency, and the category badge.
-/// Sold assets are grouped into a separate "Sold" section and rendered with
-/// reduced emphasis.
+/// Hosts a segmented tab at the top so the user can flip between the
+/// financial view and a dedicated "Possessions" tab that manages physical
+/// possessions (PRD §4.7, v1.1).
 struct AssetsView: View {
+    enum Tab: Hashable, CaseIterable {
+        case financial
+        case possessions
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .financial: return "assets.tab.financial"
+            case .possessions: return "assets.tab.possessions"
+            }
+        }
+
+        var iconName: String {
+            switch self {
+            case .financial: return "chart.line.uptrend.xyaxis"
+            case .possessions: return "house.and.flag"
+            }
+        }
+    }
+
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
 
-    @Query(sort: \Asset.createdAt, order: .reverse) private var assets: [Asset]
-    @Query(sort: \Member.createdAt) private var members: [Member]
+    @Query private var members: [Member]
+    @Query private var holdings: [Holding]
+    @Query private var snapshots: [Snapshot]
     @Query private var rates: [FXRate]
+    @Query(sort: \PortfolioSnapshot.periodMonth, order: .reverse)
+    private var portfolioSnapshots: [PortfolioSnapshot]
 
-    @State private var editingAsset: Asset?
-    @State private var newAssetDraft: Asset?
-    @State private var newAssetSaved: Bool = false
-    /// Strong reference to the in-flight draft. The sheet's `item`
-    /// binding is set to `nil` *before* `onDismiss` fires, so we can't
-    /// rely on it to clean up the draft on swipe-down dismissal.
-    @State private var pendingNewAsset: Asset?
-    @State private var assetPendingDeletion: Asset?
+    @State private var isUpdating: Bool = false
+    @State private var selectedYear: Int? = nil
+    @State private var selectedTab: Tab = .financial
 
-    /// Per-render derivation: pre-bucket assets by sold/active and by
-    /// category, and compute the home-currency *purchase-cost* total
-    /// once. The Assets tab is intentionally a purchase-cost ledger and
-    /// does not surface manual revaluations or any depreciation model,
-    /// so we ignore `currentValue` here and sum `purchasePrice` directly.
-    private struct Derivation {
-        var purchaseCostTotal: Decimal
-        var missingCurrencies: [String]
-        var active: [Asset]
-        var sold: [Asset]
-        var byCategory: [AssetCategory: [Asset]]
-        var categoryPurchaseCost: [AssetCategory: Decimal]
+    /// One-shot derivation for the financial tab. Computed in a single
+    /// pass per `body` render so the hero, members, and snapshot cards
+    /// share one holdings fetch + FX cache + sorted-snapshot index.
+    private struct FinancialDerivation {
+        var totals: NetWorthCalculator.Totals
+        var memberTotals: [NetWorthCalculator.MemberTotal]
+        /// Month-over-month percentage delta for the household total.
+        var monthDeltaPercent: Double?
+        /// Month-over-month absolute delta in `homeCurrency`.
+        var monthDeltaAmount: Decimal?
+        /// Per-member month-over-month percentage deltas, keyed by id.
+        var memberDeltaPercent: [UUID: Double]
     }
 
-    private func derive() -> Derivation {
-        _ = rates.count // keep reactive to FX updates
-        let cache = FXService.RateCache.load(in: context)
-        var active: [Asset] = []
-        var sold: [Asset] = []
-        var byCategory: [AssetCategory: [Asset]] = [:]
-        var categoryPurchaseCost: [AssetCategory: Decimal] = [:]
-        var total: Decimal = 0
-        var missing: Set<String> = []
-        active.reserveCapacity(assets.count)
-        for asset in assets {
-            if asset.isSold {
-                sold.append(asset)
-                continue
-            }
-            active.append(asset)
-            byCategory[asset.category, default: []].append(asset)
-            let converted: Decimal?
-            if asset.purchaseCurrency == homeCurrency {
-                converted = asset.purchasePrice
-            } else {
-                converted = cache.convert(
-                    amount: asset.purchasePrice,
-                    from: asset.purchaseCurrency,
-                    to: homeCurrency
-                )
-            }
-            if let value = converted {
-                total += value
-                categoryPurchaseCost[asset.category, default: 0] += value
-            } else {
-                missing.insert(asset.purchaseCurrency)
+    private func deriveFinancial() -> FinancialDerivation {
+        _ = snapshots.count + rates.count + holdings.count + members.count
+        let bundle = NetWorthCalculator.bundle(
+            homeCurrency: homeCurrency,
+            includeMemberBreakdown: true,
+            context: context
+        )
+
+        // Prior month — computed once, reused for absolute delta + per-member.
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        let thisMonth = Snapshot.normalize(.now)
+        let lastMonth = calendar.date(byAdding: .month, value: -1, to: thisMonth)
+
+        var deltaAmount: Decimal?
+        var memberDeltas: [UUID: Double] = [:]
+
+        if let lastMonth {
+            let prevTotal = NetWorthCalculator.total(
+                homeCurrency: homeCurrency,
+                asOf: lastMonth,
+                context: context
+            )
+            deltaAmount = bundle.totals.amount - prevTotal.amount
+
+            let prevMembers = NetWorthCalculator.totalsByMember(
+                homeCurrency: homeCurrency,
+                asOf: lastMonth,
+                context: context
+            )
+            let prevById = Dictionary(uniqueKeysWithValues: prevMembers.map { ($0.memberId, $0.amount) })
+            for entry in bundle.byMember {
+                guard let prior = prevById[entry.memberId], prior != 0 else { continue }
+                let change = (entry.amount - prior) / prior
+                memberDeltas[entry.memberId] = NSDecimalNumber(decimal: change).doubleValue
             }
         }
-        return Derivation(
-            purchaseCostTotal: total,
-            missingCurrencies: missing.sorted(),
-            active: active,
-            sold: sold,
-            byCategory: byCategory,
-            categoryPurchaseCost: categoryPurchaseCost
+
+        return FinancialDerivation(
+            totals: bundle.totals,
+            memberTotals: bundle.byMember,
+            monthDeltaPercent: bundle.monthOverMonthDelta,
+            monthDeltaAmount: deltaAmount,
+            memberDeltaPercent: memberDeltas
         )
     }
 
     var body: some View {
-        let derivation: Derivation = members.isEmpty || assets.isEmpty
-            ? Derivation(
-                purchaseCostTotal: 0,
-                missingCurrencies: [],
-                active: [],
-                sold: [],
-                byCategory: [:],
-                categoryPurchaseCost: [:]
-            )
-            : derive()
-        return content(derivation: derivation)
-            .modifier(toolbarModifier())
-            .modifier(AssetsSheetsModifier(
-                newAssetDraft: $newAssetDraft,
-                newAssetSaved: $newAssetSaved,
-                pendingNewAsset: $pendingNewAsset,
-                editingAsset: $editingAsset,
-                assetPendingDeletion: $assetPendingDeletion,
-                context: context
-            ))
-    }
-
-    /// Adds the iOS-only "+" toolbar button. macOS keeps the action inside
-    /// the summary card because the nav bar already hosts the tab switcher.
-    private func toolbarModifier() -> some ViewModifier {
-        AssetsToolbarModifier(showAdd: !members.isEmpty, action: presentNewAsset)
-    }
-
-    @ViewBuilder
-    private func content(derivation: Derivation) -> some View {
-        if members.isEmpty {
-            ContentUnavailableView(
-                "asset.empty.noMember.title",
-                systemImage: "person.2",
-                description: Text("asset.empty.noMember.hint")
-            )
-            .padding(.top, 48)
-        } else if assets.isEmpty {
-            emptyState
-        } else {
-            VStack(spacing: 20) {
-                summaryCard(derivation: derivation)
-                categorizedCards(derivation: derivation)
-                if !derivation.sold.isEmpty {
-                    soldCard(derivation: derivation)
+        Group {
+            #if os(iOS)
+            iosBody
+            #else
+            macBody
+            #endif
+        }
+        .ambientBackground()
+        .navigationTitle(Text("assets.title", bundle: localization.bundle))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .toolbar {
+            #if os(iOS)
+            // Plain "+" style action in the nav bar on iOS, matching
+            // the Accounts screen.
+            ToolbarItem(placement: .primaryAction) {
+                if selectedTab == .financial && !holdings.isEmpty {
+                    Button {
+                        isUpdating = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel(Text("assets.addSnapshot"))
                 }
             }
+            #endif
         }
+        .sheet(isPresented: $isUpdating) {
+            BatchEntryView()
+        }
+        .onAppear {
+            if selectedYear == nil, let latest = availableYears.first {
+                selectedYear = latest
+            }
+        }
+        .onChange(of: availableYears) { _, newYears in
+            if let selected = selectedYear, !newYears.contains(selected) {
+                selectedYear = newYears.first
+            } else if selectedYear == nil {
+                selectedYear = newYears.first
+            }
+        }
+    }
+
+    #if os(macOS)
+    /// macOS body: native segmented `Picker` above a single ScrollView that
+    /// swaps between the financial and possessions tabs. Matches the iOS shape
+    /// for consistency; horizontal swipe-to-switch is iOS only because
+    /// paged `TabView` is unavailable on macOS.
+    private var macBody: some View {
+        VStack(spacing: 0) {
+            tabPicker
+                .frame(maxWidth: 420)
+                .pageHorizontalPadding()
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+
+            ScrollView {
+                VStack(spacing: 20) {
+                    switch selectedTab {
+                    case .financial:
+                        financialTab
+                    case .possessions:
+                        PossessionsView()
+                    }
+                }
+                .pageHorizontalPadding()
+                .padding(.vertical, 20)
+                .frame(maxWidth: 1100)
+                .frame(maxWidth: .infinity)
+            }
+            // Avoid right-edge jitter: when the system scrollbar style is
+            // "Always show", the vertical scroller toggles as content height
+            // crosses the viewport, shifting card right-edges by ~15pt.
+            // Hiding the indicator keeps layout stable while preserving
+            // standard scroll input.
+            .scrollIndicators(.hidden)
+        }
+    }
+    #endif
+
+    #if os(iOS)
+    /// iOS body uses a native segmented `Picker` (cheap to render, no
+    /// custom gradients/backdrops) and a paged `TabView` so the user can
+    /// swipe horizontally between Financial and Possessions. This replaces a
+    /// custom glass segmented control that was janky on iOS.
+    private var iosBody: some View {
+        VStack(spacing: 0) {
+            tabPicker
+                .pageHorizontalPadding()
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+            TabView(selection: $selectedTab) {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        financialTab
+                    }
+                    .pageHorizontalPadding()
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: 1100)
+                    .frame(maxWidth: .infinity)
+                }
+                .scrollIndicators(.hidden)
+                .tag(Tab.financial)
+
+                ScrollView {
+                    VStack(spacing: 20) {
+                        PossessionsView()
+                    }
+                    .pageHorizontalPadding()
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: 1100)
+                    .frame(maxWidth: .infinity)
+                }
+                .scrollIndicators(.hidden)
+                .tag(Tab.possessions)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .animation(.easeInOut(duration: 0.2), value: selectedTab)
+        }
+    }
+    #endif
+
+    /// Shared segmented picker used by both platforms.
+    private var tabPicker: some View {
+        Picker("assets.tab.title", selection: $selectedTab) {
+            ForEach(Tab.allCases, id: \.self) { tab in
+                Text(tab.titleKey).tag(tab)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
+
+    // MARK: - Financial (holdings-based) tab
+
+    @ViewBuilder
+    private var financialTab: some View {
+        if holdings.isEmpty {
+            ContentUnavailableView(
+                "assets.empty.title",
+                systemImage: "chart.line.uptrend.xyaxis",
+                description: Text("assets.empty.hint")
+            )
+            .padding(.top, 64)
+        } else {
+            let derivation = deriveFinancial()
+            VStack(spacing: 20) {
+                heroCard(derivation: derivation)
+                bottomRow(derivation: derivation)
+            }
+        }
+    }
+
+    /// Snapshots + by-member cards. On wide macOS windows they sit
+    /// side-by-side; everywhere else they stack vertically.
+    @ViewBuilder
+    private func bottomRow(derivation: FinancialDerivation) -> some View {
+        let hasMembers = !derivation.memberTotals.isEmpty
+        #if os(macOS)
+        if hasMembers {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 20) {
+                    membersCard(derivation: derivation)
+                        .frame(minWidth: 380, maxWidth: .infinity)
+                    snapshotsCard
+                        .frame(minWidth: 380, maxWidth: .infinity)
+                }
+                VStack(spacing: 20) {
+                    membersCard(derivation: derivation)
+                    snapshotsCard
+                }
+            }
+        } else {
+            snapshotsCard
+        }
+        #else
+        VStack(spacing: 20) {
+            if hasMembers { membersCard(derivation: derivation) }
+            snapshotsCard
+        }
+        #endif
     }
 
     // MARK: - Cards
 
-    private func summaryCard(derivation: Derivation) -> some View {
-        HStack(alignment: .center, spacing: 16) {
-            summaryCardText(derivation: derivation)
-            Spacer(minLength: 0)
-            #if os(macOS)
-            Button {
-                presentNewAsset()
-            } label: {
-                Label {
-                    Text("asset.new.title")
-                } icon: {
-                    Image(systemName: "plus")
-                }
+    private func heroCard(derivation: FinancialDerivation) -> some View {
+        #if os(macOS)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 16) {
+                heroTextBlock(derivation: derivation)
+                Spacer()
+                addSnapshotButton
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            #endif
+            VStack(alignment: .leading, spacing: 16) {
+                heroTextBlock(derivation: derivation)
+                addSnapshotButton
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .glassCard()
+        #else
+        // On iOS the "Add snapshot" action lives in a floating action
+        // button overlaid on the ScrollView, so the hero only carries
+        // the total and the contextual badges.
+        heroTextBlock(derivation: derivation)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassCard()
+        #endif
     }
 
-    private func summaryCardText(derivation: Derivation) -> some View {
+    private func heroTextBlock(derivation: FinancialDerivation) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Eyebrow row — mirrors the Financial hero ("NET WORTH · CNY").
+            // Eyebrow row — net worth label + tiny home currency tag.
             HStack(spacing: 6) {
-                Text("asset.total.title")
+                Text("assets.netWorth")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
@@ -175,8 +336,9 @@ struct AssetsView: View {
                     .font(.caption2.monospaced().weight(.semibold))
                     .foregroundStyle(.secondary)
             }
+
             Text(
-                derivation.purchaseCostTotal,
+                derivation.totals.amount,
                 format: .currency(code: homeCurrency)
                     .locale(locale)
                     .precision(.fractionLength(0))
@@ -186,378 +348,222 @@ struct AssetsView: View {
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
                 .foregroundStyle(Color.notionInk)
-            if !derivation.missingCurrencies.isEmpty {
+
+            // Delta line — the "decision dashboard" headline number.
+            if derivation.monthDeltaPercent != nil {
+                DeltaBadge(
+                    percent: derivation.monthDeltaPercent,
+                    amount: derivation.monthDeltaAmount,
+                    currencyCode: homeCurrency,
+                    locale: locale,
+                    style: .full
+                )
+            }
+
+            // Subtle context: missing-rates warning OR (de-emphasized)
+            // "Rates as of …" footnote.
+            if !derivation.totals.missingCurrencies.isEmpty {
                 Label {
-                    Text(missingRatesMessage(derivation.missingCurrencies))
+                    Text(missingRatesMessage(derivation.totals.missingCurrencies))
                 } icon: {
                     Image(systemName: "exclamationmark.triangle.fill")
                 }
                 .foregroundStyle(.orange)
                 .font(.footnote)
                 .padding(.top, 4)
-            }
-            Text(assetCountFootnote(activeCount: derivation.active.count))
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .padding(.top, 4)
-        }
-    }
-
-    @ViewBuilder
-    private func categorizedCards(derivation: Derivation) -> some View {
-        ForEach(AssetCategory.allCases, id: \.self) { category in
-            if let bucket = derivation.byCategory[category], !bucket.isEmpty {
-                categorySection(
-                    category: category,
-                    assets: bucket,
-                    purchaseCost: derivation.categoryPurchaseCost[category] ?? 0
-                )
-            }
-        }
-    }
-
-    private func categorySection(
-        category: AssetCategory,
-        assets: [Asset],
-        purchaseCost: Decimal
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: category.iconName)
-                    .foregroundStyle(category.tint)
-                Text(LocalizedStringKey(category.localizationKey))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-                HStack(spacing: 6) {
-                    Text(itemCountFootnote(count: assets.count))
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    Text(verbatim: "·")
-                        .foregroundStyle(.tertiary)
-                    Text(
-                        purchaseCost,
-                        format: .currency(code: homeCurrency)
-                            .locale(locale)
-                            .precision(.fractionLength(0))
-                    )
-                    .font(.caption.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                }
-            }
-            VStack(spacing: 0) {
-                ForEach(Array(assets.enumerated()), id: \.element.id) { index, asset in
-                    assetRow(asset)
-                    if index < assets.count - 1 {
-                        Divider().opacity(0.4)
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
-    }
-
-    private func soldCard(derivation: Derivation) -> some View {
-        let soldAssets = derivation.sold
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "archivebox.fill")
-                    .foregroundStyle(.secondary)
-                Text("asset.section.sold")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-                Text(verbatim: "\(soldAssets.count)")
-                    .font(.caption.monospaced())
+            } else if let latest = rates.map(\.date).max() {
+                Text(latestRatesFootnote(date: latest))
+                    .font(.caption2)
                     .foregroundStyle(.tertiary)
-            }
-            VStack(spacing: 0) {
-                ForEach(Array(soldAssets.enumerated()), id: \.element.id) { index, asset in
-                    assetRow(asset)
-                        .opacity(0.7)
-                    if index < soldAssets.count - 1 {
-                        Divider().opacity(0.4)
-                    }
-                }
+                    .padding(.top, 4)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
     }
 
-    private func assetRow(_ asset: Asset) -> some View {
+    private var addSnapshotButton: some View {
         Button {
-            editingAsset = asset
+            isUpdating = true
         } label: {
-            HStack(alignment: .top, spacing: 12) {
-#if os(macOS)
-                GlyphBadge(
-                    systemName: asset.iconName ?? asset.category.iconName,
-                    tint: asset.category.tint
-                )
-#endif
-                VStack(alignment: .leading, spacing: 4) {
-                    // Line 1: name
-                    Text(verbatim: asset.name)
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(.primary)
+            Label {
+                Text("assets.addSnapshot")
+            } icon: {
+                Image(systemName: "square.and.pencil")
+            }
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+    }
 
-                    // Line 2: category · owner · currency
-                    Text(verbatim: rowSubtitle(for: asset))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+    private func membersCard(derivation: FinancialDerivation) -> some View {
+        let memberTotals = derivation.memberTotals
+        let membersById = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0) })
+        let totalAmount = derivation.totals.amount
+        let totalDouble = NSDecimalNumber(decimal: totalAmount).doubleValue
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("assets.byMember")
+                .font(.headline)
+                .foregroundStyle(Color.notionInk)
+                .padding(.bottom, 2)
+            VStack(spacing: 0) {
+                ForEach(Array(memberTotals.enumerated()), id: \.element.id) { index, entry in
+                    let share: Double = {
+                        guard totalDouble > 0 else { return 0 }
+                        let value = NSDecimalNumber(decimal: entry.amount).doubleValue
+                        return max(0, min(1, value / totalDouble))
+                    }()
+                    AssetsMemberRow(
+                        memberId: entry.memberId,
+                        memberName: entry.memberName,
+                        avatarData: membersById[entry.memberId]?.avatarData,
+                        amount: entry.amount,
+                        share: share,
+                        monthDelta: derivation.memberDeltaPercent[entry.memberId],
+                        currencyCode: homeCurrency,
+                        locale: locale
+                    )
+                    if index < memberTotals.count - 1 {
+                        Divider().opacity(0.35)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard()
+    }
 
-                    // Line 3: purchase cost
-                    HStack(spacing: 6) {
-                        Text("asset.row.purchaseCost")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                        Text(
-                            asset.purchasePrice,
-                            format: .currency(code: asset.purchaseCurrency).locale(locale)
-                        )
+    private var snapshotsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("assets.snapshots")
+                    .font(.headline)
+                Spacer()
+                if !availableYears.isEmpty {
+                    Menu {
+                        Button {
+                            selectedYear = nil
+                        } label: {
+                            if selectedYear == nil {
+                                Label("assets.snapshots.filter.allYears", systemImage: "checkmark")
+                            } else {
+                                Text("assets.snapshots.filter.allYears")
+                            }
+                        }
+                        Divider()
+                        ForEach(availableYears, id: \.self) { year in
+                            Button {
+                                selectedYear = year
+                            } label: {
+                                if selectedYear == year {
+                                    Label(String(year), systemImage: "checkmark")
+                                } else {
+                                    Text(verbatim: String(year))
+                                }
+                            }
+                        }
+                    } label: {
+                        Label {
+                            Text(verbatim: selectedYear.map(String.init) ?? String(localized: "assets.snapshots.filter.allYears"))
+                        } icon: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                        }
+                    }
+                    .menuStyle(.borderlessButton)
+                    .font(.callout)
+                }
+            }
+            if portfolioSnapshots.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("assets.snapshots.empty.title")
                         .font(.callout.weight(.medium))
-                        .monospacedDigit()
-                        .foregroundStyle(.primary)
-                    }
-
-                    // Line 4: purchased {date}
-                    Text(purchasedOnText(for: asset))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-
-                    // Line 5: subtle valuation placeholder (active only) —
-                    // reserved for a future revaluation feature. Kept
-                    // secondary so it never competes with the purchase
-                    // ledger. Sold assets show their sale info instead.
-                    if asset.isSold {
-                        Text("asset.badge.sold")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("asset.row.estimatedValueNotSet")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary.opacity(0.7))
+                    Text("assets.snapshots.empty.hint")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 8)
+            } else if filteredSnapshots.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("assets.snapshots.filter.empty")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(filteredSnapshots.enumerated()), id: \.element.id) { index, snapshot in
+                        let previous = previousSnapshot(for: snapshot)
+                        let isLast = index == filteredSnapshots.count - 1
+                        NavigationLink {
+                            PortfolioSnapshotDetailView(snapshot: snapshot, previous: previous)
+                        } label: {
+                            AssetsSnapshotRow(
+                                snapshot: snapshot,
+                                previous: previous,
+                                isLast: isLast,
+                                homeCurrency: homeCurrency,
+                                locale: locale
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 2)
             }
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .contextMenu {
-            Button {
-                editingAsset = asset
-            } label: {
-                Label { Text("common.action.edit") } icon: { Image(systemName: "pencil") }
-            }
-            Button(role: .destructive) {
-                assetPendingDeletion = asset
-            } label: {
-                Label { Text("common.action.delete") } icon: { Image(systemName: "trash") }
-            }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard()
+    }
+
+    private func previousSnapshot(for snapshot: PortfolioSnapshot) -> PortfolioSnapshot? {
+        portfolioSnapshots.first {
+            $0.homeCurrency == snapshot.homeCurrency &&
+            $0.periodMonth < snapshot.periodMonth
         }
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            ContentUnavailableView(
-                "asset.empty.title",
-                systemImage: "house.and.flag",
-                description: Text("asset.empty.hint")
-            )
-            Button {
-                presentNewAsset()
-            } label: {
-                Label {
-                    Text("asset.new.title")
-                } icon: {
-                    Image(systemName: "plus")
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+    private var availableYears: [Int] {
+        let calendar = Calendar.current
+        let years = Set(portfolioSnapshots.map { calendar.component(.year, from: $0.periodMonth) })
+        return years.sorted(by: >)
+    }
+
+    private var filteredSnapshots: [PortfolioSnapshot] {
+        guard let selectedYear else { return portfolioSnapshots }
+        let calendar = Calendar.current
+        return portfolioSnapshots.filter {
+            calendar.component(.year, from: $0.periodMonth) == selectedYear
         }
-        .padding(.top, 32)
-    }
-
-    // MARK: - Derived
-
-    /// Compose the secondary line: "Category · Owner · CUR".
-    /// Owner is omitted when missing so the dot separators stay clean.
-    private func rowSubtitle(for asset: Asset) -> String {
-        let category = NSLocalizedString(asset.category.localizationKey, comment: "")
-        var parts: [String] = [category]
-        if let member = asset.member {
-            parts.append(member.name)
-        }
-        parts.append(asset.purchaseCurrency)
-        return parts.joined(separator: " · ")
-    }
-
-    private func purchasedOnText(for asset: Asset) -> String {
-        let date = asset.purchaseDate.formatted(.dateTime.year().month(.abbreviated).locale(locale))
-        let template = String(localized: "asset.row.purchasedOn")
-        return template.replacingOccurrences(of: "{date}", with: date)
-    }
-
-    private func assetCountFootnote(activeCount: Int) -> String {
-        let template = String(localized: "asset.count.active")
-        return template.replacingOccurrences(of: "{count}", with: String(activeCount))
-    }
-
-    private func itemCountFootnote(count: Int) -> String {
-        let template = String(localized: "asset.section.itemCount")
-        return template.replacingOccurrences(of: "{count}", with: String(count))
     }
 
     private func missingRatesMessage(_ currencies: [String]) -> String {
         let list = currencies.joined(separator: ", ")
-        let template = String(localized: "overview.missingRates")
+        let template = String(localized: "assets.missingRates")
         return template.replacingOccurrences(of: "{currencies}", with: list)
     }
 
+    private func latestRatesFootnote(date: Date) -> String {
+        let template = String(localized: "assets.ratesAsOf")
+        let formatted = date.formatted(.dateTime.year().month().day().locale(locale))
+        return template.replacingOccurrences(of: "{date}", with: formatted)
+    }
+
     // MARK: - Actions
-
-    private func presentNewAsset() {
-        guard let defaultMember = members.first else { return }
-        // Note: assigning a managed `Member` to the draft's relationship
-        // causes SwiftData to auto-insert the draft into the same context.
-        // We therefore explicitly insert here and rely on the sheet's
-        // `onDismiss` to delete the draft if the user cancels or swipes
-        // the sheet away without saving.
-        let draft = Asset(
-            name: "",
-            category: .realEstate,
-            purchasePrice: 0,
-            purchaseCurrency: homeCurrency,
-            purchaseDate: .now,
-            member: defaultMember
-        )
-        context.insert(draft)
-        newAssetSaved = false
-        pendingNewAsset = draft
-        newAssetDraft = draft
-    }
-}
-
-private struct AssetsToolbarModifier: ViewModifier {
-    let showAdd: Bool
-    let action: () -> Void
-
-    func body(content: Content) -> some View {
-        #if os(macOS)
-        content
-        #else
-        content.toolbar {
-            if showAdd {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: action) {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel(Text("asset.new.title"))
-                }
-            }
-        }
-        #endif
-    }
-}
-
-/// Bundles the Assets screen's sheet + delete-confirmation modifiers so
-/// `AssetsView.body` stays comfortably under the function-length budget.
-private struct AssetsSheetsModifier: ViewModifier {
-    @Binding var newAssetDraft: Asset?
-    @Binding var newAssetSaved: Bool
-    @Binding var pendingNewAsset: Asset?
-    @Binding var editingAsset: Asset?
-    @Binding var assetPendingDeletion: Asset?
-    let context: ModelContext
-
-    func body(content: Content) -> some View {
-        content
-            .sheet(
-                item: $newAssetDraft,
-                onDismiss: {
-                    // Covers both Cancel taps and interactive swipe-down
-                    // dismissal on iOS. By the time `onDismiss` fires the
-                    // sheet's `item` binding is already nil, so we use
-                    // `pendingNewAsset` to reach the draft we inserted.
-                    if !newAssetSaved, let draft = pendingNewAsset {
-                        context.delete(draft)
-                    }
-                    pendingNewAsset = nil
-                    newAssetSaved = false
-                }
-            ) { draft in
-                AssetFormView(asset: draft, isNew: true) { saved in
-                    newAssetSaved = saved
-                }
-            }
-            .sheet(item: $editingAsset) { asset in
-                AssetFormView(asset: asset, isNew: false) { _ in
-                    editingAsset = nil
-                }
-            }
-            // Use `.alert` rather than `.confirmationDialog` here: when
-            // triggered from a row's context menu inside a `LazyVStack`,
-            // a confirmation dialog on iOS can race with the menu's
-            // dismissal animation (requiring a second tap) and anchors
-            // its popover oddly on iPad. An alert is system-modal and
-            // centered, which avoids both issues.
-            .alert(
-                Text("asset.delete.confirm.title"),
-                isPresented: Binding(
-                    get: { assetPendingDeletion != nil },
-                    set: { if !$0 { assetPendingDeletion = nil } }
-                ),
-                presenting: assetPendingDeletion
-            ) { asset in
-                Button(role: .destructive) {
-                    context.delete(asset)
-                    assetPendingDeletion = nil
-                } label: {
-                    Text("common.action.delete")
-                }
-                Button(role: .cancel) { assetPendingDeletion = nil } label: { Text("common.action.cancel") }
-            } message: { _ in
-                Text("asset.delete.confirm.message")
-            }
-    }
 }
 
 #if DEBUG
 #Preview("Assets · seeded") {
     PreviewDefaults.primeOnboarded()
     return NavigationStack {
-        ScrollView {
-            AssetsView()
-                .padding(24)
-        }
-        .ambientBackground()
+        AssetsView()
     }
+    .environment(LocalizationService())
     .modelContainer(PreviewSampleData.container())
 }
 
 #Preview("Assets · empty") {
     PreviewDefaults.primeOnboarded()
     return NavigationStack {
-        ScrollView {
-            AssetsView()
-                .padding(24)
-        }
-        .ambientBackground()
+        AssetsView()
     }
-    .modelContainer(PreviewSampleData.container())
+    .environment(LocalizationService())
+    .modelContainer(PreviewSampleData.emptyContainer())
 }
 #endif

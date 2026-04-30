@@ -130,7 +130,7 @@ struct BatchEntryRowView: View {
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.tertiary)
         } else if amount != nil, currency != homeCurrency, convertedPreview == nil {
-            Text("overview.missingRates.short")
+            Text("assets.missingRates.short")
                 .font(.caption2)
                 .foregroundStyle(.orange.opacity(0.8))
         }

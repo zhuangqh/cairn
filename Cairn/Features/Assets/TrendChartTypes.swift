@@ -41,10 +41,10 @@ enum TrendRange: CaseIterable, Hashable {
 
     var localizationKey: String {
         switch self {
-        case .sixMonths: return "overview.trend.range.6m"
-        case .year: return "overview.trend.range.1y"
-        case .twoYears: return "overview.trend.range.2y"
-        case .fiveYears: return "overview.trend.range.5y"
+        case .sixMonths: return "assets.trend.range.6m"
+        case .year: return "assets.trend.range.1y"
+        case .twoYears: return "assets.trend.range.2y"
+        case .fiveYears: return "assets.trend.range.5y"
         }
     }
 }

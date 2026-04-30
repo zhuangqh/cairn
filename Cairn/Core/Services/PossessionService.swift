@@ -1,18 +1,18 @@
 import Foundation
 import SwiftData
 
-/// CRUD + aggregation helpers for physical `Asset` records (PRD §4.7, v1.1).
+/// CRUD + aggregation helpers for physical `Possession` records (PRD §4.7, v1.1).
 ///
-/// Unlike `Holding`, an `Asset` has no monthly `Snapshot` series. Its
-/// "current" valuation is `currentValue ?? purchasePrice`, and sold assets
+/// Unlike `Holding`, an `Possession` has no monthly `Snapshot` series. Its
+/// "current" valuation is `currentValue ?? purchasePrice`, and sold possessions
 /// (`saleDate != nil`) are excluded from current-value reporting.
 @MainActor
-public enum AssetService {
+public enum PossessionService {
 
     public struct CategoryTotal: Sendable, Equatable, Identifiable {
-        public let category: AssetCategory
+        public let category: PossessionCategory
         public let amount: Decimal
-        public var id: AssetCategory { category }
+        public var id: PossessionCategory { category }
     }
 
     public struct Totals: Sendable, Equatable {
@@ -22,7 +22,7 @@ public enum AssetService {
         public var missingCurrencies: [String]
     }
 
-    /// Bundle of every aggregate the Assets / Dashboard screens need from
+    /// Bundle of every aggregate the Possessions / Dashboard screens need from
     /// one fetch + one FX cache pass — total in home currency, per-category
     /// breakdown, and the missing-currency warning list.
     public struct Bundle: Sendable, Equatable {
@@ -35,19 +35,19 @@ public enum AssetService {
     @discardableResult
     public static func create(
         name: String,
-        category: AssetCategory,
+        category: PossessionCategory,
         purchasePrice: Decimal,
         purchaseCurrency: String,
         purchaseDate: Date,
         member: Member,
         note: String? = nil,
         context: ModelContext
-    ) throws -> Asset {
+    ) throws -> Possession {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            throw DomainError.missingRequiredField(fieldKey: "asset.form.name")
+            throw DomainError.missingRequiredField(fieldKey: "possession.form.name")
         }
-        let asset = Asset(
+        let possession = Possession(
             name: trimmed,
             category: category,
             purchasePrice: purchasePrice,
@@ -56,39 +56,39 @@ public enum AssetService {
             note: note,
             member: member
         )
-        context.insert(asset)
-        return asset
+        context.insert(possession)
+        return possession
     }
 
-    /// Stamp a new manual valuation in the asset's native currency.
+    /// Stamp a new manual valuation in the possession's native currency.
     public static func updateCurrentValue(
-        _ asset: Asset,
+        _ possession: Possession,
         to value: Decimal?,
         at timestamp: Date = .now
     ) {
-        asset.currentValue = value
-        asset.currentValueUpdatedAt = value == nil ? nil : timestamp
+        possession.currentValue = value
+        possession.currentValueUpdatedAt = value == nil ? nil : timestamp
     }
 
-    /// Mark an asset as sold. Pass `nil` values to clear the sale state.
+    /// Mark an possession as sold. Pass `nil` values to clear the sale state.
     public static func markSold(
-        _ asset: Asset,
+        _ possession: Possession,
         on date: Date?,
         price: Decimal?
     ) {
-        asset.saleDate = date
-        asset.salePrice = price
+        possession.saleDate = date
+        possession.salePrice = price
     }
 
     // MARK: - Aggregation
 
-    /// Sum of every non-sold asset's effective value, converted to the home
-    /// currency. Assets whose purchase currency has no FX rate are reported
+    /// Sum of every non-sold possession's effective value, converted to the home
+    /// currency. Possessions whose purchase currency has no FX rate are reported
     /// in `missingCurrencies`.
     ///
-    /// When `asOf` is non-nil the total time-travels: only assets purchased
-    /// on or before that date are included, sold assets whose sale happened
-    /// on or before that date are excluded, and each asset is valued at its
+    /// When `asOf` is non-nil the total time-travels: only possessions purchased
+    /// on or before that date are included, sold possessions whose sale happened
+    /// on or before that date are excluded, and each possession is valued at its
     /// `purchasePrice` (historical manual valuations are not stored per
     /// month, so purchase price is the best available proxy). Passing `nil`
     /// preserves the "today" semantics used everywhere else.
@@ -97,9 +97,9 @@ public enum AssetService {
         asOf: Date? = nil,
         context: ModelContext
     ) -> Totals {
-        let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
+        let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
         let cache = FXService.RateCache.load(in: context)
-        return aggregate(assets: assets, homeCurrency: homeCurrency, asOf: asOf, cache: cache)
+        return aggregate(possessions: possessions, homeCurrency: homeCurrency, asOf: asOf, cache: cache)
     }
 
     /// Per-category totals, sorted by amount descending. See `total(...)`
@@ -109,10 +109,10 @@ public enum AssetService {
         asOf: Date? = nil,
         context: ModelContext
     ) -> [CategoryTotal] {
-        let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
+        let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
         let cache = FXService.RateCache.load(in: context)
         return categoryTotals(
-            assets: assets,
+            possessions: possessions,
             homeCurrency: homeCurrency,
             asOf: asOf,
             cache: cache
@@ -121,32 +121,32 @@ public enum AssetService {
 
     /// Single-pass bundle. Useful when a view needs both the headline total
     /// and the per-category breakdown in the same render — avoids fetching
-    /// `Asset` rows + the FX cache twice.
+    /// `Possession` rows + the FX cache twice.
     public static func bundle(
         homeCurrency: String,
         asOf: Date? = nil,
         rateCache: FXService.RateCache? = nil,
         context: ModelContext
     ) -> Bundle {
-        let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
+        let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
         let cache = rateCache ?? FXService.RateCache.load(in: context)
         var total: Decimal = 0
         var missing: Set<String> = []
-        var sums: [AssetCategory: Decimal] = [:]
-        for asset in assets {
-            guard let value = effectiveValue(for: asset, asOf: asOf) else { continue }
+        var sums: [PossessionCategory: Decimal] = [:]
+        for possession in possessions {
+            guard let value = effectiveValue(for: possession, asOf: asOf) else { continue }
             let converted: Decimal?
-            if asset.purchaseCurrency == homeCurrency {
+            if possession.purchaseCurrency == homeCurrency {
                 converted = value
             } else {
-                converted = cache.convert(amount: value, from: asset.purchaseCurrency, to: homeCurrency)
+                converted = cache.convert(amount: value, from: possession.purchaseCurrency, to: homeCurrency)
             }
             guard let value = converted else {
-                missing.insert(asset.purchaseCurrency)
+                missing.insert(possession.purchaseCurrency)
                 continue
             }
             total += value
-            sums[asset.category, default: 0] += value
+            sums[possession.category, default: 0] += value
         }
         let byCategory = sums
             .map { CategoryTotal(category: $0.key, amount: $0.value) }
@@ -158,22 +158,22 @@ public enum AssetService {
     }
 
     private static func categoryTotals(
-        assets: [Asset],
+        possessions: [Possession],
         homeCurrency: String,
         asOf: Date?,
         cache: FXService.RateCache
     ) -> [CategoryTotal] {
-        var sums: [AssetCategory: Decimal] = [:]
-        for asset in assets {
-            guard let value = effectiveValue(for: asset, asOf: asOf) else { continue }
+        var sums: [PossessionCategory: Decimal] = [:]
+        for possession in possessions {
+            guard let value = effectiveValue(for: possession, asOf: asOf) else { continue }
             let converted: Decimal?
-            if asset.purchaseCurrency == homeCurrency {
+            if possession.purchaseCurrency == homeCurrency {
                 converted = value
             } else {
-                converted = cache.convert(amount: value, from: asset.purchaseCurrency, to: homeCurrency)
+                converted = cache.convert(amount: value, from: possession.purchaseCurrency, to: homeCurrency)
             }
             guard let value = converted else { continue }
-            sums[asset.category, default: 0] += value
+            sums[possession.category, default: 0] += value
         }
         return sums
             .map { CategoryTotal(category: $0.key, amount: $0.value) }
@@ -181,38 +181,38 @@ public enum AssetService {
     }
 
     private static func aggregate(
-        assets: [Asset],
+        possessions: [Possession],
         homeCurrency: String,
         asOf: Date?,
         cache: FXService.RateCache
     ) -> Totals {
         var total: Decimal = 0
         var missing: Set<String> = []
-        for asset in assets {
-            guard let value = effectiveValue(for: asset, asOf: asOf) else { continue }
-            if asset.purchaseCurrency == homeCurrency {
+        for possession in possessions {
+            guard let value = effectiveValue(for: possession, asOf: asOf) else { continue }
+            if possession.purchaseCurrency == homeCurrency {
                 total += value
             } else if let converted = cache.convert(
                 amount: value,
-                from: asset.purchaseCurrency,
+                from: possession.purchaseCurrency,
                 to: homeCurrency
             ) {
                 total += converted
             } else {
-                missing.insert(asset.purchaseCurrency)
+                missing.insert(possession.purchaseCurrency)
             }
         }
         return Totals(amount: total, missingCurrencies: missing.sorted())
     }
 
-    /// Returns the value an asset should contribute at a given cutoff.
-    /// Current (asOf == nil): asset's `effectiveValue` unless sold.
-    /// Historical (asOf != nil): purchase price for assets purchased by the
+    /// Returns the value an possession should contribute at a given cutoff.
+    /// Current (asOf == nil): possession's `effectiveValue` unless sold.
+    /// Historical (asOf != nil): purchase price for possessions purchased by the
     /// cutoff and not sold before or on it; `nil` otherwise.
-    private static func effectiveValue(for asset: Asset, asOf: Date?) -> Decimal? {
-        guard let asOf else { return asset.effectiveValue }
-        guard asset.purchaseDate <= asOf else { return nil }
-        if let saleDate = asset.saleDate, saleDate <= asOf { return nil }
-        return asset.purchasePrice
+    private static func effectiveValue(for possession: Possession, asOf: Date?) -> Decimal? {
+        guard let asOf else { return possession.effectiveValue }
+        guard possession.purchaseDate <= asOf else { return nil }
+        if let saleDate = possession.saleDate, saleDate <= asOf { return nil }
+        return possession.purchasePrice
     }
 }

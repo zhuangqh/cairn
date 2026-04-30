@@ -126,7 +126,7 @@ extension BatchEntryView {
     }
 
     var unresolvedFootnote: String {
-        let template = String(localized: "overview.missingRates")
+        let template = String(localized: "assets.missingRates")
         return template.replacingOccurrences(of: "{currencies}", with: unresolvedCurrencies.joined(separator: ", "))
     }
 

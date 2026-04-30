@@ -310,9 +310,9 @@ for idx, ym in enumerate(MONTHS):
     })
 
 # Physical assets — at least 4 across categories, mixed currencies & owners.
-assets_out = [
+possessions_out = [
     {
-        "id": uid("asset.house"),
+        "id": uid("possession.house"),
         "name": "Pudong Apartment",
         "categoryRawValue": "realEstate",
         "purchasePrice": 2800000.00,
@@ -328,7 +328,7 @@ assets_out = [
         "memberId": member_id_by_key["member.bob"],
     },
     {
-        "id": uid("asset.tesla"),
+        "id": uid("possession.tesla"),
         "name": "Tesla Model 3",
         "categoryRawValue": "vehicle",
         "purchasePrice": 42000.00,
@@ -344,7 +344,7 @@ assets_out = [
         "memberId": member_id_by_key["member.alice"],
     },
     {
-        "id": uid("asset.mbp"),
+        "id": uid("possession.mbp"),
         "name": "MacBook Pro 16”",
         "categoryRawValue": "electronics",
         "purchasePrice": 398000.00,
@@ -360,7 +360,7 @@ assets_out = [
         "memberId": member_id_by_key["member.lily"],
     },
     {
-        "id": uid("asset.iphone"),
+        "id": uid("possession.iphone"),
         "name": "iPhone 17 Pro",
         "categoryRawValue": "electronics",
         "purchasePrice": 189000.00,
@@ -376,7 +376,7 @@ assets_out = [
         "memberId": member_id_by_key["member.lily"],
     },
     {
-        "id": uid("asset.bike"),
+        "id": uid("possession.bike"),
         "name": "Trek Domane SLR",
         "categoryRawValue": "other",
         "purchasePrice": 6500.00,
@@ -392,7 +392,7 @@ assets_out = [
         "memberId": member_id_by_key["member.alice"],
     },
     {
-        "id": uid("asset.watch"),
+        "id": uid("possession.watch"),
         "name": "Rolex Submariner",
         "categoryRawValue": "other",
         "purchasePrice": 62000.00,
@@ -418,11 +418,11 @@ payload = {
     "snapshots": snapshots_out,
     "fxRates": fx_out,
     "portfolioSnapshots": portfolio_out,
-    "assets": assets_out,
+    "possessions": possessions_out,
 }
 
 OUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
 print(f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes)")
 print(f"  members: {len(MEMBERS)}  accounts: {len(accounts_out)}  holdings: {len(holdings_out)}")
 print(f"  snapshots: {len(snapshots_out)}  portfolioSnapshots: {len(portfolio_out)}")
-print(f"  fxRates: {len(fx_out)}  assets: {len(assets_out)}")
+print(f"  fxRates: {len(fx_out)}  assets: {len(possessions_out)}")

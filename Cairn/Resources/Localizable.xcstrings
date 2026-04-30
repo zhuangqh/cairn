@@ -296,788 +296,6 @@
         }
       }
     },
-    "asset.badge.revalued" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revalued"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已重估"
-          }
-        }
-      }
-    },
-    "asset.badge.sold" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sold"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已出售"
-          }
-        }
-      }
-    },
-    "asset.category.electronics" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Electronics"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "电子产品"
-          }
-        }
-      }
-    },
-    "asset.category.other" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Other"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "其他"
-          }
-        }
-      }
-    },
-    "asset.category.realEstate" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Real estate"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不动产"
-          }
-        }
-      }
-    },
-    "asset.category.vehicle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vehicle"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "车辆"
-          }
-        }
-      }
-    },
-    "asset.count.active" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "{count} active"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "持有中 {count} 项"
-          }
-        }
-      }
-    },
-    "asset.delete.confirm.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will permanently remove the asset record."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "资产记录将被永久删除。"
-          }
-        }
-      }
-    },
-    "asset.delete.confirm.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete asset?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除资产？"
-          }
-        }
-      }
-    },
-    "asset.edit.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit asset"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "编辑资产"
-          }
-        }
-      }
-    },
-    "asset.empty.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Track real estate, vehicles, and electronics alongside your accounts."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在账户之外，追踪不动产、车辆和电子产品等实物资产。"
-          }
-        }
-      }
-    },
-    "asset.empty.noMember.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add a family member first, then come back to register an asset."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请先添加家庭成员，再回来登记资产。"
-          }
-        }
-      }
-    },
-    "asset.empty.noMember.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No members yet"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "还没有成员"
-          }
-        }
-      }
-    },
-    "asset.empty.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No physical assets yet"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "还没有实物资产"
-          }
-        }
-      }
-    },
-    "asset.form.category" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Category"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "类别"
-          }
-        }
-      }
-    },
-    "asset.form.currency.immutable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Purchase currency cannot be changed after creation."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "购置币种创建后不可更改。"
-          }
-        }
-      }
-    },
-    "asset.form.currentValue" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Current value"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当前估值"
-          }
-        }
-      }
-    },
-    "asset.form.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "名称"
-          }
-        }
-      }
-    },
-    "asset.form.note" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Note"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "备注"
-          }
-        }
-      }
-    },
-    "asset.form.owner" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Owner"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "归属成员"
-          }
-        }
-      }
-    },
-    "asset.form.purchaseDate" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Purchase date"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "购置日期"
-          }
-        }
-      }
-    },
-    "asset.form.purchasePrice" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Purchase price"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "购置价格"
-          }
-        }
-      }
-    },
-    "asset.form.revalue.enable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Override with current value"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用当前估值"
-          }
-        }
-      }
-    },
-    "asset.form.revalue.updatedAt" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updated {date}"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更新于 {date}"
-          }
-        }
-      }
-    },
-    "asset.form.saleDate" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sale date"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出售日期"
-          }
-        }
-      }
-    },
-    "asset.form.salePrice" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sale price"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出售价格"
-          }
-        }
-      }
-    },
-    "asset.form.section.basics" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basics"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "基本信息"
-          }
-        }
-      }
-    },
-    "asset.form.section.owner" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Owner"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "归属"
-          }
-        }
-      }
-    },
-    "asset.form.section.purchase" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Purchase"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "购置信息"
-          }
-        }
-      }
-    },
-    "asset.form.section.sale" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disposal"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "处置"
-          }
-        }
-      }
-    },
-    "asset.form.section.valuation" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Valuation"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "估值"
-          }
-        }
-      }
-    },
-    "asset.form.section.valuation.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If unset, the purchase price is used for current value."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未设置时将以购置价格作为当前估值。"
-          }
-        }
-      }
-    },
-    "asset.form.sold.enable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mark as sold"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "标记为已出售"
-          }
-        }
-      }
-    },
-    "asset.new.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New asset"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新建资产"
-          }
-        }
-      }
-    },
-    "asset.row.estimatedValueNotSet" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estimated value not set"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尚未设置估值"
-          }
-        }
-      }
-    },
-    "asset.row.purchaseCost" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Purchase cost"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "购置成本"
-          }
-        }
-      }
-    },
-    "asset.row.purchasedOn" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Purchased {date}"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "购置于 {date}"
-          }
-        }
-      }
-    },
-    "asset.section.itemCount" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "{count} items"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "{count} 项"
-          }
-        }
-      }
-    },
-    "asset.section.sold" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sold"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已出售"
-          }
-        }
-      }
-    },
-    "asset.total.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total purchase cost"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "总购置成本"
-          }
-        }
-      }
-    },
-    "asset.trend" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cumulative purchase cost"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "累计购置成本"
-          }
-        }
-      }
-    },
-    "asset.trend.empty.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add your first asset to see the purchase timeline."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加首个资产后，将会显示购置时间曲线。"
-          }
-        }
-      }
-    },
-    "asset.trend.empty.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No purchases yet"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尚无购置记录"
-          }
-        }
-      }
-    },
-    "asset.value.label.current" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "current"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当前估值"
-          }
-        }
-      }
-    },
-    "asset.value.label.purchase" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "purchase"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "购置价格"
-          }
-        }
-      }
-    },
-    "asset.value.label.sale" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "sale"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出售价格"
-          }
-        }
-      }
-    },
     "batch.clear" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2676,7 +1894,7 @@
         }
       }
     },
-    "overview.addSnapshot" : {
+    "assets.addSnapshot" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2693,7 +1911,7 @@
         }
       }
     },
-    "overview.byMember" : {
+    "assets.byMember" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2710,7 +1928,7 @@
         }
       }
     },
-    "overview.empty.hint" : {
+    "assets.empty.hint" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2727,7 +1945,7 @@
         }
       }
     },
-    "overview.empty.title" : {
+    "assets.empty.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2744,7 +1962,7 @@
         }
       }
     },
-    "overview.homeCurrency" : {
+    "assets.homeCurrency" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2761,7 +1979,7 @@
         }
       }
     },
-    "overview.missingRates" : {
+    "assets.missingRates" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2778,7 +1996,7 @@
         }
       }
     },
-    "overview.missingRates.short" : {
+    "assets.missingRates.short" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2795,7 +2013,7 @@
         }
       }
     },
-    "overview.netWorth" : {
+    "assets.netWorth" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2812,7 +2030,7 @@
         }
       }
     },
-    "overview.ratesAsOf" : {
+    "assets.ratesAsOf" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2829,7 +2047,7 @@
         }
       }
     },
-    "overview.refresh.failure" : {
+    "assets.refresh.failure" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2846,7 +2064,7 @@
         }
       }
     },
-    "overview.refreshRates" : {
+    "assets.refreshRates" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2863,7 +2081,7 @@
         }
       }
     },
-    "overview.snapshots" : {
+    "assets.snapshots" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2880,7 +2098,7 @@
         }
       }
     },
-    "overview.snapshots.empty.hint" : {
+    "assets.snapshots.empty.hint" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2897,7 +2115,7 @@
         }
       }
     },
-    "overview.snapshots.empty.title" : {
+    "assets.snapshots.empty.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2914,7 +2132,7 @@
         }
       }
     },
-    "overview.snapshots.filter.allYears" : {
+    "assets.snapshots.filter.allYears" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2931,7 +2149,7 @@
         }
       }
     },
-    "overview.snapshots.filter.empty" : {
+    "assets.snapshots.filter.empty" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2948,7 +2166,7 @@
         }
       }
     },
-    "overview.tab.assets" : {
+    "assets.tab.assets" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2965,7 +2183,7 @@
         }
       }
     },
-    "overview.tab.financial" : {
+    "assets.tab.financial" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2982,7 +2200,7 @@
         }
       }
     },
-    "overview.tab.picker" : {
+    "assets.tab.picker" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2999,10 +2217,27 @@
         }
       }
     },
-    "overview.tab.title" : {
+    "assets.tab.possessions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Possessions"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实物资产"
+          }
+        }
+      }
+    },
+    "assets.tab.title" : {
 
     },
-    "overview.tab.trend" : {
+    "assets.tab.trend" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3019,24 +2254,24 @@
         }
       }
     },
-    "overview.title" : {
+    "assets.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Overview"
+            "value" : "Assets"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "总览"
+            "value" : "资产"
           }
         }
       }
     },
-    "overview.trend" : {
+    "assets.trend" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3053,7 +2288,7 @@
         }
       }
     },
-    "overview.trend.axis.amount" : {
+    "assets.trend.axis.amount" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3070,7 +2305,7 @@
         }
       }
     },
-    "overview.trend.axis.month" : {
+    "assets.trend.axis.month" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3087,7 +2322,7 @@
         }
       }
     },
-    "overview.trend.empty.hint" : {
+    "assets.trend.empty.hint" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3104,7 +2339,7 @@
         }
       }
     },
-    "overview.trend.empty.title" : {
+    "assets.trend.empty.title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3121,7 +2356,7 @@
         }
       }
     },
-    "overview.trend.range" : {
+    "assets.trend.range" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3138,7 +2373,7 @@
         }
       }
     },
-    "overview.trend.range.1y" : {
+    "assets.trend.range.1y" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3155,7 +2390,7 @@
         }
       }
     },
-    "overview.trend.range.2y" : {
+    "assets.trend.range.2y" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3172,7 +2407,7 @@
         }
       }
     },
-    "overview.trend.range.5y" : {
+    "assets.trend.range.5y" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3189,7 +2424,7 @@
         }
       }
     },
-    "overview.trend.range.6m" : {
+    "assets.trend.range.6m" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3206,7 +2441,7 @@
         }
       }
     },
-    "overview.updateThisMonth" : {
+    "assets.updateThisMonth" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3678,6 +2913,788 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法保存快照"
+          }
+        }
+      }
+    },
+    "possession.badge.revalued" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revalued"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已重估"
+          }
+        }
+      }
+    },
+    "possession.badge.sold" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sold"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已出售"
+          }
+        }
+      }
+    },
+    "possession.category.electronics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Electronics"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电子产品"
+          }
+        }
+      }
+    },
+    "possession.category.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他"
+          }
+        }
+      }
+    },
+    "possession.category.realEstate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Real estate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不动产"
+          }
+        }
+      }
+    },
+    "possession.category.vehicle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vehicle"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "车辆"
+          }
+        }
+      }
+    },
+    "possession.count.active" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{count} active"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "持有中 {count} 项"
+          }
+        }
+      }
+    },
+    "possession.delete.confirm.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will permanently remove the asset record."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "资产记录将被永久删除。"
+          }
+        }
+      }
+    },
+    "possession.delete.confirm.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete asset?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除资产？"
+          }
+        }
+      }
+    },
+    "possession.edit.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit asset"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑资产"
+          }
+        }
+      }
+    },
+    "possession.empty.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track real estate, vehicles, and electronics alongside your accounts."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在账户之外，追踪不动产、车辆和电子产品等实物资产。"
+          }
+        }
+      }
+    },
+    "possession.empty.noMember.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a family member first, then come back to register an asset."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先添加家庭成员，再回来登记资产。"
+          }
+        }
+      }
+    },
+    "possession.empty.noMember.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No members yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有成员"
+          }
+        }
+      }
+    },
+    "possession.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No physical assets yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有实物资产"
+          }
+        }
+      }
+    },
+    "possession.form.category" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Category"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类别"
+          }
+        }
+      }
+    },
+    "possession.form.currency.immutable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchase currency cannot be changed after creation."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购置币种创建后不可更改。"
+          }
+        }
+      }
+    },
+    "possession.form.currentValue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current value"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前估值"
+          }
+        }
+      }
+    },
+    "possession.form.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称"
+          }
+        }
+      }
+    },
+    "possession.form.note" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备注"
+          }
+        }
+      }
+    },
+    "possession.form.owner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Owner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "归属成员"
+          }
+        }
+      }
+    },
+    "possession.form.purchaseDate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchase date"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购置日期"
+          }
+        }
+      }
+    },
+    "possession.form.purchasePrice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchase price"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购置价格"
+          }
+        }
+      }
+    },
+    "possession.form.revalue.enable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Override with current value"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用当前估值"
+          }
+        }
+      }
+    },
+    "possession.form.revalue.updatedAt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updated {date}"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新于 {date}"
+          }
+        }
+      }
+    },
+    "possession.form.saleDate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sale date"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出售日期"
+          }
+        }
+      }
+    },
+    "possession.form.salePrice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sale price"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出售价格"
+          }
+        }
+      }
+    },
+    "possession.form.section.basics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basics"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基本信息"
+          }
+        }
+      }
+    },
+    "possession.form.section.owner" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Owner"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "归属"
+          }
+        }
+      }
+    },
+    "possession.form.section.purchase" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchase"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购置信息"
+          }
+        }
+      }
+    },
+    "possession.form.section.sale" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disposal"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "处置"
+          }
+        }
+      }
+    },
+    "possession.form.section.valuation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valuation"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "估值"
+          }
+        }
+      }
+    },
+    "possession.form.section.valuation.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If unset, the purchase price is used for current value."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未设置时将以购置价格作为当前估值。"
+          }
+        }
+      }
+    },
+    "possession.form.sold.enable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark as sold"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标记为已出售"
+          }
+        }
+      }
+    },
+    "possession.new.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New asset"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建资产"
+          }
+        }
+      }
+    },
+    "possession.row.estimatedValueNotSet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimated value not set"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未设置估值"
+          }
+        }
+      }
+    },
+    "possession.row.purchaseCost" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchase cost"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购置成本"
+          }
+        }
+      }
+    },
+    "possession.row.purchasedOn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchased {date}"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购置于 {date}"
+          }
+        }
+      }
+    },
+    "possession.section.itemCount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{count} items"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{count} 项"
+          }
+        }
+      }
+    },
+    "possession.section.sold" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sold"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已出售"
+          }
+        }
+      }
+    },
+    "possession.total.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total purchase cost"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总购置成本"
+          }
+        }
+      }
+    },
+    "possession.trend" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cumulative purchase cost"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "累计购置成本"
+          }
+        }
+      }
+    },
+    "possession.trend.empty.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add your first asset to see the purchase timeline."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加首个资产后，将会显示购置时间曲线。"
+          }
+        }
+      }
+    },
+    "possession.trend.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No purchases yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚无购置记录"
+          }
+        }
+      }
+    },
+    "possession.value.label.current" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "current"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前估值"
+          }
+        }
+      }
+    },
+    "possession.value.label.purchase" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "purchase"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购置价格"
+          }
+        }
+      }
+    },
+    "possession.value.label.sale" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sale"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出售价格"
           }
         }
       }

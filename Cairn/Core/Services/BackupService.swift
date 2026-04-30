@@ -14,7 +14,7 @@ public enum BackupService {
     ///
     /// History:
     /// - 1: initial release (members, accounts, holdings, snapshots, FX).
-    /// - 2: added `portfolioSnapshots` and `assets` (decoded as nil on
+    /// - 2: added `portfolioSnapshots` and `possessions` (decoded as nil on
     ///   older clients via optionals).
     /// - 3: added `Member.avatarData`.
     public static let currentVersion: Int = 3
@@ -31,7 +31,7 @@ public enum BackupService {
         let snapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
         let rates = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
         let portfolioSnapshots = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
-        let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
+        let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
 
         let payload = BackupPayload(
             version: currentVersion,
@@ -42,7 +42,7 @@ public enum BackupService {
             snapshots: snapshots.map(SnapshotDTO.init),
             fxRates: rates.map(FXRateDTO.init),
             portfolioSnapshots: portfolioSnapshots.map(PortfolioSnapshotDTO.init),
-            assets: assets.map(AssetDTO.init)
+            possessions: possessions.map(PossessionDTO.init)
         )
 
         let encoder = JSONEncoder()
@@ -172,7 +172,7 @@ public enum BackupService {
                     holdings: payload.holdings
                 )
                 insertPortfolioSnapshots(portfolioSnapshots, context: context)
-                insertAssets(payload.assets ?? [], memberById: memberById, context: context)
+                insertPossessions(payload.possessions ?? [], memberById: memberById, context: context)
             }
         } catch {
             throw DomainError.backupWriteFailed
@@ -193,8 +193,8 @@ public enum BackupService {
         holdings.forEach(context.delete)
         let accounts = (try? context.fetch(FetchDescriptor<Account>())) ?? []
         accounts.forEach(context.delete)
-        let assets = (try? context.fetch(FetchDescriptor<Asset>())) ?? []
-        assets.forEach(context.delete)
+        let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
+        possessions.forEach(context.delete)
         let members = (try? context.fetch(FetchDescriptor<Member>())) ?? []
         members.forEach(context.delete)
         let rates = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
@@ -306,14 +306,14 @@ public enum BackupService {
         }
     }
 
-    private static func insertAssets(
-        _ dtos: [AssetDTO],
+    private static func insertPossessions(
+        _ dtos: [PossessionDTO],
         memberById: [UUID: Member],
         context: ModelContext
     ) {
         for dto in dtos {
-            let category = AssetCategory(rawValue: dto.categoryRawValue) ?? .other
-            let asset = Asset(
+            let category = PossessionCategory(rawValue: dto.categoryRawValue) ?? .other
+            let possession = Possession(
                 name: dto.name,
                 category: category,
                 purchasePrice: dto.purchasePrice,
@@ -328,8 +328,8 @@ public enum BackupService {
                 member: dto.memberId.flatMap { memberById[$0] },
                 createdAt: dto.createdAt
             )
-            asset.id = dto.id
-            context.insert(asset)
+            possession.id = dto.id
+            context.insert(possession)
         }
     }
 
@@ -609,9 +609,9 @@ public struct BackupPayload: Codable, Sendable {
     /// Added in version 1.1; older backups omit this field entirely, so it
     /// is decoded as `nil` and treated as an empty collection.
     public let portfolioSnapshots: [PortfolioSnapshotDTO]?
-    /// Added in version 1.1 with physical-asset support. Older backups omit
+    /// Added in version 1.1 with physical-possession support. Older backups omit
     /// this field and decode as `nil`.
-    public let assets: [AssetDTO]?
+    public let possessions: [PossessionDTO]?
 
     public init(
         version: Int,
@@ -622,7 +622,7 @@ public struct BackupPayload: Codable, Sendable {
         snapshots: [SnapshotDTO],
         fxRates: [FXRateDTO],
         portfolioSnapshots: [PortfolioSnapshotDTO]? = nil,
-        assets: [AssetDTO]? = nil
+        possessions: [PossessionDTO]? = nil
     ) {
         self.version = version
         self.exportedAt = exportedAt
@@ -632,7 +632,7 @@ public struct BackupPayload: Codable, Sendable {
         self.snapshots = snapshots
         self.fxRates = fxRates
         self.portfolioSnapshots = portfolioSnapshots
-        self.assets = assets
+        self.possessions = possessions
     }
 }
 
@@ -764,7 +764,7 @@ public struct PortfolioSnapshotDTO: Codable, Sendable {
     }
 }
 
-public struct AssetDTO: Codable, Sendable {
+public struct PossessionDTO: Codable, Sendable {
     public let id: UUID
     public let name: String
     public let categoryRawValue: String
@@ -780,20 +780,20 @@ public struct AssetDTO: Codable, Sendable {
     public let createdAt: Date
     public let memberId: UUID?
 
-    init(_ asset: Asset) {
-        self.id = asset.id
-        self.name = asset.name
-        self.categoryRawValue = asset.categoryRawValue
-        self.purchasePrice = asset.purchasePrice
-        self.purchaseCurrency = asset.purchaseCurrency
-        self.purchaseDate = asset.purchaseDate
-        self.currentValue = asset.currentValue
-        self.currentValueUpdatedAt = asset.currentValueUpdatedAt
-        self.saleDate = asset.saleDate
-        self.salePrice = asset.salePrice
-        self.iconName = asset.iconName
-        self.note = asset.note
-        self.createdAt = asset.createdAt
-        self.memberId = asset.member?.id
+    init(_ possession: Possession) {
+        self.id = possession.id
+        self.name = possession.name
+        self.categoryRawValue = possession.categoryRawValue
+        self.purchasePrice = possession.purchasePrice
+        self.purchaseCurrency = possession.purchaseCurrency
+        self.purchaseDate = possession.purchaseDate
+        self.currentValue = possession.currentValue
+        self.currentValueUpdatedAt = possession.currentValueUpdatedAt
+        self.saleDate = possession.saleDate
+        self.salePrice = possession.salePrice
+        self.iconName = possession.iconName
+        self.note = possession.note
+        self.createdAt = possession.createdAt
+        self.memberId = possession.member?.id
     }
 }

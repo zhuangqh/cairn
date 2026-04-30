@@ -31,7 +31,7 @@ struct DashboardView: View {
     @Query private var snapshots: [Snapshot]
     @Query private var rates: [FXRate]
     @Query private var members: [Member]
-    @Query private var assets: [Asset]
+    @Query private var possessions: [Possession]
 
     /// Current hover selection from the embedded trend chart. When set, the
     /// hero / composition / allocation cards render values as of that month.
@@ -71,7 +71,7 @@ struct DashboardView: View {
     private func derive() -> Derivation {
         // Touch the @Query sentinels so SwiftUI invalidates this view when
         // any upstream model changes.
-        _ = holdings.count + snapshots.count + rates.count + members.count + assets.count
+        _ = holdings.count + snapshots.count + rates.count + members.count + possessions.count
 
         let asOf = effectiveAsOf
         let prevAsOf = previousMonth(of: asOf)
@@ -95,13 +95,13 @@ struct DashboardView: View {
             sortedSnapshots: snapshotIndex,
             context: context
         )
-        let physical = AssetService.bundle(
+        let physical = PossessionService.bundle(
             homeCurrency: homeCurrency,
             asOf: hoverSelection?.period,
             rateCache: rateCache,
             context: context
         )
-        let physicalPrev = AssetService.bundle(
+        let physicalPrev = PossessionService.bundle(
             homeCurrency: homeCurrency,
             asOf: prevAsOf,
             rateCache: rateCache,
@@ -134,12 +134,12 @@ struct DashboardView: View {
         )
     }
 
-    /// Folds physical-asset categories into the per-kind buckets:
+    /// Folds physical-possession categories into the per-kind buckets:
     ///   `realEstate / vehicle      → AccountKind.realEstate`
     ///   `electronics / other       → AccountKind.device`
     private func mergeByKind(
         financial: [NetWorthCalculator.KindTotal],
-        physical: [AssetService.CategoryTotal]
+        physical: [PossessionService.CategoryTotal]
     ) -> [AccountKind: Decimal] {
         var byKind: [AccountKind: Decimal] = [:]
         byKind.reserveCapacity(financial.count + physical.count)
@@ -411,7 +411,7 @@ struct DashboardView: View {
 
     private var trendCard: some View {
         TrendChartView(
-            showAssetOverlay: true,
+            showPossessionOverlay: true,
             onSelectionChange: { selection in
                 withAnimation(.easeOut(duration: 0.15)) {
                     hoverSelection = selection

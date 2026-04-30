@@ -73,11 +73,11 @@ final class BackupServiceTests: XCTestCase {
         XCTAssertEqual(snapshots.first?.amount, 500)
     }
 
-    func testExportImportRoundTripPreservesAssets() throws {
+    func testExportImportRoundTripPreservesPossessions() throws {
         let context = container.mainContext
         let member = Member(name: "Alice")
         context.insert(member)
-        let house = Asset(
+        let house = Possession(
             name: "Apartment",
             category: .realEstate,
             purchasePrice: 800_000,
@@ -88,7 +88,7 @@ final class BackupServiceTests: XCTestCase {
             note: "Primary residence",
             member: member
         )
-        let phone = Asset(
+        let phone = Possession(
             name: "iPhone 15",
             category: .electronics,
             purchasePrice: 999,
@@ -106,9 +106,9 @@ final class BackupServiceTests: XCTestCase {
         let other = try PersistenceController.makeContainer(.inMemory)
         _ = try BackupService.restoreReplacing(from: data, context: other.mainContext)
 
-        let assets = try other.mainContext.fetch(FetchDescriptor<Asset>())
-        XCTAssertEqual(assets.count, 2)
-        let byName = Dictionary(uniqueKeysWithValues: assets.map { ($0.name, $0) })
+        let possessions = try other.mainContext.fetch(FetchDescriptor<Possession>())
+        XCTAssertEqual(possessions.count, 2)
+        let byName = Dictionary(uniqueKeysWithValues: possessions.map { ($0.name, $0) })
         XCTAssertEqual(byName["Apartment"]?.category, .realEstate)
         XCTAssertEqual(byName["Apartment"]?.purchasePrice, 800_000)
         XCTAssertEqual(byName["Apartment"]?.currentValue, 950_000)
@@ -117,8 +117,8 @@ final class BackupServiceTests: XCTestCase {
         XCTAssertEqual(byName["iPhone 15"]?.salePrice, 420)
     }
 
-    func testRestoreOldBackupWithoutAssetsSucceeds() throws {
-        // Simulate a pre-v1.1 backup: payload with no `assets` field.
+    func testRestoreOldBackupWithoutPossessionsSucceeds() throws {
+        // Simulate a pre-v1.1 backup: payload with no `possessions` field.
         let json = """
         {
           "version": 1,
@@ -132,9 +132,9 @@ final class BackupServiceTests: XCTestCase {
         """.data(using: .utf8)!
         let other = try PersistenceController.makeContainer(.inMemory)
         let payload = try BackupService.restoreReplacing(from: json, context: other.mainContext)
-        XCTAssertNil(payload.assets)
-        let assets = try other.mainContext.fetch(FetchDescriptor<Asset>())
-        XCTAssertTrue(assets.isEmpty)
+        XCTAssertNil(payload.possessions)
+        let possessions = try other.mainContext.fetch(FetchDescriptor<Possession>())
+        XCTAssertTrue(possessions.isEmpty)
     }
 
     func testParseRejectsBackupFromNewerVersion() throws {
@@ -273,7 +273,7 @@ final class BackupServiceTests: XCTestCase {
               "rates": []
             }
           ],
-          "assets": []
+          "possessions": []
         }
         """.data(using: .utf8)!
 
@@ -319,7 +319,7 @@ final class BackupServiceTests: XCTestCase {
               "rates": []
             }
           ],
-          "assets": []
+          "possessions": []
         }
         """.data(using: .utf8)!
 

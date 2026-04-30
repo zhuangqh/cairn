@@ -15,8 +15,8 @@ public final class Member {
     @Relationship(deleteRule: .cascade, inverse: \Account.member)
     public var accounts: [Account]? = []
 
-    @Relationship(deleteRule: .cascade, inverse: \Asset.member)
-    public var assets: [Asset]? = []
+    @Relationship(deleteRule: .cascade, inverse: \Possession.member)
+    public var possessions: [Possession]? = []
 
     public init(name: String, avatarData: Data? = nil, createdAt: Date = .now) {
         self.id = UUID()
@@ -24,6 +24,6 @@ public final class Member {
         self.avatarData = avatarData
         self.createdAt = createdAt
         self.accounts = []
-        self.assets = []
+        self.possessions = []
     }
 }

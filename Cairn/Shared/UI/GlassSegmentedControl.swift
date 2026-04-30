@@ -183,7 +183,7 @@ private extension Color {
 
 #if DEBUG
 private struct GlassSegmentedControlPreview: View {
-    enum Demo: String, CaseIterable, Hashable { case trend, assets }
+    enum Demo: String, CaseIterable, Hashable { case trend, possessions }
     @State private var selection: Demo = .trend
     var body: some View {
         GlassSegmentedControl(
@@ -192,13 +192,13 @@ private struct GlassSegmentedControlPreview: View {
             title: { opt in
                 switch opt {
                 case .trend: return "Trend"
-                case .assets: return "Assets"
+                case .possessions: return "Possessions"
                 }
             },
             icon: { opt in
                 switch opt {
                 case .trend: return "chart.line.uptrend.xyaxis"
-                case .assets: return "house.and.flag"
+                case .possessions: return "house.and.flag"
                 }
             }
         )

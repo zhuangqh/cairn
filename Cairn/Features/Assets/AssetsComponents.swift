@@ -3,7 +3,7 @@ import SwiftData
 
 // MARK: - Delta badge
 
-/// Compact "↑ +2.9%" / "↓ -1.4%" pill used across the Overview screen.
+/// Compact "↑ +2.9%" / "↓ -1.4%" pill used across the Assets screen.
 /// Hidden when `percent` is `nil` (no baseline available).
 struct DeltaBadge: View {
     /// Fractional change, e.g. `0.029` → `+2.9%`. `nil` renders nothing.
@@ -79,7 +79,7 @@ struct DeltaBadge: View {
 /// Apple-Wallet-flavored row showing a member's contribution to the
 /// household net worth: avatar, name, amount, share bar with percent, and
 /// month-over-month delta.
-struct OverviewMemberRow: View {
+struct AssetsMemberRow: View {
     let memberId: UUID
     let memberName: String
     let avatarData: Data?
@@ -140,7 +140,7 @@ struct OverviewMemberRow: View {
     }
 }
 
-/// Thin proportional bar used inside `OverviewMemberRow`.
+/// Thin proportional bar used inside `AssetsMemberRow`.
 private struct ShareBar: View {
     let progress: Double
 
@@ -170,7 +170,7 @@ private struct ShareBar: View {
 /// Apple-Stocks-meets-timeline row: a small dot + connector line on the
 /// leading edge, the period and amount on the trailing side, and a
 /// delta-vs-prior-snapshot pill underneath.
-struct OverviewSnapshotRow: View {
+struct AssetsSnapshotRow: View {
     let snapshot: PortfolioSnapshot
     /// The chronologically-prior snapshot (older). Used to compute delta.
     let previous: PortfolioSnapshot?

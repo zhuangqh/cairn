@@ -201,9 +201,9 @@ struct AccountDetailView: View {
                     selectedYear = nil
                 } label: {
                     if selectedYear == nil {
-                        Label("overview.snapshots.filter.allYears", systemImage: "checkmark")
+                        Label("assets.snapshots.filter.allYears", systemImage: "checkmark")
                     } else {
-                        Text("overview.snapshots.filter.allYears")
+                        Text("assets.snapshots.filter.allYears")
                     }
                 }
                 Divider()
@@ -220,7 +220,7 @@ struct AccountDetailView: View {
                 }
             } label: {
                 Label {
-                    Text(verbatim: selectedYear.map(String.init) ?? String(localized: "overview.snapshots.filter.allYears"))
+                    Text(verbatim: selectedYear.map(String.init) ?? String(localized: "assets.snapshots.filter.allYears"))
                 } icon: {
                     Image(systemName: "line.3.horizontal.decrease.circle")
                 }

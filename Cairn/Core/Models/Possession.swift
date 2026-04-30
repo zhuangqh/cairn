@@ -1,21 +1,21 @@
 import Foundation
 import SwiftData
 
-/// A physical asset owned by a family `Member` (PRD §4.7, v1.1):
+/// A physical possession owned by a family `Member` (PRD §4.7, v1.1):
 /// real estate, vehicles, electronics, etc. Valued manually — there is no
 /// per-month `Snapshot` series. The current value defaults to `purchasePrice`
 /// until the user overrides it via `currentValue`.
 ///
-/// Sold assets carry a `saleDate` + `salePrice` and are excluded from current
+/// Sold possessions carry a `saleDate` + `salePrice` and are excluded from current
 /// net worth but retained in history.
 ///
 /// Note: CloudKit-backed SwiftData requires every stored property to have a
 /// default value and every to-many relationship to be an optional array.
 @Model
-public final class Asset {
+public final class Possession {
     public var id: UUID = UUID()
     public var name: String = ""
-    public var categoryRawValue: String = AssetCategory.realEstate.rawValue
+    public var categoryRawValue: String = PossessionCategory.realEstate.rawValue
 
     /// Native acquisition price in `purchaseCurrency`.
     public var purchasePrice: Decimal = 0
@@ -27,7 +27,7 @@ public final class Asset {
     public var currentValue: Decimal?
     public var currentValueUpdatedAt: Date?
 
-    /// Non-nil marks the asset as disposed of.
+    /// Non-nil marks the possession as disposed of.
     public var saleDate: Date?
     public var salePrice: Decimal?
 
@@ -39,17 +39,17 @@ public final class Asset {
     @Relationship public var member: Member?
 
     /// Typed accessor over the persisted `categoryRawValue` token.
-    public var category: AssetCategory {
-        get { AssetCategory(rawValue: categoryRawValue) ?? .other }
+    public var category: PossessionCategory {
+        get { PossessionCategory(rawValue: categoryRawValue) ?? .other }
         set { categoryRawValue = newValue.rawValue }
     }
 
-    /// Whether the asset has been disposed of (i.e. has a sale date).
+    /// Whether the possession has been disposed of (i.e. has a sale date).
     public var isSold: Bool { saleDate != nil }
 
     /// Effective value for "what it's worth today" reporting.
     /// Falls back to `purchasePrice` when no manual revaluation has been made.
-    /// Returns `nil` for sold assets (they are excluded from current net worth).
+    /// Returns `nil` for sold possessions (they are excluded from current net worth).
     public var effectiveValue: Decimal? {
         guard !isSold else { return nil }
         return currentValue ?? purchasePrice
@@ -57,7 +57,7 @@ public final class Asset {
 
     public init(
         name: String,
-        category: AssetCategory,
+        category: PossessionCategory,
         purchasePrice: Decimal,
         purchaseCurrency: String,
         purchaseDate: Date = .now,

@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// Computes aggregated asset values from the SwiftData store.
+/// Computes aggregated possession values from the SwiftData store.
 ///
 /// Each `Holding` is valued by its latest `Snapshot` at or before a given
 /// `periodMonth`; amounts are converted to `homeCurrency` using cached
@@ -44,7 +44,7 @@ public enum NetWorthCalculator {
     /// same render pass — total, per-member, per-kind, missing currencies,
     /// and the month-over-month delta — computed from a single holdings
     /// fetch + a single FX-rate cache. Designed to be the only entry point
-    /// the dashboards / overview screens need.
+    /// the dashboards / assets screens need.
     public struct Bundle: Sendable, Equatable {
         public var totals: Totals
         public var byKind: [KindTotal]

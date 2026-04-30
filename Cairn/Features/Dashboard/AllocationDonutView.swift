@@ -192,8 +192,8 @@ extension AccountKind {
     }
 }
 
-/// Small signed-percentage badge shared with the Overview screen lives in
-/// `OverviewComponents.swift` (`DeltaBadge`). It accepts a `Double?` and is
+/// Small signed-percentage badge shared with the Assets screen lives in
+/// `AssetsComponents.swift` (`DeltaBadge`). It accepts a `Double?` and is
 /// hidden when the baseline is `nil` — exactly the semantics the
 /// allocation list and composition card need here.
 

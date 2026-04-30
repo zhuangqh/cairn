@@ -1,11 +1,11 @@
 import Foundation
 import SwiftUI
 
-/// Stable persistence tokens for physical-asset categories (PRD §4.7, v1.1).
+/// Stable persistence tokens for physical-possession categories (PRD §4.7, v1.1).
 ///
 /// Raw values are written to the store and MUST NOT be changed without a migration.
-/// User-facing labels come from the String Catalog (`asset.category.*`).
-public enum AssetCategory: String, Codable, CaseIterable, Sendable {
+/// User-facing labels come from the String Catalog (`possession.category.*`).
+public enum PossessionCategory: String, Codable, CaseIterable, Sendable {
     case realEstate
     case vehicle
     case electronics
@@ -14,10 +14,10 @@ public enum AssetCategory: String, Codable, CaseIterable, Sendable {
     /// Localization key for the user-facing name of the category.
     public var localizationKey: String {
         switch self {
-        case .realEstate: return "asset.category.realEstate"
-        case .vehicle: return "asset.category.vehicle"
-        case .electronics: return "asset.category.electronics"
-        case .other: return "asset.category.other"
+        case .realEstate: return "possession.category.realEstate"
+        case .vehicle: return "possession.category.vehicle"
+        case .electronics: return "possession.category.electronics"
+        case .other: return "possession.category.other"
         }
     }
 

@@ -105,8 +105,8 @@ struct RootView: View {
         switch item {
         case .dashboard:
             NavigationStack { DashboardView() }
-        case .overview:
-            NavigationStack { OverviewView() }
+        case .assets:
+            NavigationStack { AssetsView() }
         case .accounts:
             NavigationStack { MembersListView() }
         case .settings:
@@ -117,14 +117,14 @@ struct RootView: View {
 
 enum SidebarItem: CaseIterable, Hashable {
     case dashboard
-    case overview
+    case assets
     case accounts
     case settings
 
     var titleKey: String {
         switch self {
         case .dashboard: return "dashboard.title"
-        case .overview: return "overview.title"
+        case .assets: return "assets.title"
         case .accounts: return "accounts.title"
         case .settings: return "settings.title"
         }
@@ -133,7 +133,7 @@ enum SidebarItem: CaseIterable, Hashable {
     var systemImage: String {
         switch self {
         case .dashboard: return "square.grid.2x2"
-        case .overview: return "chart.line.uptrend.xyaxis"
+        case .assets: return "chart.line.uptrend.xyaxis"
         case .accounts: return "wallet.pass"
         case .settings: return "gearshape"
         }

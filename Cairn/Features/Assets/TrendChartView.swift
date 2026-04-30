@@ -17,7 +17,7 @@ struct TrendChartView: View {
     @Query private var rates: [FXRate]
     @Query private var holdings: [Holding]
     @Query private var accounts: [Account]
-    @Query private var assets: [Asset]
+    @Query private var possessions: [Possession]
     @Query(sort: \PortfolioSnapshot.periodMonth)
     private var portfolioSnapshots: [PortfolioSnapshot]
 
@@ -27,32 +27,32 @@ struct TrendChartView: View {
     /// Cache of the heavy data series. The cache key intentionally excludes
     /// `hoverSelection` so hovering — which fires many state updates per
     /// second and re-runs `body` — never re-derives the trend, snapshot
-    /// markers, or asset overlay. The cache refreshes on `onAppear` and
+    /// markers, or possession overlay. The cache refreshes on `onAppear` and
     /// whenever `cacheFingerprint` changes (range, currency, or any
     /// upstream model count).
     @State private var cachedFingerprint: Int = 0
     @State private var cachedPoints: [TrendPoint] = []
     @State private var cachedMarkers: [SnapshotMarker] = []
-    @State private var cachedAssetSeries: [Date: Decimal] = [:]
+    @State private var cachedPossessionSeries: [Date: Decimal] = [:]
     @State private var hasComputed: Bool = false
 
     /// Optional observer fired whenever the hover selection changes.
     /// Used by the Dashboard to drive time-travel on the hero / allocation cards.
     var onSelectionChange: ((TrendSelection?) -> Void)?
 
-    /// When `true`, overlays a green cumulative-physical-asset line on top
+    /// When `true`, overlays a green cumulative-physical-possession line on top
     /// of the financial trend. Only the financial (snapshot) points remain
-    /// hoverable; the hover callout gains an extra row showing the asset
+    /// hoverable; the hover callout gains an extra row showing the possession
     /// total at the selected month. Used by the Dashboard to give a single
     /// "combined wealth over time" view while keeping the financial story
     /// authoritative for time-travel.
-    let showAssetOverlay: Bool
+    let showPossessionOverlay: Bool
 
     init(
-        showAssetOverlay: Bool = false,
+        showPossessionOverlay: Bool = false,
         onSelectionChange: ((TrendSelection?) -> Void)? = nil
     ) {
-        self.showAssetOverlay = showAssetOverlay
+        self.showPossessionOverlay = showPossessionOverlay
         self.onSelectionChange = onSelectionChange
     }
 
@@ -62,10 +62,10 @@ struct TrendChartView: View {
     @ViewBuilder
     private func header() -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(LocalizedStringKey(showAssetOverlay ? "dashboard.trend" : "overview.trend"))
-                .font(showAssetOverlay ? .notionCardTitle : .headline)
-                .tracking(showAssetOverlay ? -0.25 : 0)
-                .foregroundStyle(showAssetOverlay ? Color.notionInk : Color.primary)
+            Text(LocalizedStringKey(showPossessionOverlay ? "dashboard.trend" : "assets.trend"))
+                .font(showPossessionOverlay ? .notionCardTitle : .headline)
+                .tracking(showPossessionOverlay ? -0.25 : 0)
+                .foregroundStyle(showPossessionOverlay ? Color.notionInk : Color.primary)
                 .fixedSize()
                 .layoutPriority(2)
 
@@ -86,7 +86,7 @@ struct TrendChartView: View {
                     Text(LocalizedStringKey(option.localizationKey)).tag(option)
                 }
             } label: {
-                Text("overview.trend.range")
+                Text("assets.trend.range")
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -102,19 +102,19 @@ struct TrendChartView: View {
 
             let points = cachedPoints
             let markers = cachedMarkers
-            let assetByPeriod = cachedAssetSeries
+            let possessionByPeriod = cachedPossessionSeries
             if hasComputed
                 && points.filter({ $0.amount > 0 }).isEmpty
                 && markers.isEmpty
-                && assetByPeriod.values.allSatisfy({ $0 == 0 }) {
+                && possessionByPeriod.values.allSatisfy({ $0 == 0 }) {
                 ContentUnavailableView(
-                    "overview.trend.empty.title",
+                    "assets.trend.empty.title",
                     systemImage: "chart.xyaxis.line",
-                    description: Text("overview.trend.empty.hint")
+                    description: Text("assets.trend.empty.hint")
                 )
                 .frame(minHeight: 220)
             } else {
-                chart(for: points, markers: markers, assetByPeriod: assetByPeriod)
+                chart(for: points, markers: markers, possessionByPeriod: possessionByPeriod)
             }
         }
         .onAppear { refreshCacheIfNeeded(fingerprint) }
@@ -131,7 +131,7 @@ struct TrendChartView: View {
         var hasher = Hasher()
         hasher.combine(homeCurrency)
         hasher.combine(range)
-        hasher.combine(showAssetOverlay)
+        hasher.combine(showPossessionOverlay)
         for snapshot in snapshots.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
             hasher.combine(snapshot.id)
             hasher.combine(snapshot.periodMonth)
@@ -158,11 +158,11 @@ struct TrendChartView: View {
             hasher.combine(account.isArchived)
             hasher.combine(account.member?.id)
         }
-        for asset in assets.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
-            hasher.combine(asset.id)
-            hasher.combine(asset.purchaseDate)
-            hasher.combine(asset.purchaseCurrency)
-            hasher.combine(NSDecimalNumber(decimal: asset.purchasePrice).stringValue)
+        for possession in possessions.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+            hasher.combine(possession.id)
+            hasher.combine(possession.purchaseDate)
+            hasher.combine(possession.purchaseCurrency)
+            hasher.combine(NSDecimalNumber(decimal: possession.purchasePrice).stringValue)
         }
         for snapshot in portfolioSnapshots.sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
             hasher.combine(snapshot.id)
@@ -181,7 +181,7 @@ struct TrendChartView: View {
         let points = trendPoints()
         cachedPoints = points
         cachedMarkers = snapshotMarkers(windowStart: points.first?.period)
-        cachedAssetSeries = assetSeries(for: points)
+        cachedPossessionSeries = possessionSeries(for: points)
         cachedFingerprint = fingerprint
         hasComputed = true
     }
@@ -190,13 +190,13 @@ struct TrendChartView: View {
     private func chart(
         for points: [TrendPoint],
         markers: [SnapshotMarker],
-        assetByPeriod: [Date: Decimal]
+        possessionByPeriod: [Date: Decimal]
     ) -> some View {
         Chart {
             trendMarks(points)
-            assetOverlayMarks(points: points, assetByPeriod: assetByPeriod)
+            possessionOverlayMarks(points: points, possessionByPeriod: possessionByPeriod)
             snapshotMarks(markers)
-            hoverMarks(assetByPeriod: assetByPeriod)
+            hoverMarks(possessionByPeriod: possessionByPeriod)
         }
         .chartYAxis {
             AxisMarks(position: .leading) { value in
@@ -271,10 +271,10 @@ struct TrendChartView: View {
     }
 
     @ChartContentBuilder
-    private func hoverMarks(assetByPeriod: [Date: Decimal]) -> some ChartContent {
+    private func hoverMarks(possessionByPeriod: [Date: Decimal]) -> some ChartContent {
         if let selection = hoverSelection {
-            let assetAmount = showAssetOverlay ? assetByPeriod[selection.period] : nil
-            RuleMark(x: .value("overview.trend.axis.month", selection.period))
+            let possessionAmount = showPossessionOverlay ? possessionByPeriod[selection.period] : nil
+            RuleMark(x: .value("assets.trend.axis.month", selection.period))
                 .foregroundStyle(Color.secondary.opacity(0.35))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 .annotation(
@@ -283,11 +283,11 @@ struct TrendChartView: View {
                     spacing: 6,
                     overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))
                 ) {
-                    hoverCallout(for: selection, assetAmount: assetAmount)
+                    hoverCallout(for: selection, possessionAmount: possessionAmount)
                 }
             PointMark(
-                x: .value("overview.trend.axis.month", selection.period),
-                y: .value("overview.trend.axis.amount", selection.amountDouble)
+                x: .value("assets.trend.axis.month", selection.period),
+                y: .value("assets.trend.axis.amount", selection.amountDouble)
             )
             .symbolSize(60)
             .foregroundStyle(Color.accentColor)
@@ -295,7 +295,7 @@ struct TrendChartView: View {
     }
 
     @ViewBuilder
-    private func hoverCallout(for selection: TrendSelection, assetAmount: Decimal?) -> some View {
+    private func hoverCallout(for selection: TrendSelection, possessionAmount: Decimal?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(selection.period, format: .dateTime.year().month(.wide).locale(locale))
                 .font(.caption2)
@@ -305,11 +305,11 @@ struct TrendChartView: View {
                 labelKey: "dashboard.balance.financial",
                 amount: selection.amount
             )
-            if let assetAmount {
+            if let possessionAmount {
                 calloutRow(
                     color: .green,
                     labelKey: "dashboard.balance.physical",
-                    amount: assetAmount
+                    amount: possessionAmount
                 )
             }
         }
@@ -360,13 +360,13 @@ struct TrendChartView: View {
     private func trendMarks(_ points: [TrendPoint]) -> some ChartContent {
         ForEach(points) { point in
             LineMark(
-                x: .value("overview.trend.axis.month", point.period),
-                y: .value("overview.trend.axis.amount", point.amountDouble)
+                x: .value("assets.trend.axis.month", point.period),
+                y: .value("assets.trend.axis.amount", point.amountDouble)
             )
             .interpolationMethod(.monotone)
             AreaMark(
-                x: .value("overview.trend.axis.month", point.period),
-                y: .value("overview.trend.axis.amount", point.amountDouble)
+                x: .value("assets.trend.axis.month", point.period),
+                y: .value("assets.trend.axis.amount", point.amountDouble)
             )
             .foregroundStyle(
                 .linearGradient(
@@ -379,32 +379,32 @@ struct TrendChartView: View {
         }
     }
 
-    /// Green cumulative-asset overlay. Rendered behind the snapshot markers
+    /// Green cumulative-possession overlay. Rendered behind the snapshot markers
     /// but above the financial area so the two curves read as siblings.
     /// Points carry no hover target — only the financial snapshots are
-    /// hoverable; the asset value at the selected month surfaces through
+    /// hoverable; the possession value at the selected month surfaces through
     /// the shared callout.
     @ChartContentBuilder
-    private func assetOverlayMarks(
+    private func possessionOverlayMarks(
         points: [TrendPoint],
-        assetByPeriod: [Date: Decimal]
+        possessionByPeriod: [Date: Decimal]
     ) -> some ChartContent {
-        if showAssetOverlay, !assetByPeriod.isEmpty {
+        if showPossessionOverlay, !possessionByPeriod.isEmpty {
             ForEach(points) { point in
-                let amount = assetByPeriod[point.period] ?? 0
-                let assetAmountDouble = NSDecimalNumber(decimal: amount).doubleValue
+                let amount = possessionByPeriod[point.period] ?? 0
+                let possessionAmountDouble = NSDecimalNumber(decimal: amount).doubleValue
                 LineMark(
-                    x: .value("overview.trend.axis.month", point.period),
-                    y: .value("overview.trend.axis.amount", assetAmountDouble),
-                    series: .value("series", "asset")
+                    x: .value("assets.trend.axis.month", point.period),
+                    y: .value("assets.trend.axis.amount", possessionAmountDouble),
+                    series: .value("series", "possession")
                 )
                 .foregroundStyle(Color.green)
                 .interpolationMethod(.monotone)
 
                 AreaMark(
-                    x: .value("overview.trend.axis.month", point.period),
-                    y: .value("overview.trend.axis.amount", assetAmountDouble),
-                    series: .value("series", "asset")
+                    x: .value("assets.trend.axis.month", point.period),
+                    y: .value("assets.trend.axis.amount", possessionAmountDouble),
+                    series: .value("series", "possession")
                 )
                 .foregroundStyle(
                     .linearGradient(
@@ -422,8 +422,8 @@ struct TrendChartView: View {
     private func snapshotMarks(_ markers: [SnapshotMarker]) -> some ChartContent {
         ForEach(markers) { marker in
             PointMark(
-                x: .value("overview.trend.axis.month", marker.periodMonth),
-                y: .value("overview.trend.axis.amount", marker.amountDouble)
+                x: .value("assets.trend.axis.month", marker.periodMonth),
+                y: .value("assets.trend.axis.amount", marker.amountDouble)
             )
             .symbol(.circle)
             .symbolSize(36)
@@ -456,36 +456,36 @@ struct TrendChartView: View {
     }
 
     /// Cumulative converted purchase value at each trend period, keyed by
-    /// that period's month anchor. An asset contributes to every period
+    /// that period's month anchor. An possession contributes to every period
     /// whose month is `>=` its `purchaseDate`'s month — so the curve is
     /// non-decreasing and reads like a "what did we own by then" timeline.
-    /// Sold assets still count because this chart tracks acquisition cost,
-    /// not current holdings — matches `AssetTrendChartView`'s semantics.
-    private func assetSeries(for points: [TrendPoint]) -> [Date: Decimal] {
-        guard showAssetOverlay, !points.isEmpty else { return [:] }
-        _ = assets.count + rates.count
+    /// Sold possessions still count because this chart tracks acquisition cost,
+    /// not current holdings — matches `PossessionTrendChartView`'s semantics.
+    private func possessionSeries(for points: [TrendPoint]) -> [Date: Decimal] {
+        guard showPossessionOverlay, !points.isEmpty else { return [:] }
+        _ = possessions.count + rates.count
 
-        // Pre-load every cached FX rate once so each asset's conversion is
-        // an in-memory lookup rather than a per-asset SwiftData fetch.
+        // Pre-load every cached FX rate once so each possession's conversion is
+        // an in-memory lookup rather than a per-possession SwiftData fetch.
         let cache = FXService.RateCache.load(in: context)
 
-        // Pre-convert every asset to the home currency and bucket by the
+        // Pre-convert every possession to the home currency and bucket by the
         // first-of-month anchor so we can compare against TrendPoint.period.
         let cal = Calendar.current
-        let converted: [(month: Date, amount: Decimal)] = assets.compactMap { asset in
+        let converted: [(month: Date, amount: Decimal)] = possessions.compactMap { possession in
             let value: Decimal
-            if asset.purchaseCurrency == homeCurrency {
-                value = asset.purchasePrice
+            if possession.purchaseCurrency == homeCurrency {
+                value = possession.purchasePrice
             } else if let fx = cache.convert(
-                amount: asset.purchasePrice,
-                from: asset.purchaseCurrency,
+                amount: possession.purchasePrice,
+                from: possession.purchaseCurrency,
                 to: homeCurrency
             ) {
                 value = fx
             } else {
                 return nil
             }
-            let comps = cal.dateComponents([.year, .month], from: asset.purchaseDate)
+            let comps = cal.dateComponents([.year, .month], from: possession.purchaseDate)
             guard let anchor = cal.date(from: comps) else { return nil }
             return (anchor, value)
         }
