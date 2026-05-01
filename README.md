@@ -19,6 +19,15 @@
 > The name comes from mountaineering — a **cairn** is a stack of stones left as a trail marker.
 > Each monthly snapshot in the app is one more stone on your family's financial trail.
 
+<!-- Product gallery — horizontally scrollable on GitHub -->
+<table>
+  <tr>
+    <td><img src="docs/assets/page1.png" alt="Dashboard with net-worth trend" width="380"></td>
+    <td><img src="docs/assets/page2.png" alt="Track progress over time" width="380"></td>
+    <td><img src="docs/assets/page3.png" alt="Excel-style monthly batch entry" width="380"></td>
+  </tr>
+</table>
+
 Cairn gives the family CFO a single, calm place to answer one question every month:
 **"What do we own, what is it worth, and how is it trending?"** No transactions to
 categorize, no API keys to configure, no cloud account to sign into.
