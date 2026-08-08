@@ -29,6 +29,8 @@ struct PortfolioSnapshotDetailView: View {
     @State private var errorMessage: String?
     @State private var resolvedPrevious: PortfolioSnapshot?
     @State private var resolvedCapturedDate: Date?
+    @State private var hoveredEntryID: UUID?
+    @State private var convertedEntryID: UUID?
 
     init(snapshot: PortfolioSnapshot, previous: PortfolioSnapshot? = nil) {
         self.snapshot = snapshot
@@ -305,8 +307,88 @@ struct PortfolioSnapshotDetailView: View {
 
     @ViewBuilder
     private func entryRow(_ row: EntryRow) -> some View {
+        #if os(macOS)
+        desktopEntryRow(row)
+        #else
+        compactEntryRow(row)
+        #endif
+    }
+
+    private func compactEntryRow(_ row: EntryRow) -> some View {
         let entry = row.current
-        HStack(alignment: .center, spacing: rowSpacing) {
+        let displaysConversion = convertedEntryID == entry.id && hasForeignConversion(entry)
+        let displayedDelta = displaysConversion ? convertedDelta(for: row) : row.delta
+        let deltaCurrency = displaysConversion ? snapshot.homeCurrency : entry.currency
+        return VStack(alignment: .trailing, spacing: 6) {
+            HStack(alignment: .center, spacing: rowSpacing) {
+                entryIdentity(row)
+
+                Spacer(minLength: minimumColumnSpacing)
+
+                if hasForeignConversion(entry) {
+                    Button {
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            convertedEntryID = displaysConversion ? nil : entry.id
+                        }
+                    } label: {
+                        entryAmount(
+                            entry,
+                            displayInHomeCurrency: displaysConversion,
+                            showsConversionAffordance: true
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .fixedSize(horizontal: true, vertical: false)
+                } else {
+                    entryAmount(entry)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+
+            if let displayedDelta {
+                HStack {
+                    Spacer(minLength: rowGlyphSize + rowSpacing)
+                    inlineDelta(displayedDelta, currency: deltaCurrency)
+                        .contentTransition(.numericText())
+                }
+            }
+        }
+        .padding(.vertical, rowVerticalPadding)
+        .animation(.easeOut(duration: 0.18), value: displaysConversion)
+    }
+
+    private func desktopEntryRow(_ row: EntryRow) -> some View {
+        let entry = row.current
+        let revealsConversion = revealsConversion(for: entry)
+        return HStack(alignment: .center, spacing: rowSpacing) {
+            entryIdentity(row)
+
+            Spacer(minLength: minimumColumnSpacing)
+
+            VStack(alignment: .trailing, spacing: 3) {
+                entryAmount(entry)
+                if let entryDelta = row.delta {
+                    inlineDelta(entryDelta, currency: entry.currency)
+                }
+                if let converted = entry.convertedAmount,
+                   hasForeignConversion(entry), revealsConversion {
+                    convertedAmountLabel(converted)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .layoutPriority(0)
+        }
+        .padding(.vertical, rowVerticalPadding)
+        .contentShape(Rectangle())
+        .onHover { isHovering in
+            updateHoveredEntry(entry.id, isHovering: isHovering)
+        }
+        .animation(.easeOut(duration: 0.18), value: revealsConversion)
+    }
+
+    private func entryIdentity(_ row: EntryRow) -> some View {
+        let entry = row.current
+        return HStack(alignment: .center, spacing: rowSpacing) {
             GlyphBadge(
                 systemName: row.accountKind.iconName,
                 tint: row.accountKind.tint,
@@ -327,45 +409,69 @@ struct PortfolioSnapshotDetailView: View {
                 }
             }
             .layoutPriority(1)
-
-            Spacer(minLength: minimumColumnSpacing)
-
-            VStack(alignment: .trailing, spacing: 3) {
-                entryAmount(entry)
-                if let entryDelta = row.delta {
-                    inlineDelta(entryDelta, currency: entry.currency)
-                }
-                if let converted = entry.convertedAmount,
-                   entry.currency != snapshot.homeCurrency {
-                    Text(
-                        verbatim: "≈ " + converted.formatted(
-                            .currency(code: snapshot.homeCurrency)
-                                .precision(.fractionLength(0))
-                                .locale(locale)
-                        )
-                    )
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                }
-            }
-            .layoutPriority(0)
         }
-        .padding(.vertical, rowVerticalPadding)
     }
 
-    private func entryAmount(_ entry: PortfolioSnapshot.Entry) -> some View {
-        HStack(spacing: 6) {
-            Text(verbatim: entry.currency)
+    private func hasForeignConversion(_ entry: PortfolioSnapshot.Entry) -> Bool {
+        entry.convertedAmount != nil && entry.currency != snapshot.homeCurrency
+    }
+
+    private func revealsConversion(for entry: PortfolioSnapshot.Entry) -> Bool {
+        hoveredEntryID == entry.id
+    }
+
+    private func convertedDelta(for row: EntryRow) -> Decimal? {
+        guard let current = row.current.convertedAmount,
+              let prior = row.prior?.convertedAmount else { return nil }
+        return current - prior
+    }
+
+    private func updateHoveredEntry(_ entryID: UUID, isHovering: Bool) {
+        if isHovering {
+            hoveredEntryID = entryID
+        } else if hoveredEntryID == entryID {
+            hoveredEntryID = nil
+        }
+    }
+
+    private func convertedAmountLabel(_ converted: Decimal) -> some View {
+        Text(
+            verbatim: "≈ " + converted.formatted(
+                .currency(code: snapshot.homeCurrency)
+                    .precision(.fractionLength(0))
+                    .locale(locale)
+            )
+        )
+        .font(.caption2.monospacedDigit())
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.78)
+    }
+
+    private func entryAmount(
+        _ entry: PortfolioSnapshot.Entry,
+        displayInHomeCurrency: Bool = false,
+        showsConversionAffordance: Bool = false
+    ) -> some View {
+        let usesHomeCurrency = displayInHomeCurrency && entry.convertedAmount != nil
+        let currency = usesHomeCurrency ? snapshot.homeCurrency : entry.currency
+        let amount = usesHomeCurrency ? (entry.convertedAmount ?? entry.amount) : entry.amount
+        return HStack(spacing: 6) {
+            Text(verbatim: currency)
                 .font(.caption.weight(.semibold).monospaced())
                 .foregroundStyle(Color.notionInkMuted)
 
-            Divider()
-                .frame(height: 17)
+            if showsConversionAffordance {
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.notionInkMuted.opacity(0.8))
+            } else {
+                Divider()
+                    .frame(height: 17)
+            }
 
             Text(
-                entry.amount,
+                amount,
                 format: .number
                     .precision(.fractionLength(0))
                     .locale(locale)
@@ -375,6 +481,7 @@ struct PortfolioSnapshotDetailView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.76)
             .frame(maxWidth: .infinity, alignment: .trailing)
+            .contentTransition(.numericText())
         }
         .padding(.horizontal, 9)
         .frame(width: amountBoxWidth, height: 38)
@@ -394,24 +501,19 @@ struct PortfolioSnapshotDetailView: View {
     private func changeBreakdownCard(_ breakdown: ChangeBreakdown) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             detailSectionTitle("portfolioSnapshot.detail.change.title")
+
+            let rows = breakdown.displayRows
             VStack(spacing: 0) {
-                let rows = breakdown.displayRows
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                    breakdownRow(row)
+                    breakdownRow(
+                        row,
+                        rateChanges: row.id == "fx" ? breakdown.fxRateChanges : []
+                    )
                     if index < rows.count - 1 {
-                        Divider().opacity(0.35)
+                        Divider()
+                            .opacity(0.35)
                     }
                 }
-            }
-            if !breakdown.fxNotes.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(breakdown.fxNotes, id: \.self) { note in
-                        Text(verbatim: note)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.top, 4)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -419,22 +521,86 @@ struct PortfolioSnapshotDetailView: View {
     }
 
     @ViewBuilder
-    private func breakdownRow(_ row: BreakdownRow) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
+    private func breakdownRow(_ row: BreakdownRow, rateChanges: [FXRateChange]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(row.titleKey)
-                    .font(.callout.weight(.medium))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(Color.notionInk)
-                Text(row.subtitleKey)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+
+                Text(verbatim: signedAmount(row.amount, currency: snapshot.homeCurrency))
+                    .font(.title3.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(amountTint(row.amount))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .layoutPriority(2)
             }
-            Spacer(minLength: 12)
-            Text(verbatim: signedAmount(row.amount, currency: snapshot.homeCurrency))
-                .font(.callout.monospacedDigit().weight(.semibold))
-                .foregroundStyle(amountTint(row.amount))
+
+            Text(row.subtitleKey)
+                .font(.caption)
+                .foregroundStyle(Color.notionInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !rateChanges.isEmpty {
+                VStack(spacing: 0) {
+                    HStack(spacing: 6) {
+                        Text("portfolioSnapshot.detail.rates")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.notionInkSecondary)
+                        Spacer()
+                        Text(verbatim: snapshot.homeCurrency)
+                            .font(.caption2.monospaced().weight(.semibold))
+                            .foregroundStyle(Color.notionInkMuted)
+                    }
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 8)
+
+                    Divider().opacity(0.35)
+
+                    ForEach(Array(rateChanges.enumerated()), id: \.element.id) { index, change in
+                        HStack(spacing: 10) {
+                            Text(verbatim: change.currency)
+                                .font(.caption.monospaced().weight(.semibold))
+                                .foregroundStyle(Color.notionInk)
+                                .frame(width: 34, alignment: .leading)
+
+                            Text(verbatim: formattedRate(change.oldRate))
+                                .foregroundStyle(Color.notionInkMuted)
+
+                            Image(systemName: "arrow.right")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(Color.notionInkMuted.opacity(0.65))
+
+                            Text(verbatim: formattedRate(change.newRate))
+                                .foregroundStyle(Color.notionInk)
+                                .fontWeight(.medium)
+
+                            Spacer(minLength: 0)
+                        }
+                        .font(.caption.monospacedDigit())
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 8)
+
+                        if index < rateChanges.count - 1 {
+                            Divider()
+                                .opacity(0.22)
+                                .padding(.leading, 11)
+                        }
+                    }
+                }
+                .background(
+                    Color.notionSurfaceAlt.opacity(0.55),
+                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                )
+            }
         }
         .padding(.vertical, 10)
+    }
+
+    private func formattedRate(_ rate: Decimal) -> String {
+        rate.formatted(.number.precision(.fractionLength(2...4)).locale(locale))
     }
 
     // MARK: - Inline delta helper
@@ -582,7 +748,7 @@ struct PortfolioSnapshotDetailView: View {
         var fx: Decimal = 0
         var manualAdded: Decimal = 0
         var manualRemoved: Decimal = 0
-        var fxNotes: [String] = []
+        var fxRateChanges: [FXRateChange] = []
         var seenFX: Set<String> = []
 
         let priorByHolding: [UUID: PortfolioSnapshot.Entry] = {
@@ -618,10 +784,10 @@ struct PortfolioSnapshotDetailView: View {
                     fx += fxComponent
                     if !seenFX.contains(entry.currency), rateNew != rateOld {
                         seenFX.insert(entry.currency)
-                        fxNotes.append(fxNote(
+                        fxRateChanges.append(FXRateChange(
                             currency: entry.currency,
-                            rateOld: rateOld,
-                            rateNew: rateNew
+                            oldRate: rateOld == 0 ? 0 : 1 / rateOld,
+                            newRate: rateNew == 0 ? 0 : 1 / rateNew
                         ))
                     }
                 } else if let homeNow, let homeWas {
@@ -653,22 +819,15 @@ struct PortfolioSnapshotDetailView: View {
             fx: fx,
             manualAdded: manualAdded,
             manualRemoved: manualRemoved,
-            fxNotes: fxNotes
+            fxRateChanges: fxRateChanges.sorted { $0.currency < $1.currency }
         )
     }
 
-    private func fxNote(currency: String, rateOld: Decimal, rateNew: Decimal) -> String {
-        // Display as `1 foreign = X home` for both sides.
-        let perHomeOld = rateOld == 0 ? Decimal(0) : 1 / rateOld
-        let perHomeNew = rateNew == 0 ? Decimal(0) : 1 / rateNew
-        let oldStr = perHomeOld.formatted(.number.precision(.fractionLength(2...4)).locale(locale))
-        let newStr = perHomeNew.formatted(.number.precision(.fractionLength(2...4)).locale(locale))
-        let template = String(localized: "portfolioSnapshot.detail.change.fxNote")
-        return template
-            .replacingOccurrences(of: "{currency}", with: currency)
-            .replacingOccurrences(of: "{home}", with: snapshot.homeCurrency)
-            .replacingOccurrences(of: "{old}", with: oldStr)
-            .replacingOccurrences(of: "{new}", with: newStr)
+    private struct FXRateChange: Identifiable {
+        var id: String { currency }
+        let currency: String
+        let oldRate: Decimal
+        let newRate: Decimal
     }
 
     private struct ChangeBreakdown {
@@ -676,7 +835,7 @@ struct PortfolioSnapshotDetailView: View {
         let fx: Decimal
         let manualAdded: Decimal
         let manualRemoved: Decimal
-        let fxNotes: [String]
+        let fxRateChanges: [FXRateChange]
 
         var manualNet: Decimal { manualAdded + manualRemoved }
         var hasContent: Bool {
