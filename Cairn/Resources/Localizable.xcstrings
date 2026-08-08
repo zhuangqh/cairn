@@ -1016,13 +1016,30 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fill from last month"
+            "value" : "Fill from last snapshot"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "沿用上月"
+          }
+        }
+      }
+    },
+    "batch.fillFromLast.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copies previous values into blank accounts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅将上次金额填入空白账户"
           }
         }
       }
@@ -1176,23 +1193,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "首次记录"
-          }
-        }
-      }
-    },
-    "batch.row.edited" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edited"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已编辑"
           }
         }
       }

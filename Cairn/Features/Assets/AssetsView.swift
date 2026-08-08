@@ -45,6 +45,7 @@ struct AssetsView: View {
     @State private var isUpdating: Bool = false
     @State private var selectedYear: Int? = nil
     @State private var selectedTab: Tab = .financial
+    @State private var possessionAddRequest: Int = 0
 
     /// One-shot derivation for the financial tab. Computed in a single
     /// pass per `body` render so the hero, members, and snapshot cards
@@ -125,13 +126,13 @@ struct AssetsView: View {
             // Plain "+" style action in the nav bar on iOS, matching
             // the Accounts screen.
             ToolbarItem(placement: .primaryAction) {
-                if selectedTab == .financial && !holdings.isEmpty {
+                if canAddInSelectedTab {
                     Button {
-                        isUpdating = true
+                        performPrimaryAddAction()
                     } label: {
                         Image(systemName: "plus")
                     }
-                    .accessibilityLabel(Text("assets.addSnapshot"))
+                    .accessibilityLabel(primaryAddLabel)
                 }
             }
             #endif
@@ -172,7 +173,7 @@ struct AssetsView: View {
                     case .financial:
                         financialTab
                     case .possessions:
-                        PossessionsView()
+                        PossessionsView(addRequest: possessionAddRequest)
                     }
                 }
                 .pageHorizontalPadding()
@@ -191,57 +192,94 @@ struct AssetsView: View {
     #endif
 
     #if os(iOS)
-    /// iOS body uses a native segmented `Picker` (cheap to render, no
-    /// custom gradients/backdrops) and a paged `TabView` so the user can
-    /// swipe horizontally between Financial and Possessions. This replaces a
-    /// custom glass segmented control that was janky on iOS.
+    /// Keep the vertical scroll view directly visible to the app-level
+    /// `TabView` so iOS can minimize the bottom tab bar while scrolling.
+    /// A direction-locked gesture preserves horizontal tab switching without
+    /// introducing a nested paging scroll view.
     private var iosBody: some View {
         VStack(spacing: 0) {
             tabPicker
-                .pageHorizontalPadding()
-                .padding(.top, 8)
-                .padding(.bottom, 4)
+                .padding(.horizontal, 28)
+                .padding(.top, 10)
+                .padding(.bottom, 6)
 
-            TabView(selection: $selectedTab) {
-                ScrollView {
-                    VStack(spacing: 20) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    switch selectedTab {
+                    case .financial:
                         financialTab
+                    case .possessions:
+                        PossessionsView(addRequest: possessionAddRequest)
                     }
-                    .pageHorizontalPadding()
-                    .padding(.vertical, 20)
-                    .frame(maxWidth: 1100)
-                    .frame(maxWidth: .infinity)
                 }
-                .scrollIndicators(.hidden)
-                .tag(Tab.financial)
-
-                ScrollView {
-                    VStack(spacing: 20) {
-                        PossessionsView()
-                    }
-                    .pageHorizontalPadding()
-                    .padding(.vertical, 20)
-                    .frame(maxWidth: 1100)
-                    .frame(maxWidth: .infinity)
-                }
-                .scrollIndicators(.hidden)
-                .tag(Tab.possessions)
+                .pageHorizontalPadding()
+                .padding(.vertical, 20)
+                .frame(maxWidth: 1100)
+                .frame(maxWidth: .infinity)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .animation(.easeInOut(duration: 0.2), value: selectedTab)
+            .scrollIndicators(.hidden)
+            .simultaneousGesture(horizontalTabSwipe)
         }
+    }
+
+    private var horizontalTabSwipe: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onEnded { value in
+                let horizontal = value.translation.width
+                let vertical = value.translation.height
+
+                guard abs(horizontal) > 64,
+                      abs(horizontal) > abs(vertical) * 1.4 else { return }
+
+                if horizontal < 0, selectedTab == .financial {
+                    selectedTab = .possessions
+                } else if horizontal > 0, selectedTab == .possessions {
+                    selectedTab = .financial
+                }
+            }
     }
     #endif
 
-    /// Shared segmented picker used by both platforms.
+    /// Native segmented picker used by both platforms. On iOS 26 and
+    /// macOS 26 the system supplies the current Liquid Glass treatment.
     private var tabPicker: some View {
-        GlassSegmentedControl(
-            selection: $selectedTab,
-            options: Tab.allCases,
-            title: { $0.titleKey },
-            icon: { $0.iconName }
-        )
-        .frame(maxWidth: 440)
+        Picker("", selection: $selectedTab) {
+            ForEach(Tab.allCases, id: \.self) { tab in
+                Label(tab.titleKey, systemImage: tab.iconName)
+                    .labelStyle(.titleAndIcon)
+                    .tag(tab)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(maxWidth: 360)
+    }
+
+    private var canAddInSelectedTab: Bool {
+        switch selectedTab {
+        case .financial:
+            return !holdings.isEmpty
+        case .possessions:
+            return !members.isEmpty
+        }
+    }
+
+    private var primaryAddLabel: Text {
+        switch selectedTab {
+        case .financial:
+            Text("assets.addSnapshot")
+        case .possessions:
+            Text("possession.new.title")
+        }
+    }
+
+    private func performPrimaryAddAction() {
+        switch selectedTab {
+        case .financial:
+            isUpdating = true
+        case .possessions:
+            possessionAddRequest += 1
+        }
     }
 
     // MARK: - Financial (holdings-based) tab

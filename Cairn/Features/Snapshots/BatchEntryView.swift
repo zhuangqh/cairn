@@ -16,12 +16,10 @@ struct BatchEntryView: View {
 
     @State var periodMonth: Date = Snapshot.normalizeDay(.now)
     @State var edits: [UUID: Decimal?] = [:]
-    @State var savedOnce: Set<UUID> = []
     @State private var showClearConfirm: Bool = false
     @State private var showDiscardConfirm: Bool = false
     @State private var errorMessage: String?
     @State private var isSaving: Bool = false
-    @State var didPrefill: Bool = false
 
     /// Historical FX rates fetched for the currently selected month.
     /// Keyed by quote currency; each value means `1 homeCurrency == rate × quote`.
@@ -96,7 +94,6 @@ struct BatchEntryView: View {
                     )
                 } else {
                     entryScroll
-                        .task { prefillIfNeeded() }
                 }
             }
             .task(id: periodMonth) {
@@ -234,7 +231,7 @@ struct BatchEntryView: View {
                 memberGroupsSection
                 notesCard
             }
-            .pageHorizontalPadding()
+            .padding(.horizontal, pageHorizontalInset)
             .padding(.vertical, 20)
             .frame(maxWidth: 1100)
             .frame(maxWidth: .infinity)
@@ -242,35 +239,40 @@ struct BatchEntryView: View {
     }
 
     private var monthCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 20) {
-                    monthSummary
-                    Spacer(minLength: 24)
-                    monthControls
-                }
-
-                VStack(alignment: .leading, spacing: 14) {
-                    monthSummary
-                    monthControls
-                }
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            monthHeader
+            fillFromLastAction
 
             ratesSection
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 16, padding: 20)
+        .glassCard(cornerRadius: monthCardCornerRadius, padding: monthCardPadding)
+    }
+
+    private var monthHeader: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 16) {
+                monthSummary
+                Spacer(minLength: 12)
+                monthPicker
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                monthSummary
+                monthPicker
+            }
+        }
     }
 
     private var monthSummary: some View {
-        HStack(spacing: 12) {
-            GlyphBadge(systemName: "calendar", tint: .accentColor, size: 38)
+        HStack(spacing: 10) {
+            GlyphBadge(systemName: "calendar", tint: .accentColor, size: monthGlyphSize)
             VStack(alignment: .leading, spacing: 2) {
                 Text("batch.monthCard.title")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.notionInkSecondary)
                     .textCase(.uppercase)
-                    .tracking(0.45)
+                    .tracking(0.4)
                 Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Color.notionInk)
@@ -278,30 +280,88 @@ struct BatchEntryView: View {
         }
     }
 
-    private var monthControls: some View {
-        HStack(spacing: 10) {
-            DatePicker(
-                "batch.month",
-                selection: $periodMonth,
-                displayedComponents: [.date]
-            )
-            .labelsHidden()
-            .disabled(isMonthLocked)
-            .onChange(of: periodMonth) { _, newValue in
-                let day = Snapshot.normalizeDay(newValue)
-                if day != periodMonth { periodMonth = day }
-            }
-
-            Button {
-                fillFromLast()
-            } label: {
-                Label("batch.fillFromLast", systemImage: "arrow.down.to.line")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .disabled(!hasBlankWithPrevious)
-            .help(Text("batch.fillFromLast"))
+    private var monthPicker: some View {
+        DatePicker(
+            "batch.month",
+            selection: $periodMonth,
+            displayedComponents: [.date]
+        )
+        .labelsHidden()
+        .font(.subheadline.weight(.medium))
+        .controlSize(.small)
+        .fixedSize()
+        .disabled(isMonthLocked)
+        .onChange(of: periodMonth) { _, newValue in
+            let day = Snapshot.normalizeDay(newValue)
+            if day != periodMonth { periodMonth = day }
         }
+    }
+
+    private var fillFromLastAction: some View {
+        Button {
+            fillFromLast()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.down.to.line")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.notionBlue)
+                    .frame(width: 28, height: 28)
+                    .background(Color.notionBlue.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("batch.fillFromLast")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.notionInk)
+                    Text("batch.fillFromLast.hint")
+                        .font(.caption)
+                        .foregroundStyle(Color.notionInkSecondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.notionInkMuted)
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.notionSurfaceAlt.opacity(0.72), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(Color.notionBorder.opacity(0.72), lineWidth: 0.7)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 10))
+        .disabled(!hasBlankWithPrevious)
+        .opacity(hasBlankWithPrevious ? 1 : 0.52)
+        .help(Text("batch.fillFromLast.hint"))
+    }
+
+    private var monthCardPadding: CGFloat {
+        #if os(macOS)
+        20
+        #else
+        16
+        #endif
+    }
+
+    private var monthCardCornerRadius: CGFloat {
+        #if os(macOS)
+        16
+        #else
+        14
+        #endif
+    }
+
+    private var monthGlyphSize: CGFloat {
+        #if os(macOS)
+        38
+        #else
+        34
+        #endif
     }
 
     @ViewBuilder
@@ -312,21 +372,18 @@ struct BatchEntryView: View {
     }
 
     private func memberGroupCard(_ group: MemberGroup) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 9) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
                 MemberAvatarView(
                     name: group.member.name,
                     avatarData: group.member.avatarData,
                     seed: group.member.id,
-                    size: 28
+                    size: memberAvatarSize
                 )
                 Text(verbatim: group.member.name)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.notionInk)
                 Spacer()
-                Text(verbatim: filledSummary(for: group))
-                    .font(.caption.monospacedDigit().weight(.medium))
-                    .foregroundStyle(Color.notionInkMuted)
             }
 
             Divider().opacity(0.45)
@@ -341,7 +398,39 @@ struct BatchEntryView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 16, padding: 20)
+        .glassCard(cornerRadius: memberCardCornerRadius, padding: memberCardPadding)
+    }
+
+    private var pageHorizontalInset: CGFloat {
+        #if os(macOS)
+        24
+        #else
+        10
+        #endif
+    }
+
+    private var memberCardPadding: CGFloat {
+        #if os(macOS)
+        20
+        #else
+        12
+        #endif
+    }
+
+    private var memberCardCornerRadius: CGFloat {
+        #if os(macOS)
+        16
+        #else
+        14
+        #endif
+    }
+
+    private var memberAvatarSize: CGFloat {
+        #if os(macOS)
+        28
+        #else
+        26
+        #endif
     }
 
     @ViewBuilder
@@ -355,7 +444,6 @@ struct BatchEntryView: View {
             homeCurrency: homeCurrency,
             convertedPreview: approxHome(for: row),
             isDirty: edits[row.holding.id] != nil,
-            isSaved: savedOnce.contains(row.holding.id),
             amount: binding(for: row)
         )
     }
@@ -377,7 +465,12 @@ struct BatchEntryView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.notionInkSecondary)
                 .textCase(.uppercase)
-            Text(totalInHome, format: .currency(code: homeCurrency).locale(locale))
+            Text(
+                totalInHome,
+                format: .currency(code: homeCurrency)
+                    .precision(.fractionLength(0))
+                    .locale(locale)
+            )
                 .font(.title3.monospacedDigit().weight(.semibold))
                 .foregroundStyle(Color.notionInk)
         }
@@ -421,7 +514,12 @@ struct BatchEntryView: View {
 
                 Spacer(minLength: 8)
 
-                Text(totalInHome, format: .currency(code: homeCurrency).locale(locale))
+                Text(
+                    totalInHome,
+                    format: .currency(code: homeCurrency)
+                        .precision(.fractionLength(0))
+                        .locale(locale)
+                )
                     .font(.headline.monospacedDigit().weight(.semibold))
                     .foregroundStyle(Color.notionInk)
                     .lineLimit(1)
@@ -505,7 +603,6 @@ struct BatchEntryView: View {
                     note: trimmed.isEmpty ? nil : trimmed,
                     context: context
                 )
-                savedOnce.formUnion(rows.map(\.holdingId))
                 edits.removeAll()
                 dismiss()
             } catch {

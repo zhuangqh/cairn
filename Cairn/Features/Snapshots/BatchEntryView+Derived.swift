@@ -138,18 +138,6 @@ extension BatchEntryView {
         }
     }
 
-    var filledSummary: String {
-        let rows = groupedRows.flatMap(\.rows)
-        let total = rows.count
-        let filled = rows.filter { currentAmount(for: $0) != nil }.count
-        return "\(filled) / \(total)"
-    }
-
-    func filledSummary(for group: MemberGroup) -> String {
-        let filled = group.rows.filter { currentAmount(for: $0) != nil }.count
-        return "\(filled) / \(group.rows.count)"
-    }
-
     var hasBlankWithPrevious: Bool {
         groupedRows.flatMap(\.rows).contains { row in
             currentAmount(for: row) == nil && row.previousAmount != nil
@@ -167,27 +155,10 @@ extension BatchEntryView {
         }
     }
 
-    /// Seeds `edits` from the latest prior snapshot on first appearance.
-    /// Runs only when there's nothing staged / saved for the current
-    /// month yet, so re-opening after a partial save doesn't clobber
-    /// the user's work.
-    func prefillIfNeeded() {
-        guard !didPrefill else { return }
-        didPrefill = true
-        for row in groupedRows.flatMap(\.rows) where currentAmount(for: row) == nil {
-            if let previous = row.previousAmount {
-                edits[row.holding.id] = previous
-            }
-        }
-    }
-
     func clearAll() {
         for row in groupedRows.flatMap(\.rows) {
             edits[row.holding.id] = Optional<Decimal>.none
         }
     }
 
-    func formatAmount(_ value: Decimal) -> String {
-        value.formatted(.number.precision(.fractionLength(0...2)).locale(locale))
-    }
 }

@@ -25,10 +25,10 @@ extension BatchEntryView {
     private var ratesHeader: some View {
         HStack(spacing: 8) {
             Text("batch.rates.title")
-                .font(.caption.weight(.semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-                .tracking(0.3)
+                .tracking(0.4)
             if isLoadingRates {
                 ProgressView().controlSize(.mini)
             }

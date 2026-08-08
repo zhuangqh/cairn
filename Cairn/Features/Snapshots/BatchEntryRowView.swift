@@ -3,8 +3,8 @@ import SwiftUI
 /// One row in the `BatchEntryView` grouped list.
 ///
 /// Apple-Stocks / Wallet-inspired layout:
-///   - Left: glyph badge, account name, small currency label.
-///   - Right: large bold current value (no currency symbol),
+///   - Left: glyph badge, account name, and optional holding label.
+///   - Right: a fixed-width amount field with its currency code,
 ///            colored delta vs. previous (`+12,340 (+6.5%) ↑`),
 ///            subtle home-currency conversion (`≈ ¥1,387,127`).
 /// The previous value itself is intentionally hidden from the main
@@ -18,34 +18,36 @@ struct BatchEntryRowView: View {
     let homeCurrency: String
     let convertedPreview: Decimal?
     let isDirty: Bool
-    let isSaved: Bool
     @Binding var amount: Decimal?
 
     @Environment(\.locale) private var locale
     @FocusState private var isFieldFocused: Bool
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            GlyphBadge(systemName: accountKind.iconName, tint: accountKind.tint, size: 32)
+        HStack(alignment: .center, spacing: rowSpacing) {
+            GlyphBadge(systemName: accountKind.iconName, tint: accountKind.tint, size: glyphSize)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: accountName)
                     .font(.body.weight(.medium))
                     .lineLimit(1)
-                metaRow
+                    .allowsTightening(true)
+                    .minimumScaleFactor(0.82)
+                accountSubtitle
             }
+            .layoutPriority(1)
 
-            Spacer(minLength: 20)
+            Spacer(minLength: minimumColumnSpacing)
 
             VStack(alignment: .trailing, spacing: 3) {
                 amountField
                 deltaLine
                 convertedLine
             }
+            .layoutPriority(0)
 
-            statusIndicator
         }
-        .padding(.vertical, 9)
+        .padding(.vertical, rowVerticalPadding)
         .contentShape(Rectangle())
         .help(tooltipText)
         .accessibilityHint(Text(tooltipText))
@@ -54,26 +56,17 @@ struct BatchEntryRowView: View {
     // MARK: - Subviews
 
     @ViewBuilder
-    private var metaRow: some View {
-        HStack(spacing: 6) {
-            Text(verbatim: currency)
-                .font(.caption2.weight(.semibold))
+    private var accountSubtitle: some View {
+        if let label, !label.isEmpty {
+            Text(verbatim: label)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
-                .tracking(0.4)
-            if let label, !label.isEmpty {
-                Text(verbatim: "·")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Text(verbatim: label)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+                .lineLimit(1)
         }
     }
 
     private var amountField: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Text(verbatim: currency)
                 .font(.caption.weight(.semibold).monospaced())
                 .foregroundStyle(Color.notionInkMuted)
@@ -84,19 +77,21 @@ struct BatchEntryRowView: View {
             TextField(
                 placeholderText,
                 value: $amount,
-                format: .number.precision(.fractionLength(0...2))
+                format: .number.precision(.fractionLength(0))
             )
             .focused($isFieldFocused)
             .textFieldStyle(.plain)
             .multilineTextAlignment(.trailing)
-            .font(.body.weight(.semibold).monospacedDigit())
+            .font(.callout.weight(.semibold).monospacedDigit())
             .foregroundStyle(Color.notionInk)
+            .lineLimit(1)
+            .minimumScaleFactor(0.76)
             #if !os(macOS)
-            .keyboardType(.decimalPad)
+            .keyboardType(.numberPad)
             #endif
         }
-        .frame(minWidth: 150, maxWidth: 210)
-        .padding(.horizontal, 11)
+        .padding(.horizontal, 9)
+        .frame(width: amountFieldWidth)
         .frame(height: 38)
         .background(
             RoundedRectangle(cornerRadius: 9, style: .continuous)
@@ -135,33 +130,21 @@ struct BatchEntryRowView: View {
     @ViewBuilder
     private var convertedLine: some View {
         if let converted = convertedPreview, currency != homeCurrency {
-            Text(verbatim: "≈ " + converted.formatted(.currency(code: homeCurrency).locale(locale)))
+            Text(
+                verbatim: "≈ " + converted.formatted(
+                    .currency(code: homeCurrency)
+                        .precision(.fractionLength(0))
+                        .locale(locale)
+                )
+            )
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
         } else if amount != nil, currency != homeCurrency, convertedPreview == nil {
             Text("assets.missingRates.short")
                 .font(.caption2)
                 .foregroundStyle(.orange.opacity(0.8))
-        }
-    }
-
-    @ViewBuilder
-    private var statusIndicator: some View {
-        if isDirty {
-            Circle()
-                .fill(Color.notionBlue)
-                .frame(width: 7, height: 7)
-                .accessibilityLabel(Text("batch.row.edited"))
-        } else if isSaved {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 12))
-                .foregroundStyle(Color.notionGreen)
-                .accessibilityHidden(true)
-        } else {
-            Circle()
-                .strokeBorder(Color.notionBorder, lineWidth: 1)
-                .frame(width: 7, height: 7)
-                .accessibilityHidden(true)
         }
     }
 
@@ -182,7 +165,7 @@ struct BatchEntryRowView: View {
         // Absolute change with explicit sign, no currency symbol.
         let absText = delta.formatted(
             .number.sign(strategy: .always(includingZero: false))
-                .precision(.fractionLength(0...2))
+                .precision(.fractionLength(0))
                 .locale(locale)
         )
 
@@ -228,12 +211,56 @@ struct BatchEntryRowView: View {
             return String(localized: "batch.row.firstEntry")
         }
         let template = String(localized: "batch.previousHint")
-        let formatted = previous.formatted(.currency(code: currency).locale(locale))
+        let formatted = previous.formatted(
+            .currency(code: currency)
+                .precision(.fractionLength(0))
+                .locale(locale)
+        )
         return template.replacingOccurrences(of: "{amount}", with: formatted)
     }
 
     private func formatPlain(_ value: Decimal) -> String {
-        value.formatted(.number.precision(.fractionLength(0...2)).locale(locale))
+        value.formatted(.number.precision(.fractionLength(0)).locale(locale))
+    }
+
+    private var amountFieldWidth: CGFloat {
+        #if os(macOS)
+        190
+        #else
+        148
+        #endif
+    }
+
+    private var glyphSize: CGFloat {
+        #if os(macOS)
+        32
+        #else
+        28
+        #endif
+    }
+
+    private var rowSpacing: CGFloat {
+        #if os(macOS)
+        12
+        #else
+        8
+        #endif
+    }
+
+    private var minimumColumnSpacing: CGFloat {
+        #if os(macOS)
+        8
+        #else
+        6
+        #endif
+    }
+
+    private var rowVerticalPadding: CGFloat {
+        #if os(macOS)
+        9
+        #else
+        8
+        #endif
     }
 }
 
@@ -258,7 +285,6 @@ struct BatchEntryRowView: View {
                         homeCurrency: "CNY",
                         convertedPreview: 10_125_440,
                         isDirty: true,
-                        isSaved: false,
                         amount: $increased
                     )
                     Divider().opacity(0.4)
@@ -271,7 +297,6 @@ struct BatchEntryRowView: View {
                         homeCurrency: "CNY",
                         convertedPreview: 13_870,
                         isDirty: true,
-                        isSaved: false,
                         amount: $decreased
                     )
                     Divider().opacity(0.4)
@@ -284,7 +309,6 @@ struct BatchEntryRowView: View {
                         homeCurrency: "CNY",
                         convertedPreview: nil,
                         isDirty: false,
-                        isSaved: true,
                         amount: $unchanged
                     )
                     Divider().opacity(0.4)
@@ -297,7 +321,6 @@ struct BatchEntryRowView: View {
                         homeCurrency: "CNY",
                         convertedPreview: nil,
                         isDirty: true,
-                        isSaved: false,
                         amount: $firstTime
                     )
                     Divider().opacity(0.4)
@@ -310,7 +333,6 @@ struct BatchEntryRowView: View {
                         homeCurrency: "CNY",
                         convertedPreview: nil,
                         isDirty: false,
-                        isSaved: false,
                         amount: $blank
                     )
                     Divider().opacity(0.4)
@@ -323,7 +345,6 @@ struct BatchEntryRowView: View {
                         homeCurrency: "CNY",
                         convertedPreview: nil,
                         isDirty: true,
-                        isSaved: false,
                         amount: $missingFX
                     )
                 }

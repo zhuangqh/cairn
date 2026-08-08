@@ -7,8 +7,8 @@ import SwiftData
 /// snapshot rather than just listing current values:
 /// - Header: total + signed delta vs `previous`.
 /// - Holdings: grouped by member, each member shows its own delta;
-///   each row shows the home-currency value with the original currency
-///   demoted to a secondary line.
+///   each row mirrors the snapshot editor's native-currency amount box
+///   with the home-currency conversion on a secondary line.
 /// - Change breakdown: market movement, FX impact, and manual updates
 ///   (added / removed holdings) — derived purely from the two snapshots.
 struct PortfolioSnapshotDetailView: View {
@@ -51,7 +51,7 @@ struct PortfolioSnapshotDetailView: View {
                     changeBreakdownCard(breakdown)
                 }
             }
-            .pageHorizontalPadding()
+            .padding(.horizontal, pageHorizontalInset)
             .padding(.vertical, 20)
             .frame(maxWidth: 1100)
             .frame(maxWidth: .infinity)
@@ -136,8 +136,13 @@ struct PortfolioSnapshotDetailView: View {
                     .padding(.vertical, 2)
                     .background(.secondary.opacity(0.15), in: Capsule())
             }
-            Text(snapshot.totalAmount, format: .currency(code: snapshot.homeCurrency).locale(locale))
-                .font(.system(size: 36, weight: .bold, design: .rounded))
+            Text(
+                snapshot.totalAmount,
+                format: .currency(code: snapshot.homeCurrency)
+                    .precision(.fractionLength(0))
+                    .locale(locale)
+            )
+                .font(.system(size: 36, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(Color.notionInk)
             if let totalDelta {
@@ -160,7 +165,7 @@ struct PortfolioSnapshotDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
+        .glassCard(cornerRadius: detailCardCornerRadius, padding: detailCardPadding)
     }
 
     @ViewBuilder
@@ -190,21 +195,24 @@ struct PortfolioSnapshotDetailView: View {
     @ViewBuilder
     private var holdingsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("portfolioSnapshot.detail.breakdown")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+            detailSectionTitle("portfolioSnapshot.detail.breakdown")
             #if os(macOS)
             memberCardsGrid
             #else
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(memberGroups, id: \.member) { group in
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(memberGroups.enumerated()), id: \.element.member) { index, group in
                     memberGroupCard(group)
+                    if index < memberGroups.count - 1 {
+                        Divider()
+                            .opacity(0.45)
+                            .padding(.vertical, 12)
+                    }
                 }
             }
             #endif
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: detailCardCornerRadius, padding: detailCardPadding)
     }
 
     #if os(macOS)
@@ -231,9 +239,22 @@ struct PortfolioSnapshotDetailView: View {
     #endif
 
     private func memberGroupCard(_ group: MemberGroup) -> some View {
+        #if os(macOS)
         memberGroupSection(group)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassCard()
+            .padding(12)
+            .background(
+                Color.notionSurfaceAlt.opacity(0.55),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.notionBorder.opacity(0.65), lineWidth: 0.7)
+            )
+        #else
+        memberGroupSection(group)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        #endif
     }
 
     @ViewBuilder
@@ -242,24 +263,27 @@ struct PortfolioSnapshotDetailView: View {
             ? String(localized: "portfolioSnapshot.detail.member.unassigned")
             : group.member
         let resolvedMember = group.member.isEmpty ? nil : memberByName[group.member]
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .center, spacing: 8) {
                     MemberAvatarView(
                         name: displayName,
                         avatarData: resolvedMember?.avatarData,
                         seed: resolvedMember?.id ?? Self.unassignedMemberSeed,
-                        size: 20
+                        size: memberAvatarSize
                     )
                     Text(verbatim: displayName)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                        .tracking(0.3)
-                    Spacer(minLength: 12)
-                    Text(group.total, format: .currency(code: snapshot.homeCurrency).locale(locale))
-                        .font(.callout.monospacedDigit().weight(.semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.notionInk)
+                    Spacer(minLength: 8)
+                    Text(
+                        group.total,
+                        format: .currency(code: snapshot.homeCurrency)
+                            .precision(.fractionLength(0))
+                            .locale(locale)
+                    )
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Color.notionInkSecondary)
                 }
                 if let memberDelta = group.delta {
                     HStack {
@@ -282,33 +306,86 @@ struct PortfolioSnapshotDetailView: View {
     @ViewBuilder
     private func entryRow(_ row: EntryRow) -> some View {
         let entry = row.current
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: rowSpacing) {
             GlyphBadge(
                 systemName: row.accountKind.iconName,
                 tint: row.accountKind.tint,
-                size: 28
+                size: rowGlyphSize
             )
             VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: entry.accountName)
-                    .font(.callout.weight(.semibold))
+                    .font(.body.weight(.medium))
                     .foregroundStyle(Color.notionInk)
+                    .lineLimit(1)
+                    .allowsTightening(true)
+                    .minimumScaleFactor(0.82)
                 if let label = entry.holdingLabel, !label.isEmpty {
                     Text(verbatim: label)
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
-            Spacer(minLength: 12)
+            .layoutPriority(1)
+
+            Spacer(minLength: minimumColumnSpacing)
+
             VStack(alignment: .trailing, spacing: 3) {
-                Text(entry.amount, format: .currency(code: entry.currency).locale(locale))
-                    .font(.callout.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Color.notionInk)
+                entryAmount(entry)
                 if let entryDelta = row.delta {
                     inlineDelta(entryDelta, currency: entry.currency)
                 }
+                if let converted = entry.convertedAmount,
+                   entry.currency != snapshot.homeCurrency {
+                    Text(
+                        verbatim: "≈ " + converted.formatted(
+                            .currency(code: snapshot.homeCurrency)
+                                .precision(.fractionLength(0))
+                                .locale(locale)
+                        )
+                    )
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                }
             }
+            .layoutPriority(0)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, rowVerticalPadding)
+    }
+
+    private func entryAmount(_ entry: PortfolioSnapshot.Entry) -> some View {
+        HStack(spacing: 6) {
+            Text(verbatim: entry.currency)
+                .font(.caption.weight(.semibold).monospaced())
+                .foregroundStyle(Color.notionInkMuted)
+
+            Divider()
+                .frame(height: 17)
+
+            Text(
+                entry.amount,
+                format: .number
+                    .precision(.fractionLength(0))
+                    .locale(locale)
+            )
+            .font(.callout.weight(.semibold).monospacedDigit())
+            .foregroundStyle(Color.notionInk)
+            .lineLimit(1)
+            .minimumScaleFactor(0.76)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal, 9)
+        .frame(width: amountBoxWidth, height: 38)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color.notionSurfaceAlt.opacity(0.72))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .strokeBorder(Color.notionBorder, lineWidth: 0.75)
+        )
     }
 
     // MARK: - Change breakdown
@@ -316,10 +393,7 @@ struct PortfolioSnapshotDetailView: View {
     @ViewBuilder
     private func changeBreakdownCard(_ breakdown: ChangeBreakdown) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("portfolioSnapshot.detail.change.title")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+            detailSectionTitle("portfolioSnapshot.detail.change.title")
             VStack(spacing: 0) {
                 let rows = breakdown.displayRows
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
@@ -341,7 +415,7 @@ struct PortfolioSnapshotDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
+        .glassCard(cornerRadius: detailCardCornerRadius, padding: detailCardPadding)
     }
 
     @ViewBuilder
@@ -364,6 +438,12 @@ struct PortfolioSnapshotDetailView: View {
     }
 
     // MARK: - Inline delta helper
+
+    private func detailSectionTitle(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(Color.notionInk)
+    }
 
     @ViewBuilder
     private func inlineDelta(_ amount: Decimal, currency: String) -> some View {
@@ -633,6 +713,72 @@ struct PortfolioSnapshotDetailView: View {
     }
 
     // MARK: - Formatting helpers
+
+    private var pageHorizontalInset: CGFloat {
+        #if os(macOS)
+        24
+        #else
+        10
+        #endif
+    }
+
+    private var detailCardPadding: CGFloat {
+        #if os(macOS)
+        20
+        #else
+        12
+        #endif
+    }
+
+    private var detailCardCornerRadius: CGFloat {
+        #if os(macOS)
+        16
+        #else
+        14
+        #endif
+    }
+
+    private var memberAvatarSize: CGFloat {
+        #if os(macOS)
+        24
+        #else
+        26
+        #endif
+    }
+
+    private var amountBoxWidth: CGFloat {
+        #if os(macOS)
+        190
+        #else
+        148
+        #endif
+    }
+
+    private var rowGlyphSize: CGFloat { 28 }
+
+    private var rowSpacing: CGFloat {
+        #if os(macOS)
+        12
+        #else
+        8
+        #endif
+    }
+
+    private var minimumColumnSpacing: CGFloat {
+        #if os(macOS)
+        8
+        #else
+        6
+        #endif
+    }
+
+    private var rowVerticalPadding: CGFloat {
+        #if os(macOS)
+        9
+        #else
+        8
+        #endif
+    }
 
     private func signedAmount(_ value: Decimal, currency: String) -> String {
         let isPositive = value >= 0

@@ -9,6 +9,8 @@ import SwiftData
 /// Sold possessions are grouped into a separate "Sold" section and rendered with
 /// reduced emphasis.
 struct PossessionsView: View {
+    var addRequest: Int = 0
+
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
 
@@ -98,7 +100,10 @@ struct PossessionsView: View {
             )
             : derive()
         return content(derivation: derivation)
-            .modifier(toolbarModifier())
+            .onChange(of: addRequest) { _, _ in
+                guard !members.isEmpty else { return }
+                presentNewPossession()
+            }
             .modifier(PossessionsSheetsModifier(
                 newPossessionDraft: $newPossessionDraft,
                 newPossessionSaved: $newPossessionSaved,
@@ -107,12 +112,6 @@ struct PossessionsView: View {
                 possessionPendingDeletion: $possessionPendingDeletion,
                 context: context
             ))
-    }
-
-    /// Adds the iOS-only "+" toolbar button. macOS keeps the action inside
-    /// the summary card because the nav bar already hosts the tab switcher.
-    private func toolbarModifier() -> some ViewModifier {
-        PossessionsToolbarModifier(showAdd: !members.isEmpty, action: presentNewPossession)
     }
 
     @ViewBuilder
@@ -475,28 +474,6 @@ struct PossessionsView: View {
         newPossessionSaved = false
         pendingNewPossession = draft
         newPossessionDraft = draft
-    }
-}
-
-private struct PossessionsToolbarModifier: ViewModifier {
-    let showAdd: Bool
-    let action: () -> Void
-
-    func body(content: Content) -> some View {
-        #if os(macOS)
-        content
-        #else
-        content.toolbar {
-            if showAdd {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: action) {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel(Text("possession.new.title"))
-                }
-            }
-        }
-        #endif
     }
 }
 
