@@ -1,62 +1,62 @@
 import SwiftUI
 
-// MARK: - Notion palette
+// MARK: - Cairn palette
 //
-// A warm-neutral, Notion-inspired palette that the rest of the app pulls from.
-// See `DESIGN.md` for the provenance of each swatch. Values automatically flip
-// to a warm-dark variant in dark mode so the design language still feels
-// "paper, not glass".
+// A quiet alpine palette for the app's Liquid Glass visual system.  The old
+// `notion…` names are retained because they are used throughout the feature
+// views, but the values now form a cool, coherent family rather than a flat
+// paper-card theme.
 
 public extension Color {
     /// Near-black primary text (`rgba(0,0,0,0.95)` in light mode).
     static let notionInk = Color(
-        light: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.95),
-        dark: Color(.sRGB, red: 0.96, green: 0.95, blue: 0.94, opacity: 1.0)
+        light: Color(hex: 0x102B2A),
+        dark: Color(hex: 0xF2FBF9)
     )
 
     /// Secondary warm gray for descriptions, subtitles.
     static let notionInkSecondary = Color(
-        light: Color(hex: 0x615D59),
-        dark: Color(hex: 0xA39E98)
+        light: Color(hex: 0x526A68),
+        dark: Color(hex: 0xA7BFBB)
     )
 
     /// Muted warm gray for captions, placeholders.
     static let notionInkMuted = Color(
-        light: Color(hex: 0xA39E98),
-        dark: Color(hex: 0x7A7570)
+        light: Color(hex: 0x7D9491),
+        dark: Color(hex: 0x7F9995)
     )
 
     /// Card / page surface.
     static let notionSurface = Color(
-        light: Color(hex: 0xFFFFFF),
-        dark: Color(hex: 0x2A2927)
+        light: Color.white.opacity(0.72),
+        dark: Color(hex: 0x172725).opacity(0.78)
     )
 
     /// Warm white alt surface for section alternation + window chrome.
     static let notionSurfaceAlt = Color(
-        light: Color(hex: 0xF6F5F4),
-        dark: Color(hex: 0x1E1D1B)
+        light: Color(hex: 0xEEF5F3),
+        dark: Color(hex: 0x0B1716)
     )
 
     /// Whisper border — the signature "1px solid rgba(0,0,0,0.1)".
     static let notionBorder = Color(
-        light: Color(.sRGB, red: 0, green: 0, blue: 0, opacity: 0.10),
-        dark: Color(.sRGB, red: 1, green: 1, blue: 1, opacity: 0.10)
+        light: Color(.sRGB, red: 0.12, green: 0.28, blue: 0.26, opacity: 0.13),
+        dark: Color(.sRGB, red: 0.80, green: 0.95, blue: 0.92, opacity: 0.13)
     )
 
-    /// Notion Blue (`#0075de`) — the only saturated color in the core chrome.
-    static let notionBlue = Color(hex: 0x0075DE)
+    /// Alpine teal — the single saturated accent used by controls and charts.
+    static let notionBlue = Color(hex: 0x0A8178)
     /// Pressed / active state for primary buttons.
-    static let notionBlueActive = Color(hex: 0x005BAB)
+    static let notionBlueActive = Color(hex: 0x075F59)
     /// Tinted pill background for status badges.
-    static let notionBadgeBlueBg = Color(hex: 0xF2F9FF)
+    static let notionBadgeBlueBg = Color(hex: 0xE7F5F2)
     /// Pill text color for status badges.
-    static let notionBadgeBlueText = Color(hex: 0x097FE8)
+    static let notionBadgeBlueText = Color(hex: 0x08736B)
 
     // Semantic accents
-    static let notionTeal = Color(hex: 0x2A9D99)
-    static let notionGreen = Color(hex: 0x1AAE39)
-    static let notionOrange = Color(hex: 0xDD5B00)
+    static let notionTeal = Color(hex: 0x4B9C91)
+    static let notionGreen = Color(hex: 0x21865B)
+    static let notionOrange = Color(hex: 0xC76936)
     static let notionPink = Color(hex: 0xFF64C8)
     static let notionPurple = Color(hex: 0x391C57)
     static let notionBrown = Color(hex: 0x523410)
@@ -64,12 +64,9 @@ public extension Color {
 
 // MARK: - Card modifier
 
-/// Notion-style surface: pure white fill, whisper `1px` border, and a
-/// 4-layer cumulative shadow stack that never exceeds 0.05 opacity on any
-/// single layer. Produces depth that is *felt* rather than seen.
-///
-/// The modifier keeps the `.glassCard(...)` name for backwards compatibility
-/// with existing callers even though the implementation is now paper-like.
+/// Stable content surface. Liquid Glass is intentionally reserved for floating
+/// navigation and controls; data cards stay visually quiet and readable.
+/// The type name remains stable to avoid churning every feature call site.
 public struct NotionCardStyle: ViewModifier {
     public var cornerRadius: CGFloat
     public var padding: CGFloat
@@ -81,49 +78,82 @@ public struct NotionCardStyle: ViewModifier {
         self.surface = surface
     }
 
+    @ViewBuilder
     public func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         content
             .padding(padding)
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.notionBorder, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            // 4-layer cumulative shadow stack (see DESIGN.md §6).
-            .shadow(color: .black.opacity(0.04), radius: 18, x: 0, y: 4)
-            .shadow(color: .black.opacity(0.027), radius: 7.85, x: 0, y: 2)
-            .shadow(color: .black.opacity(0.02), radius: 2.9, x: 0, y: 0.8)
-            .shadow(color: .black.opacity(0.01), radius: 1.04, x: 0, y: 0.17)
+            .background(surface, in: shape)
+            .overlay(shape.strokeBorder(Color.notionBorder.opacity(0.72), lineWidth: 0.7))
+            .shadow(color: Color(hex: 0x0B3D38).opacity(0.055), radius: 10, x: 0, y: 4)
     }
 }
 
 public extension View {
-    /// Wraps the view in a Notion-style card. The historical name
-    /// `.glassCard` is preserved so existing call sites keep working.
+    /// Wraps content in Cairn's adaptive translucent surface.
     func glassCard(cornerRadius: CGFloat = 12, padding: CGFloat = 20) -> some View {
         modifier(NotionCardStyle(cornerRadius: cornerRadius, padding: padding))
     }
 
-    /// Notion card variant that uses the warm-white alt surface.
+    /// Lower-contrast card variant for nested or secondary content.
     func notionCardAlt(cornerRadius: CGFloat = 12, padding: CGFloat = 20) -> some View {
         modifier(NotionCardStyle(cornerRadius: cornerRadius, padding: padding, surface: .notionSurfaceAlt))
+    }
+
+    /// Uses Apple's interactive Liquid Glass button on the newest systems and
+    /// the native prominent style on systems supported by the deployment target.
+    @ViewBuilder
+    func cairnProminentButtonStyle() -> some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            buttonStyle(.glassProminent)
+        } else {
+            buttonStyle(.borderedProminent)
+        }
+    }
+
+    /// Secondary control treatment for compact actions placed above content.
+    @ViewBuilder
+    func cairnGlassButtonStyle() -> some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            buttonStyle(.glass)
+        } else {
+            buttonStyle(.bordered)
+        }
     }
 }
 
 // MARK: - Ambient background
 
-/// Window background: plain warm white (`#f6f5f4`) in light mode, warm dark in
-/// dark mode. No gradients — Notion's visual rhythm comes from alternating
-/// flat surfaces, not diffuse color washes.
+/// A low-contrast atmospheric field. It gives the translucent surfaces
+/// something to refract while keeping charts and monetary values calm.
 public struct AppBackground: View {
     public init() {}
 
     public var body: some View {
-        Color.notionSurfaceAlt.ignoresSafeArea()
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(light: Color(hex: 0xF7FAF8), dark: Color(hex: 0x081311)),
+                    Color.notionSurfaceAlt,
+                    Color(light: Color(hex: 0xE8F1F0), dark: Color(hex: 0x102321))
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Circle()
+                .fill(Color.notionBlue.opacity(0.08))
+                .frame(width: 380, height: 380)
+                .blur(radius: 90)
+                .offset(x: -170, y: -280)
+
+            Circle()
+                .fill(Color(hex: 0xD4A96A).opacity(0.05))
+                .frame(width: 320, height: 320)
+                .blur(radius: 100)
+                .offset(x: 190, y: 360)
+        }
+        .ignoresSafeArea()
     }
 }
 
@@ -144,7 +174,7 @@ public extension View {
     /// breathing room on small screens; roomier on macOS.
     func pageHorizontalPadding() -> some View {
         #if os(iOS)
-        padding(.horizontal, 16)
+        padding(.horizontal, 18)
         #else
         padding(.horizontal, 24)
         #endif

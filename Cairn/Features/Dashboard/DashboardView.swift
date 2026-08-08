@@ -36,6 +36,7 @@ struct DashboardView: View {
     /// Current hover selection from the embedded trend chart. When set, the
     /// hero / composition / allocation cards render values as of that month.
     @State private var hoverSelection: TrendSelection?
+    @State private var isUpdatingMonth = false
 
     // MARK: - Derivation
 
@@ -217,6 +218,23 @@ struct DashboardView: View {
             .background(AppBackground())
         }
         .navigationTitle(Text("dashboard.title", bundle: localization.bundle))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.large)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                if !holdings.isEmpty {
+                    Button {
+                        isUpdatingMonth = true
+                    } label: {
+                        Label("assets.updateThisMonth", systemImage: "calendar.badge.plus")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $isUpdatingMonth) {
+            BatchEntryView()
+        }
         .navigationDestination(for: Member.self) { member in
             MemberDetailView(member: member)
         }
@@ -239,12 +257,35 @@ struct DashboardView: View {
             ? .system(size: 36, weight: .bold)
             : .system(size: 52, weight: .bold)
 
-        VStack(alignment: .leading, spacing: 14) {
-            Text("dashboard.totalWealth")
-                .font(.system(size: 12, weight: .semibold))
-                .tracking(0.6)
-                .textCase(.uppercase)
-                .foregroundStyle(Color.notionInkSecondary)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center, spacing: 12) {
+                GlyphBadge(
+                    systemName: "mountain.2.fill",
+                    tint: .notionBlue,
+                    size: 38,
+                    isCircle: true
+                )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("dashboard.totalWealth")
+                        .font(.system(size: 12, weight: .semibold))
+                        .tracking(0.45)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Color.notionInkSecondary)
+
+                    Text(effectiveAsOf, format: .dateTime.month(.wide).year().locale(locale))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.notionInkMuted)
+                }
+
+                Spacer(minLength: 8)
+
+                NotionPillRaw(
+                    homeCurrency,
+                    textColor: .notionBadgeBlueText,
+                    background: .notionBadgeBlueBg.opacity(0.82)
+                )
+            }
 
             Text(
                 derivation.combined,
@@ -384,26 +425,48 @@ struct DashboardView: View {
             : 0
         let physicalPct = max(0, 1 - financialPct)
         if total > 0 {
-            HStack(spacing: 12) {
-            HStack(spacing: 6) {
-                Circle().fill(Color.notionBlue).frame(width: 7, height: 7)
-                Text("dashboard.balance.financial")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.notionInkSecondary)
-                Text(financialPct, format: .percent.precision(.fractionLength(0)))
-                    .font(.system(size: 12, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(Color.notionInk)
-            }
-            HStack(spacing: 6) {
-                Circle().fill(Color.notionTeal).frame(width: 7, height: 7)
-                Text("dashboard.balance.physical")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.notionInkSecondary)
-                Text(physicalPct, format: .percent.precision(.fractionLength(0)))
-                    .font(.system(size: 12, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(Color.notionInk)
+            VStack(alignment: .leading, spacing: 10) {
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.notionTeal.opacity(0.42))
+                        Capsule()
+                            .fill(Color.notionBlue)
+                            .frame(width: max(8, proxy.size.width * CGFloat(financialPct)))
+                    }
+                }
+                .frame(height: 7)
+                .accessibilityHidden(true)
+
+                HStack(spacing: 14) {
+                    compositionLabel(
+                        "dashboard.balance.financial",
+                        percent: financialPct,
+                        color: .notionBlue
+                    )
+                    compositionLabel(
+                        "dashboard.balance.physical",
+                        percent: physicalPct,
+                        color: .notionTeal
+                    )
+                }
             }
         }
+    }
+
+    private func compositionLabel(
+        _ title: LocalizedStringKey,
+        percent: Double,
+        color: Color
+    ) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(title)
+                .font(.system(size: 12))
+                .foregroundStyle(Color.notionInkSecondary)
+            Text(percent, format: .percent.precision(.fractionLength(0)))
+                .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                .foregroundStyle(Color.notionInk)
         }
     }
 

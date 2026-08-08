@@ -25,8 +25,8 @@ struct BatchEntryRowView: View {
     @FocusState private var isFieldFocused: Bool
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            GlyphBadge(systemName: accountKind.iconName, tint: accountKind.tint, size: 34)
+        HStack(alignment: .center, spacing: 12) {
+            GlyphBadge(systemName: accountKind.iconName, tint: accountKind.tint, size: 32)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: accountName)
@@ -35,7 +35,7 @@ struct BatchEntryRowView: View {
                 metaRow
             }
 
-            Spacer(minLength: 12)
+            Spacer(minLength: 20)
 
             VStack(alignment: .trailing, spacing: 3) {
                 amountField
@@ -43,9 +43,9 @@ struct BatchEntryRowView: View {
                 convertedLine
             }
 
-            statusDot
+            statusIndicator
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 9)
         .contentShape(Rectangle())
         .help(tooltipText)
         .accessibilityHint(Text(tooltipText))
@@ -73,29 +73,38 @@ struct BatchEntryRowView: View {
     }
 
     private var amountField: some View {
-        TextField(
-            placeholderText,
-            value: $amount,
-            format: .number.precision(.fractionLength(0...2))
-        )
-        .focused($isFieldFocused)
-        .textFieldStyle(.plain)
-        .multilineTextAlignment(.trailing)
-        .font(.title3.weight(.semibold).monospacedDigit())
-        .foregroundStyle(.primary)
-        #if !os(macOS)
-        .keyboardType(.decimalPad)
-        #endif
-        .frame(minWidth: 120, maxWidth: 180)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        HStack(spacing: 8) {
+            Text(verbatim: currency)
+                .font(.caption.weight(.semibold).monospaced())
+                .foregroundStyle(Color.notionInkMuted)
+
+            Divider()
+                .frame(height: 17)
+
+            TextField(
+                placeholderText,
+                value: $amount,
+                format: .number.precision(.fractionLength(0...2))
+            )
+            .focused($isFieldFocused)
+            .textFieldStyle(.plain)
+            .multilineTextAlignment(.trailing)
+            .font(.body.weight(.semibold).monospacedDigit())
+            .foregroundStyle(Color.notionInk)
+            #if !os(macOS)
+            .keyboardType(.decimalPad)
+            #endif
+        }
+        .frame(minWidth: 150, maxWidth: 210)
+        .padding(.horizontal, 11)
+        .frame(height: 38)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
                 .fill(fieldBackground)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(fieldBorder, lineWidth: isFieldFocused ? 1.5 : 0.5)
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .strokeBorder(fieldBorder, lineWidth: isFieldFocused ? 1.5 : 0.75)
         )
         .animation(.easeInOut(duration: 0.15), value: isFieldFocused)
     }
@@ -136,11 +145,24 @@ struct BatchEntryRowView: View {
         }
     }
 
-    private var statusDot: some View {
-        Circle()
-            .fill(isDirty ? Color.yellow : (isSaved ? Color.green : Color.secondary.opacity(0.18)))
-            .frame(width: 6, height: 6)
-            .padding(.leading, 2)
+    @ViewBuilder
+    private var statusIndicator: some View {
+        if isDirty {
+            Circle()
+                .fill(Color.notionBlue)
+                .frame(width: 7, height: 7)
+                .accessibilityLabel(Text("batch.row.edited"))
+        } else if isSaved {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(Color.notionGreen)
+                .accessibilityHidden(true)
+        } else {
+            Circle()
+                .strokeBorder(Color.notionBorder, lineWidth: 1)
+                .frame(width: 7, height: 7)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK: - Derived
@@ -187,14 +209,14 @@ struct BatchEntryRowView: View {
     }
 
     private var fieldBackground: Color {
-        if isFieldFocused { return Color.accentColor.opacity(0.06) }
-        if isDirty { return Color.yellow.opacity(0.08) }
-        return Color.secondary.opacity(0.06)
+        if isFieldFocused { return Color.notionBlue.opacity(0.055) }
+        return Color.notionSurfaceAlt.opacity(0.72)
     }
 
     private var fieldBorder: Color {
-        if isFieldFocused { return Color.accentColor.opacity(0.55) }
-        return Color.secondary.opacity(0.18)
+        if isFieldFocused { return Color.notionBlue.opacity(0.65) }
+        if isDirty { return Color.notionBlue.opacity(0.24) }
+        return Color.notionBorder
     }
 
     private var placeholderText: String {

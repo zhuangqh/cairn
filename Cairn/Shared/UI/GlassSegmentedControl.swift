@@ -60,25 +60,30 @@ struct GlassSegmentedControl<Option: Hashable>: View {
 
     @ViewBuilder
     private var containerBackground: some View {
-        // A soft, frosted capsule. The track reads lit-from-above via a
-        // very low-contrast white veil; we avoid `.plusLighter` blending so
-        // dark mode doesn't produce a bright halo along the top edge.
-        Capsule(style: .continuous)
-            .fill(.ultraThinMaterial)
-            .overlay(
-                Capsule(style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.06),
-                                Color.white.opacity(0.0)
-                            ],
-                            startPoint: .top,
-                            endPoint: .center
+        if #available(iOS 26.0, macOS 26.0, *) {
+            Color.clear
+                .glassEffect(
+                    .regular.tint(Color.notionBlue.opacity(0.035)),
+                    in: Capsule(style: .continuous)
+                )
+        } else {
+            Capsule(style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Capsule(style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.12),
+                                    Color.white.opacity(0.0)
+                                ],
+                                startPoint: .top,
+                                endPoint: .center
+                            )
                         )
-                    )
-                    .allowsHitTesting(false)
-            )
+                        .allowsHitTesting(false)
+                )
+        }
     }
 
     private func button(for option: Option) -> some View {
@@ -99,7 +104,7 @@ struct GlassSegmentedControl<Option: Hashable>: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity)
-            .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+            .foregroundStyle(isSelected ? Color.notionBlue : Color.notionInkSecondary)
             .background {
                 if isSelected {
                     selectedBubble
@@ -119,7 +124,7 @@ struct GlassSegmentedControl<Option: Hashable>: View {
         // highlight. We avoid `.plusLighter` here so dark mode doesn't
         // show a glaring white top-edge.
         Capsule(style: .continuous)
-            .fill(Color(nsColorName: nil, colorSpaceAdjusted: .white))
+            .fill(Color(nsColorName: nil, colorSpaceAdjusted: .white).opacity(0.76))
             .overlay(
                 Capsule(style: .continuous)
                     .fill(

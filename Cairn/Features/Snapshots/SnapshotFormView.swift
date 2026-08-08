@@ -11,6 +11,7 @@ struct SnapshotFormView: View {
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var isAmountFocused: Bool
 
     @State private var periodDate: Date
     /// Amounts are stored as `Decimal` on the model, but the form only
@@ -31,57 +32,25 @@ struct SnapshotFormView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    DatePicker(
-                        "snapshot.form.date",
-                        selection: $periodDate,
-                        displayedComponents: [.date]
-                    )
-                    .disabled(existing != nil)
-                } header: {
-                    Text("snapshot.form.date")
-                }
-                Section {
-                    LabeledContent {
-                        TextField(
-                            "snapshot.form.amount",
-                            text: $amountText
-                        )
-                        .multilineTextAlignment(.trailing)
-                        .font(.body.monospacedDigit())
-                        #if !os(macOS)
-                        .keyboardType(.numberPad)
-                        #endif
-                        .onChange(of: amountText) { _, newValue in
-                            let filtered = newValue.filter(\.isASCII).filter(\.isNumber)
-                            if filtered != newValue {
-                                amountText = filtered
-                            }
-                        }
-                    } label: {
-                        Text(verbatim: holding.currency)
-                            .font(.caption.monospaced().weight(.semibold))
-                            .foregroundStyle(Color.notionInkSecondary)
+            ZStack {
+                AppBackground()
+                ScrollView {
+                    VStack(spacing: 16) {
+                        holdingCard
+                        dateCard
+                        amountCard
                     }
-                } header: {
-                    Text("snapshot.form.amount")
-                } footer: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(verbatim: CurrencyCatalog.displayName(holding.currency))
-                        Text("snapshot.form.amount.hint")
-                    }
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .pageHorizontalPadding()
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: 560)
+                    .frame(maxWidth: .infinity)
                 }
             }
-            .formStyle(.grouped)
-            .glassListStyle()
-            .keyboardDismissable()
             .navigationTitle(existing == nil ? "snapshot.new.title" : "snapshot.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            .keyboardDismissable(showsToolbar: false)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(role: .cancel) {
@@ -97,9 +66,116 @@ struct SnapshotFormView: View {
                         Text("common.action.save")
                     }
                     .disabled(!isValid)
+                    .keyboardShortcut(.defaultAction)
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 420)
+        #endif
+    }
+
+    // MARK: - Cards
+
+    private var holdingCard: some View {
+        HStack(spacing: 12) {
+            GlyphBadge(
+                systemName: holding.account?.kind.iconName ?? "banknote.fill",
+                tint: holding.account?.kind.tint ?? .accentColor,
+                size: 38
+            )
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: holding.account?.name.isEmpty == false ? holding.account!.name : holding.currency)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.notionInk)
+                    .lineLimit(1)
+                if let label = holding.label, !label.isEmpty {
+                    Text(verbatim: "\(CurrencyCatalog.displayName(holding.currency)) · \(label)")
+                        .font(.caption)
+                        .foregroundStyle(Color.notionInkSecondary)
+                        .lineLimit(1)
+                } else {
+                    Text(verbatim: CurrencyCatalog.displayName(holding.currency))
+                        .font(.caption)
+                        .foregroundStyle(Color.notionInkSecondary)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .glassCard(cornerRadius: 16, padding: 20)
+    }
+
+    private var dateCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            NotionSectionHeader("snapshot.form.date", systemImage: "calendar")
+            DatePicker(
+                "snapshot.form.date",
+                selection: $periodDate,
+                displayedComponents: [.date]
+            )
+            .labelsHidden()
+            .datePickerStyle(.compact)
+            .disabled(existing != nil)
+            .opacity(existing != nil ? 0.6 : 1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 16, padding: 20)
+    }
+
+    private var amountCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            NotionSectionHeader("snapshot.form.amount", systemImage: "banknote")
+
+            HStack(spacing: 10) {
+                Text(verbatim: holding.currency)
+                    .font(.callout.weight(.semibold).monospaced())
+                    .foregroundStyle(Color.notionInkMuted)
+
+                Divider()
+                    .frame(height: 22)
+
+                TextField("snapshot.form.amount", text: $amountText)
+                    .focused($isAmountFocused)
+                    .textFieldStyle(.plain)
+                    .multilineTextAlignment(.trailing)
+                    .font(.title2.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(Color.notionInk)
+                    #if !os(macOS)
+                    .keyboardType(.numberPad)
+                    #endif
+                    .onChange(of: amountText) { _, newValue in
+                        let filtered = newValue.filter(\.isASCII).filter(\.isNumber)
+                        if filtered != newValue {
+                            amountText = filtered
+                        }
+                    }
+            }
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(amountFieldBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .strokeBorder(amountFieldBorder, lineWidth: isAmountFocused ? 1.5 : 0.75)
+            )
+            .animation(.easeInOut(duration: 0.15), value: isAmountFocused)
+
+            Text("snapshot.form.amount.hint")
+                .font(.footnote)
+                .foregroundStyle(Color.notionInkSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 16, padding: 20)
+    }
+
+    private var amountFieldBackground: Color {
+        isAmountFocused ? Color.notionBlue.opacity(0.055) : Color.notionSurfaceAlt.opacity(0.72)
+    }
+
+    private var amountFieldBorder: Color {
+        isAmountFocused ? Color.notionBlue.opacity(0.65) : Color.notionBorder
     }
 
     // MARK: - Validation

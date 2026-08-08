@@ -145,6 +145,11 @@ extension BatchEntryView {
         return "\(filled) / \(total)"
     }
 
+    func filledSummary(for group: MemberGroup) -> String {
+        let filled = group.rows.filter { currentAmount(for: $0) != nil }.count
+        return "\(filled) / \(group.rows.count)"
+    }
+
     var hasBlankWithPrevious: Bool {
         groupedRows.flatMap(\.rows).contains { row in
             currentAmount(for: row) == nil && row.previousAmount != nil

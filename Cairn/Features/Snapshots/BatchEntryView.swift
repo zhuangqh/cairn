@@ -113,7 +113,7 @@ struct BatchEntryView: View {
             #endif
             .toolbar { toolbarContent }
             .keyboardDismissable(showsToolbar: false)
-            .safeAreaInset(edge: .bottom) {
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 if !groupedRows.isEmpty {
                     footer
                 }
@@ -175,6 +175,7 @@ struct BatchEntryView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        #if !os(macOS)
         ToolbarItem(placement: .cancellationAction) {
             Button {
                 if hasUnsavedEdits {
@@ -200,6 +201,8 @@ struct BatchEntryView: View {
             .disabled(!hasUnsavedEdits || isSaving)
             .buttonStyle(.borderedProminent)
         }
+        #endif
+        #if os(macOS)
         ToolbarItem(placement: .secondaryAction) {
             Menu {
                 Button(role: .destructive) {
@@ -219,6 +222,7 @@ struct BatchEntryView: View {
                 }
             }
         }
+        #endif
     }
 
     // MARK: - Scroll content
@@ -238,51 +242,66 @@ struct BatchEntryView: View {
     }
 
     private var monthCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 12) {
-                #if os(macOS)
-                GlyphBadge(systemName: "calendar", tint: .accentColor, size: 36)
-                #endif
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("batch.monthCard.title")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                        .tracking(0.3)
-                    Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
-                        .font(.title3.weight(.semibold))
+        VStack(alignment: .leading, spacing: 16) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 20) {
+                    monthSummary
+                    Spacer(minLength: 24)
+                    monthControls
                 }
-                Spacer()
-                DatePicker(
-                    "batch.month",
-                    selection: $periodMonth,
-                    displayedComponents: [.date]
-                )
-                .labelsHidden()
-                .disabled(isMonthLocked)
-                .onChange(of: periodMonth) { _, newValue in
-                    // Normalize to the start of the picked day (UTC) so the
-                    // value stays stable across timezone boundaries without
-                    // forcing the user back to the 1st of the month.
-                    let day = Snapshot.normalizeDay(newValue)
-                    if day != periodMonth { periodMonth = day }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    monthSummary
+                    monthControls
                 }
-                Button {
-                    fillFromLast()
-                } label: {
-                    Image(systemName: "arrow.down.to.line")
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-                .disabled(!hasBlankWithPrevious)
-                .help(Text("batch.fillFromLast"))
-                .accessibilityLabel(Text("batch.fillFromLast"))
             }
 
             ratesSection
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 14, padding: 16)
+        .glassCard(cornerRadius: 16, padding: 20)
+    }
+
+    private var monthSummary: some View {
+        HStack(spacing: 12) {
+            GlyphBadge(systemName: "calendar", tint: .accentColor, size: 38)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("batch.monthCard.title")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.notionInkSecondary)
+                    .textCase(.uppercase)
+                    .tracking(0.45)
+                Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.notionInk)
+            }
+        }
+    }
+
+    private var monthControls: some View {
+        HStack(spacing: 10) {
+            DatePicker(
+                "batch.month",
+                selection: $periodMonth,
+                displayedComponents: [.date]
+            )
+            .labelsHidden()
+            .disabled(isMonthLocked)
+            .onChange(of: periodMonth) { _, newValue in
+                let day = Snapshot.normalizeDay(newValue)
+                if day != periodMonth { periodMonth = day }
+            }
+
+            Button {
+                fillFromLast()
+            } label: {
+                Label("batch.fillFromLast", systemImage: "arrow.down.to.line")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .disabled(!hasBlankWithPrevious)
+            .help(Text("batch.fillFromLast"))
+        }
     }
 
     @ViewBuilder
@@ -293,11 +312,25 @@ struct BatchEntryView: View {
     }
 
     private func memberGroupCard(_ group: MemberGroup) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(verbatim: group.member.name)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 9) {
+                MemberAvatarView(
+                    name: group.member.name,
+                    avatarData: group.member.avatarData,
+                    seed: group.member.id,
+                    size: 28
+                )
+                Text(verbatim: group.member.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.notionInk)
+                Spacer()
+                Text(verbatim: filledSummary(for: group))
+                    .font(.caption.monospacedDigit().weight(.medium))
+                    .foregroundStyle(Color.notionInkMuted)
+            }
+
+            Divider().opacity(0.45)
+
             VStack(spacing: 0) {
                 ForEach(Array(group.rows.enumerated()), id: \.element.holding.id) { index, row in
                     entryRow(row)
@@ -308,7 +341,7 @@ struct BatchEntryView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
+        .glassCard(cornerRadius: 16, padding: 20)
     }
 
     @ViewBuilder
@@ -329,16 +362,72 @@ struct BatchEntryView: View {
 
     // MARK: - Footer
 
+    @ViewBuilder
     private var footer: some View {
+        #if os(macOS)
+        macFooter
+        #else
+        iosFloatingTotal
+        #endif
+    }
+
+    private var footerSummary: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("batch.total")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(totalInHome, format: .currency(code: homeCurrency).locale(locale))
-                    .font(.title3.monospacedDigit().weight(.semibold))
+            Text("batch.total")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.notionInkSecondary)
+                .textCase(.uppercase)
+            Text(totalInHome, format: .currency(code: homeCurrency).locale(locale))
+                .font(.title3.monospacedDigit().weight(.semibold))
+                .foregroundStyle(Color.notionInk)
+        }
+    }
+
+    private var macFooter: some View {
+        HStack(spacing: 16) {
+            footerSummary
+
+            Spacer(minLength: 24)
+
+            Button {
+                if hasUnsavedEdits {
+                    showDiscardConfirm = true
+                } else {
+                    dismiss()
+                }
+            } label: {
+                Text("common.action.cancel")
             }
+            .keyboardShortcut(.cancelAction)
+
+            saveButton
+                .keyboardShortcut(.defaultAction)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 14)
+        .background(.bar)
+        .background(Color.notionSurfaceAlt)
+        .overlay(alignment: .top) { Divider().opacity(0.55) }
+    }
+
+    private var iosFloatingTotal: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Text("batch.total")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.notionInkMuted)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+
+                Spacer(minLength: 8)
+
+                Text(totalInHome, format: .currency(code: homeCurrency).locale(locale))
+                    .font(.headline.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(Color.notionInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+            }
+
             if !unresolvedCurrencies.isEmpty {
                 Label {
                     Text(unresolvedFootnote)
@@ -349,13 +438,30 @@ struct BatchEntryView: View {
                 .foregroundStyle(.orange)
             }
         }
-        .padding(16)
-        .background(Color.notionSurface)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.notionBorder)
-                .frame(height: 1)
+        .padding(.horizontal, 15)
+        .padding(.vertical, 10)
+        .frame(maxWidth: 420, alignment: .leading)
+        .liquidGlassBackground(cornerRadius: 16, tint: Color.notionBlue.opacity(0.018))
+        .padding(.horizontal, 28)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+    }
+
+    private var saveButton: some View {
+        Button {
+            save()
+        } label: {
+            if isSaving {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(minWidth: 72)
+            } else {
+                Label("batch.save", systemImage: "checkmark")
+            }
         }
+        .controlSize(.large)
+        .disabled(!hasUnsavedEdits || isSaving)
+        .buttonStyle(.borderedProminent)
     }
 
     // MARK: - Actions

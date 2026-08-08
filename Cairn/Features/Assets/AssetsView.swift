@@ -235,13 +235,13 @@ struct AssetsView: View {
 
     /// Shared segmented picker used by both platforms.
     private var tabPicker: some View {
-        Picker("assets.tab.title", selection: $selectedTab) {
-            ForEach(Tab.allCases, id: \.self) { tab in
-                Text(tab.titleKey).tag(tab)
-            }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
+        GlassSegmentedControl(
+            selection: $selectedTab,
+            options: Tab.allCases,
+            title: { $0.titleKey },
+            icon: { $0.iconName }
+        )
+        .frame(maxWidth: 440)
     }
 
     // MARK: - Financial (holdings-based) tab
@@ -390,8 +390,8 @@ struct AssetsView: View {
                 Image(systemName: "square.and.pencil")
             }
         }
-        .buttonStyle(.borderedProminent)
         .controlSize(.large)
+        .cairnProminentButtonStyle()
     }
 
     private func membersCard(derivation: FinancialDerivation) -> some View {
