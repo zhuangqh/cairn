@@ -17,7 +17,8 @@ public enum BackupService {
     /// - 2: added `portfolioSnapshots` and `possessions` (decoded as nil on
     ///   older clients via optionals).
     /// - 3: added `Member.avatarData`.
-    public static let currentVersion: Int = 3
+    /// - 4: added auditable achievement events.
+    public static let currentVersion: Int = 4
     public static let fileExtension: String = "cairn"
     public static let csvFileExtension: String = "csv"
 
@@ -32,6 +33,7 @@ public enum BackupService {
         let rates = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
         let portfolioSnapshots = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
         let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
+        let achievements = (try? context.fetch(FetchDescriptor<AchievementEvent>())) ?? []
 
         let payload = BackupPayload(
             version: currentVersion,
@@ -42,7 +44,8 @@ public enum BackupService {
             snapshots: snapshots.map(SnapshotDTO.init),
             fxRates: rates.map(FXRateDTO.init),
             portfolioSnapshots: portfolioSnapshots.map(PortfolioSnapshotDTO.init),
-            possessions: possessions.map(PossessionDTO.init)
+            possessions: possessions.map(PossessionDTO.init),
+            achievements: achievements.map(AchievementEventDTO.init)
         )
 
         let encoder = JSONEncoder()
@@ -173,6 +176,7 @@ public enum BackupService {
                 )
                 insertPortfolioSnapshots(portfolioSnapshots, context: context)
                 insertPossessions(payload.possessions ?? [], memberById: memberById, context: context)
+                insertAchievements(payload.achievements ?? [], context: context)
             }
         } catch {
             throw DomainError.backupWriteFailed
@@ -185,6 +189,8 @@ public enum BackupService {
     // (the `delete(model:)` batch variant bypasses the context cache and
     // is committed eagerly, defeating rollback).
     private static func wipe(context: ModelContext) {
+        let achievements = (try? context.fetch(FetchDescriptor<AchievementEvent>())) ?? []
+        achievements.forEach(context.delete)
         let portfolio = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
         portfolio.forEach(context.delete)
         let snapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
@@ -330,6 +336,28 @@ public enum BackupService {
             )
             possession.id = dto.id
             context.insert(possession)
+        }
+    }
+
+    private static func insertAchievements(
+        _ dtos: [AchievementEventDTO],
+        context: ModelContext
+    ) {
+        for dto in dtos {
+            let event = AchievementEvent(
+                eventKey: dto.eventKey,
+                family: AchievementFamily(rawValue: dto.familyRawValue) ?? .prologue,
+                stageKey: dto.stageKey,
+                logicalMonth: dto.logicalMonth,
+                unlockedAt: dto.unlockedAt,
+                currencyCode: dto.currencyCode,
+                observedAmount: dto.observedAmount,
+                source: AchievementSource(rawValue: dto.sourceRawValue) ?? .imported,
+                sourceSnapshotIDs: dto.sourceSnapshotIDs,
+                definitionVersion: dto.definitionVersion
+            )
+            event.id = dto.id
+            context.insert(event)
         }
     }
 
@@ -612,6 +640,9 @@ public struct BackupPayload: Codable, Sendable {
     /// Added in version 1.1 with physical-possession support. Older backups omit
     /// this field and decode as `nil`.
     public let possessions: [PossessionDTO]?
+    /// Added in version 4. Older backups are replayed from explicit monthly
+    /// portfolio snapshots after restore.
+    public let achievements: [AchievementEventDTO]?
 
     public init(
         version: Int,
@@ -622,7 +653,8 @@ public struct BackupPayload: Codable, Sendable {
         snapshots: [SnapshotDTO],
         fxRates: [FXRateDTO],
         portfolioSnapshots: [PortfolioSnapshotDTO]? = nil,
-        possessions: [PossessionDTO]? = nil
+        possessions: [PossessionDTO]? = nil,
+        achievements: [AchievementEventDTO]? = nil
     ) {
         self.version = version
         self.exportedAt = exportedAt
@@ -633,6 +665,35 @@ public struct BackupPayload: Codable, Sendable {
         self.fxRates = fxRates
         self.portfolioSnapshots = portfolioSnapshots
         self.possessions = possessions
+        self.achievements = achievements
+    }
+}
+
+public struct AchievementEventDTO: Codable, Sendable {
+    public let id: UUID
+    public let eventKey: String
+    public let familyRawValue: String
+    public let stageKey: String
+    public let logicalMonth: Date
+    public let unlockedAt: Date
+    public let currencyCode: String?
+    public let observedAmount: Decimal?
+    public let sourceRawValue: String
+    public let sourceSnapshotIDs: [UUID]
+    public let definitionVersion: Int
+
+    init(_ event: AchievementEvent) {
+        self.id = event.id
+        self.eventKey = event.eventKey
+        self.familyRawValue = event.familyRawValue
+        self.stageKey = event.stageKey
+        self.logicalMonth = event.logicalMonth
+        self.unlockedAt = event.unlockedAt
+        self.currencyCode = event.currencyCode
+        self.observedAmount = event.observedAmount
+        self.sourceRawValue = event.sourceRawValue
+        self.sourceSnapshotIDs = event.sourceSnapshotIDs
+        self.definitionVersion = event.definitionVersion
     }
 }
 

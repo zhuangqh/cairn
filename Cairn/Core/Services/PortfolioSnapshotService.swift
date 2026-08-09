@@ -86,6 +86,7 @@ public enum PortfolioSnapshotService {
         }
         context.delete(snapshot)
         try context.save()
+        try AchievementService.recompute(in: context)
     }
 
     /// First instant of the month following `monthStart` in UTC.

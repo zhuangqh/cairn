@@ -117,6 +117,46 @@ final class BackupServiceTests: XCTestCase {
         XCTAssertEqual(byName["iPhone 15"]?.salePrice, 420)
     }
 
+    func testExportImportRoundTripPreservesAchievements() throws {
+        let context = container.mainContext
+        let logicalMonth = Snapshot.normalize(Date(timeIntervalSince1970: 1_735_689_600))
+        let unlockedAt = Date(timeIntervalSince1970: 1_738_368_000)
+        let sourceSnapshotID = UUID()
+        let event = AchievementEvent(
+            eventKey: "ascent-AUD-2025-01",
+            family: .monthlyAscent,
+            stageKey: "ascent-4",
+            logicalMonth: logicalMonth,
+            unlockedAt: unlockedAt,
+            currencyCode: "AUD",
+            observedAmount: 245_000,
+            source: .imported,
+            sourceSnapshotIDs: [sourceSnapshotID],
+            definitionVersion: 1
+        )
+        context.insert(event)
+        try context.save()
+
+        let data = try BackupService.makeBackup(in: context)
+        let other = try PersistenceController.makeContainer(.inMemory)
+        _ = try BackupService.restoreReplacing(from: data, context: other.mainContext)
+
+        let restored = try XCTUnwrap(
+            other.mainContext.fetch(FetchDescriptor<AchievementEvent>()).first
+        )
+        XCTAssertEqual(restored.id, event.id)
+        XCTAssertEqual(restored.eventKey, "ascent-AUD-2025-01")
+        XCTAssertEqual(restored.family, .monthlyAscent)
+        XCTAssertEqual(restored.stageKey, "ascent-4")
+        XCTAssertEqual(restored.logicalMonth, logicalMonth)
+        XCTAssertEqual(restored.unlockedAt, unlockedAt)
+        XCTAssertEqual(restored.currencyCode, "AUD")
+        XCTAssertEqual(restored.observedAmount, 245_000)
+        XCTAssertEqual(restored.source, .imported)
+        XCTAssertEqual(restored.sourceSnapshotIDs, [sourceSnapshotID])
+        XCTAssertEqual(restored.definitionVersion, 1)
+    }
+
     func testRestoreOldBackupWithoutPossessionsSucceeds() throws {
         // Simulate a pre-v1.1 backup: payload with no `possessions` field.
         let json = """

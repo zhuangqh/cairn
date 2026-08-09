@@ -279,6 +279,811 @@
         }
       }
     },
+    "achievement.dashboard.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture your first monthly snapshot to begin."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记录第一份月度快照，开启你的财富纪念册。"
+          }
+        }
+      }
+    },
+    "achievement.dashboard.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achievement Journal"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "财富纪念册"
+          }
+        }
+      }
+    },
+    "achievement.dashboard.financialOnly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Financial assets only"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅计算金融资产"
+          }
+        }
+      }
+    },
+    "achievement.dashboard.next" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next summit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一座山峰"
+          }
+        }
+      }
+    },
+    "achievement.dashboard.open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open achievement journal"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开财富纪念册"
+          }
+        }
+      }
+    },
+    "achievement.detail.ascentRequirement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Monthly increase record" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "单月财富增长纪录" } }
+      }
+    },
+    "achievement.detail.currency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Currency" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "币种" } }
+      }
+    },
+    "achievement.detail.firstRecord" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "First Record" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "首次纪录" } }
+      }
+    },
+    "achievement.detail.firstRecord.requirement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "First positive increase across adjacent months" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "首次相邻月份正增长" } }
+      }
+    },
+    "achievement.detail.future" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Undiscovered" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "尚未点亮" } }
+      }
+    },
+    "achievement.detail.history" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Record history" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "历史记录" } }
+      }
+    },
+    "achievement.detail.progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d of %d stages illuminated" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已点亮 %d / %d 阶" } }
+      }
+    },
+    "achievement.detail.stages" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Past and future stages" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "过往与未来阶段" } }
+      }
+    },
+    "achievement.detail.timeRequirement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Contiguous monthly snapshots" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "连续记录月度快照" } }
+      }
+    },
+    "achievement.detail.timeStage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d-Month Mark" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%d 个月刻度" } }
+      }
+    },
+    "achievement.inspect.drag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag the medal to turn it" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "拖动奖牌，自由旋转观察" } }
+      }
+    },
+    "achievement.inspect.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Medal detail" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "奖牌细节" } }
+      }
+    },
+    "achievement.inspect.open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Opens the interactive medal" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "打开可旋转奖牌" } }
+      }
+    },
+    "achievement.empty.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your monthly records will turn long-term progress into a private collection."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每一份月度记录，都会把长期进展沉淀成只属于你的收藏。"
+          }
+        }
+      }
+    },
+    "achievement.empty.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first stone awaits"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第一块基石正等待落下"
+          }
+        }
+      }
+    },
+    "achievement.family.monthlyAscent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monthly Ascent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月度跃升"
+          }
+        }
+      }
+    },
+    "achievement.family.monthlyAscent.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your largest increase between adjacent months"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相邻月份之间的最大财富增长"
+          }
+        }
+      }
+    },
+    "achievement.family.timeMark" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time Marks"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "岁月刻度"
+          }
+        }
+      }
+    },
+    "achievement.family.timeMark.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A trail of contiguous monthly records"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由连续月度记录铺成的时间轨迹"
+          }
+        }
+      }
+    },
+    "achievement.family.wealth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wealth Milestones"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "财富里程碑"
+          }
+        }
+      }
+    },
+    "achievement.family.wealth.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calculated from financial assets"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按金融资产总额计算"
+          }
+        }
+      }
+    },
+    "achievement.firstStone.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first monthly record laid the foundation."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第一份月度记录，为这段旅程落下了基石。"
+          }
+        }
+      }
+    },
+    "achievement.firstStone.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First Stone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第一块基石"
+          }
+        }
+      }
+    },
+    "achievement.import.openJournal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open achievement journal"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开财富纪念册"
+          }
+        }
+      }
+    },
+    "achievement.import.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn replayed your explicit monthly records and restored every qualifying achievement."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn 已重放明确记录的月度快照，并恢复所有符合条件的成就。"
+          }
+        }
+      }
+    },
+    "achievement.import.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your journey is restored"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的旅程已恢复"
+          }
+        }
+      }
+    },
+    "achievement.journal.families" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artifacts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成就藏品"
+          }
+        }
+      }
+    },
+    "achievement.journal.featured" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest achievement"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新成就"
+          }
+        }
+      }
+    },
+    "achievement.journal.timeline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Journey"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "财富旅程"
+          }
+        }
+      }
+    },
+    "achievement.journal.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achievement Journal"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "财富纪念册"
+          }
+        }
+      }
+    },
+    "achievement.locked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not yet discovered"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未点亮"
+          }
+        }
+      }
+    },
+    "achievement.monthlyAscent.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new monthly record: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月度财富增长刷新纪录：%@"
+          }
+        }
+      }
+    },
+    "achievement.monthlyAscent.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A New Monthly Ascent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月度跃升新高"
+          }
+        }
+      }
+    },
+    "achievement.share.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享"
+          }
+        }
+      }
+    },
+    "achievement.share.neutral" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new financial milestone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一座新的财富里程碑"
+          }
+        }
+      }
+    },
+    "achievement.timeMark.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d contiguous months recorded"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已连续记录 %d 个月"
+          }
+        }
+      }
+    },
+    "achievement.timeMark.next" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next mark: %d months"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一刻度：%d 个月"
+          }
+        }
+      }
+    },
+    "achievement.timeMark.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time Mark"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "岁月刻度"
+          }
+        }
+      }
+    },
+    "achievement.unlock.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achievement unlocked"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成就已点亮"
+          }
+        }
+      }
+    },
+    "achievement.unlock.headline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You reached a new height."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你抵达了新的高度。"
+          }
+        }
+      }
+    },
+    "achievement.unlock.next" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一个"
+          }
+        }
+      }
+    },
+    "achievement.wealth.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Financial assets crossed %@ for the first time."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "金融资产总额首次越过 %@。"
+          }
+        }
+      }
+    },
+    "achievement.wealth.stage.1m" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Million Crest"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "百万峰线"
+          }
+        }
+      }
+    },
+    "achievement.wealth.stage.2m" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Above the Cloudline"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "云上之门"
+          }
+        }
+      }
+    },
+    "achievement.wealth.stage.5m" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aurora Summit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "极光之巅"
+          }
+        }
+      }
+    },
+    "achievement.wealth.stage.10m" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horizon Crown"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天际冠冕"
+          }
+        }
+      }
+    },
+    "achievement.wealth.stage.100k" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First Ascent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "初砺"
+          }
+        }
+      }
+    },
+    "achievement.wealth.stage.200k" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vein Found"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "矿脉"
+          }
+        }
+      }
+    },
+    "achievement.wealth.stage.500k" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jade Ridge"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "青峰"
+          }
+        }
+      }
+    },
+    "achievement.wealth.stage.generic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A New Summit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新的峰线"
+          }
+        }
+      }
+    },
     "app.name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1298,6 +2103,9 @@
           }
         }
       }
+    },
+    "CAIRN" : {
+
     },
     "common.action.add" : {
       "extractionState" : "manual",

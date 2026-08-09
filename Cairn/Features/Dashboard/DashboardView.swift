@@ -32,13 +32,22 @@ struct DashboardView: View {
     @Query private var rates: [FXRate]
     @Query private var members: [Member]
     @Query private var possessions: [Possession]
+    @Query private var achievementEvents: [AchievementEvent]
 
     /// Current hover selection from the embedded trend chart. When set, the
     /// hero / composition / allocation cards render values as of that month.
     @State private var hoverSelection: TrendSelection?
     @State private var isUpdatingMonth = false
+    @State private var hasRecomputedAchievements = false
 
     // MARK: - Derivation
+
+    private var orderedAchievementEvents: [AchievementEvent] {
+        achievementEvents.sorted {
+            if $0.logicalMonth == $1.logicalMonth { return $0.unlockedAt > $1.unlockedAt }
+            return $0.logicalMonth > $1.logicalMonth
+        }
+    }
 
     /// Single render-pass aggregate. Bundles every figure the layout needs
     /// — current + previous-month totals, per-segment splits, per-kind
@@ -195,6 +204,7 @@ struct DashboardView: View {
             ScrollView {
                 VStack(spacing: isCompact ? 18 : 24) {
                     heroCard(isCompact: isCompact, derivation: derivation)
+                    achievementCard(isCompact: isCompact, financialTotal: derivation.financial)
                     if !members.isEmpty {
                         membersCard(isCompact: isCompact)
                     }
@@ -235,12 +245,106 @@ struct DashboardView: View {
         .sheet(isPresented: $isUpdatingMonth) {
             BatchEntryView()
         }
+        .task {
+            guard !hasRecomputedAchievements else { return }
+            hasRecomputedAchievements = true
+            _ = try? AchievementService.recompute(in: context)
+        }
         .navigationDestination(for: Member.self) { member in
             MemberDetailView(member: member)
         }
         .navigationDestination(for: Account.self) { account in
             AccountDetailView(account: account)
         }
+    }
+
+    // MARK: - Achievements
+
+    private func achievementCard(isCompact: Bool, financialTotal: Decimal) -> some View {
+        let latest = orderedAchievementEvents.first.map(AchievementPresentation.init)
+        let latestWealthIndex = orderedAchievementEvents
+            .filter { $0.family == .wealthMilestone }
+            .compactMap { AchievementService.wealthStageIndex(from: $0.stageKey) }
+            .max()
+        let nextThreshold = AchievementService.wealthThreshold(at: (latestWealthIndex ?? -1) + 1)
+        let previousThreshold = latestWealthIndex.map { AchievementService.wealthThreshold(at: $0) } ?? 0
+        let progressRange = max(nextThreshold - previousThreshold, 1)
+        let progressValue = min(max((financialTotal - previousThreshold) / progressRange, 0), 1)
+
+        return NavigationLink {
+            AchievementJournalView()
+        } label: {
+            HStack(spacing: isCompact ? 12 : 18) {
+                AchievementBadgeView(
+                    family: latest?.family ?? .prologue,
+                    stageKey: latest?.stageKey ?? "first-stone",
+                    size: isCompact ? 48 : 58
+                )
+                .saturation(latest == nil ? 0.14 : 1)
+                .opacity(latest == nil ? 0.58 : 1)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("achievement.dashboard.eyebrow", bundle: localization.bundle)
+                        .font(.caption2.weight(.bold))
+                        .tracking(0.55)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Color.notionBlue)
+
+                    Text(
+                        latest.map { LocalizedStringKey($0.titleKey) }
+                            ?? LocalizedStringKey("achievement.firstStone.title"),
+                        bundle: localization.bundle
+                    )
+                    .font(.headline)
+                    .foregroundStyle(Color.notionInk)
+
+                    if let latest {
+                        Text(verbatim: AchievementFormatting.month(latest.logicalMonth, locale: locale))
+                            .font(.caption)
+                            .foregroundStyle(Color.notionInkSecondary)
+                    } else {
+                        Text("achievement.dashboard.empty", bundle: localization.bundle)
+                            .font(.caption)
+                            .foregroundStyle(Color.notionInkSecondary)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                if !isCompact {
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text("achievement.dashboard.next", bundle: localization.bundle)
+                            .font(.caption2)
+                            .foregroundStyle(Color.notionInkMuted)
+                        Text(
+                            nextThreshold,
+                            format: .currency(code: homeCurrency)
+                                .precision(.fractionLength(0))
+                                .locale(locale)
+                        )
+                        .font(.subheadline.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(Color.notionInk)
+                        Text("achievement.dashboard.financialOnly", bundle: localization.bundle)
+                            .font(.caption2)
+                            .foregroundStyle(Color.notionInkMuted)
+                        ProgressView(value: NSDecimalNumber(decimal: progressValue).doubleValue)
+                            .progressViewStyle(.linear)
+                            .tint(Color.notionBlue)
+                            .frame(width: 118)
+                    }
+                }
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.notionInkMuted)
+            }
+            .padding(isCompact ? 14 : 18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassCard(cornerRadius: 16, padding: 0)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(Text("achievement.dashboard.open", bundle: localization.bundle))
     }
 
     // MARK: - Hero

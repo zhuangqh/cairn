@@ -13,7 +13,8 @@ public enum PersistenceController {
         Snapshot.self,
         FXRate.self,
         PortfolioSnapshot.self,
-        Possession.self
+        Possession.self,
+        AchievementEvent.self
     ])
 
     public enum Mode {

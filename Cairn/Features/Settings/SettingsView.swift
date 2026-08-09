@@ -39,6 +39,8 @@ struct SettingsView: View {
     @State private var importConfirmation: Data?
     @State private var resultMessage: LocalizedStringKey?
     @State private var isShowingFeatureTour: Bool = false
+    @State private var importedAchievements: [AchievementPresentation] = []
+    @State private var isShowingImportSummary: Bool = false
 
     var body: some View {
         @Bindable var localization = localization
@@ -351,6 +353,12 @@ struct SettingsView: View {
         .sheet(isPresented: $isShowingFeatureTour) {
             FeatureTourView(mode: .replay)
         }
+        .sheet(isPresented: $isShowingImportSummary) {
+            AchievementImportSummaryView(events: importedAchievements) {
+                isShowingImportSummary = false
+            }
+            .interactiveDismissDisabled()
+        }
     }
 
     // MARK: - Helpers
@@ -468,7 +476,9 @@ struct SettingsView: View {
         importConfirmation = nil
         do {
             _ = try BackupService.restoreReplacing(from: data, context: context)
-            resultMessage = "settings.backup.import.success"
+            _ = try AchievementService.recompute(in: context, source: .imported)
+            importedAchievements = AchievementService.allPresentations(in: context)
+            isShowingImportSummary = true
         } catch let error as DomainError {
             resultMessage = LocalizedStringKey(error.localizationKey)
         } catch {

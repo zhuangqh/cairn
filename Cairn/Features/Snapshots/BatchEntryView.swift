@@ -20,6 +20,8 @@ struct BatchEntryView: View {
     @State private var showDiscardConfirm: Bool = false
     @State private var errorMessage: String?
     @State private var isSaving: Bool = false
+    @State private var unlockedAchievements: [AchievementPresentation] = []
+    @State private var isShowingAchievementUnlock: Bool = false
 
     /// Historical FX rates fetched for the currently selected month.
     /// Keyed by quote currency; each value means `1 homeCurrency == rate × quote`.
@@ -156,6 +158,12 @@ struct BatchEntryView: View {
         #if os(macOS)
         .frame(minWidth: 560, minHeight: 560)
         #endif
+        .sheet(isPresented: $isShowingAchievementUnlock, onDismiss: { dismiss() }) {
+            AchievementUnlockView(events: unlockedAchievements) {
+                isShowingAchievementUnlock = false
+            }
+            .interactiveDismissDisabled()
+        }
     }
 
     // MARK: - Header / toolbar
@@ -603,8 +611,14 @@ struct BatchEntryView: View {
                     note: trimmed.isEmpty ? nil : trimmed,
                     context: context
                 )
+                let achievementResult = try AchievementService.recompute(in: context)
                 edits.removeAll()
-                dismiss()
+                if achievementResult.created.isEmpty {
+                    dismiss()
+                } else {
+                    unlockedAchievements = achievementResult.created
+                    isShowingAchievementUnlock = true
+                }
             } catch {
                 errorMessage = error.localizedDescription
             }
