@@ -73,23 +73,57 @@ struct AchievementBadgeView: View {
         .accessibilityHidden(true)
     }
 
+    @ViewBuilder
     private var medalBody: some View {
-        ZStack {
-            ForEach(0..<5, id: \.self) { layer in
-                AchievementSealShape()
-                    .fill(edgeStoneColor)
-                    .offset(
-                        x: CGFloat(layer - 2) * size * 0.006,
-                        y: CGFloat(layer) * size * 0.009
-                    )
+        if let artworkAssetName {
+            ZStack {
+                Image(artworkAssetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size * 1.4, height: size * 1.4)
+                    .opacity(0.34 + 0.66 * clampedReveal)
+                    .modifier(MedalFaceVisibility(angle: rotationY, isFront: true))
+
+                backFace
+                    .frame(width: size * 1.26, height: size * 1.07)
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                    .modifier(MedalFaceVisibility(angle: rotationY, isFront: false))
             }
+        } else {
+            ZStack {
+                ForEach(0..<5, id: \.self) { layer in
+                    AchievementSealShape()
+                        .fill(edgeStoneColor)
+                        .offset(
+                            x: CGFloat(layer - 2) * size * 0.006,
+                            y: CGFloat(layer) * size * 0.009
+                        )
+                }
 
-            frontFace
-                .modifier(MedalFaceVisibility(angle: rotationY, isFront: true))
+                frontFace
+                    .modifier(MedalFaceVisibility(angle: rotationY, isFront: true))
 
-            backFace
-                .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
-                .modifier(MedalFaceVisibility(angle: rotationY, isFront: false))
+                backFace
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                    .modifier(MedalFaceVisibility(angle: rotationY, isFront: false))
+            }
+        }
+    }
+
+    /// Only milestones with supplied artwork replace the deterministic
+    /// SwiftUI medal. Unmatched wealth stages keep the existing renderer.
+    private var artworkAssetName: String? {
+        guard family == .wealthMilestone else { return nil }
+
+        switch stageKey {
+        case "wealth-0": return "AchievementWealth100K"
+        case "wealth-1": return "AchievementWealth200K"
+        case "wealth-2": return "AchievementWealth500K"
+        case "wealth-3": return "AchievementWealth1M"
+        case "wealth-4": return "AchievementWealth2M"
+        case "wealth-5": return "AchievementWealth5M"
+        case "wealth-6": return "AchievementWealth10M"
+        default: return nil
         }
     }
 

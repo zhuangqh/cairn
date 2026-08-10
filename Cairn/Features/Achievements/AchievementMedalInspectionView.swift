@@ -18,37 +18,30 @@ struct AchievementMedalInspectionView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: 0x03110F)
-                .opacity(0.76)
+            Rectangle()
+                .fill(.regularMaterial)
+                .overlay {
+                    Color(hex: 0x03110F)
+                        .opacity(0.84)
+                }
                 .modifier(AchievementInspectionReveal(progress: progress, start: 0, end: 0.44))
                 .ignoresSafeArea()
 
             ambientGlow
 
+            Button {
+                guard canClose else { return }
+                onClose()
+            } label: {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .ignoresSafeArea()
+            }
+            .buttonStyle(.plain)
+            .disabled(!canClose)
+            .accessibilityLabel(Text("common.action.done", bundle: localization.bundle))
+
             VStack(spacing: 16) {
-                HStack {
-                    Text("achievement.inspect.eyebrow", bundle: localization.bundle)
-                        .font(.caption2.weight(.bold))
-                        .tracking(1.1)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Color(hex: 0x8DE9DE))
-                        .modifier(AchievementInspectionReveal(progress: progress, start: 0.78, end: 0.94))
-
-                    Spacer()
-
-                    Button(action: onClose) {
-                        Image(systemName: "xmark")
-                            .font(.subheadline.weight(.bold))
-                            .frame(width: 34, height: 34)
-                            .background(Color.white.opacity(0.10), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.white)
-                    .modifier(AchievementInspectionReveal(progress: progress, start: 0.78, end: 0.94))
-                    .disabled(!canClose)
-                    .accessibilityLabel(Text("common.action.done", bundle: localization.bundle))
-                }
-
                 Spacer(minLength: 0)
 
                 GeometryReader { proxy in
@@ -70,47 +63,56 @@ struct AchievementMedalInspectionView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .frame(width: 266, height: 266)
+                .allowsHitTesting(false)
                 .accessibilityLabel(Text(verbatim: title))
 
                 Spacer(minLength: 0)
 
-                VStack(spacing: 10) {
-                    Text(verbatim: title)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-
-                    Text(verbatim: requirement)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.68))
-                        .multilineTextAlignment(.center)
-
-                    HStack(spacing: 8) {
-                        Image(systemName: "calendar")
-                        Text(verbatim: AchievementFormatting.month(presentation.logicalMonth, locale: locale))
-                        if let amount = AchievementFormatting.amount(presentation, locale: locale) {
-                            Text(verbatim: "·")
-                            Text(verbatim: amount).monospacedDigit()
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(Color.white.opacity(0.54))
-
-                    AchievementShareButton(presentation: presentation)
-                        .buttonStyle(.bordered)
-                        .tint(.white)
-                        .padding(.top, 4)
-                }
-                .padding(.horizontal, 22)
-                .padding(.vertical, 18)
-                .frame(maxWidth: 460)
-                .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay {
+                ZStack {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8)
+                        .fill(Color.white.opacity(0.065))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8)
+                        }
+                        .allowsHitTesting(false)
+
+                    VStack(spacing: 10) {
+                        VStack(spacing: 10) {
+                            Text(verbatim: title)
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
+
+                            Text(verbatim: requirement)
+                                .font(.subheadline)
+                                .foregroundStyle(Color.white.opacity(0.68))
+                                .multilineTextAlignment(.center)
+
+                            HStack(spacing: 8) {
+                                Image(systemName: "calendar")
+                                Text(verbatim: AchievementFormatting.month(presentation.logicalMonth, locale: locale))
+                                if let amount = AchievementFormatting.amount(presentation, locale: locale) {
+                                    Text(verbatim: "·")
+                                    Text(verbatim: amount).monospacedDigit()
+                                }
+                            }
+                            .font(.caption)
+                            .foregroundStyle(Color.white.opacity(0.54))
+                        }
+                        .allowsHitTesting(false)
+
+                        AchievementShareButton(presentation: presentation)
+                            .buttonStyle(.bordered)
+                            .tint(.white)
+                            .padding(.top, 4)
+                            .allowsHitTesting(canClose)
+                    }
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 18)
                 }
+                .frame(maxWidth: 460)
                 .modifier(AchievementInspectionReveal(progress: progress, start: 0.70, end: 0.92, distance: 10))
-                .allowsHitTesting(canClose)
             }
             .padding(24)
             .frame(maxWidth: 680, maxHeight: 760)
