@@ -59,10 +59,18 @@ struct AssetsView: View {
         var monthDeltaAmount: Decimal?
         /// Per-member month-over-month percentage deltas, keyed by id.
         var memberDeltaPercent: [UUID: Double]
+        /// The source snapshot when the displayed values are captured history.
+        var sourceSnapshot: PortfolioSnapshot?
     }
 
     private func deriveFinancial() -> FinancialDerivation {
         _ = snapshots.count + rates.count + holdings.count + members.count
+        if let latest = portfolioSnapshots.first(where: { $0.homeCurrency == homeCurrency }) {
+            return deriveFinancial(from: latest)
+        }
+
+        // Before the first portfolio snapshot exists, retain the live
+        // calculation so the empty state still gives the user a useful total.
         let bundle = NetWorthCalculator.bundle(
             homeCurrency: homeCurrency,
             includeMemberBreakdown: true,
@@ -104,8 +112,66 @@ struct AssetsView: View {
             memberTotals: bundle.byMember,
             monthDeltaPercent: bundle.monthOverMonthDelta,
             monthDeltaAmount: deltaAmount,
-            memberDeltaPercent: memberDeltas
+            memberDeltaPercent: memberDeltas,
+            sourceSnapshot: nil
         )
+    }
+
+    /// Once history exists, the Assets summary is a view of the latest
+    /// captured portfolio snapshot. This keeps the headline, member totals,
+    /// and deltas on the same frozen balances and FX rates.
+    private func deriveFinancial(from latest: PortfolioSnapshot) -> FinancialDerivation {
+        let previous = previousSnapshot(for: latest)
+        let latestMembers = memberTotals(in: latest)
+        let previousById = Dictionary(
+            uniqueKeysWithValues: previous.map(memberTotals(in:))?.map { ($0.memberId, $0.amount) } ?? []
+        )
+
+        let deltaAmount = previous.map { latest.totalAmount - $0.totalAmount }
+        let deltaPercent: Double? = previous.flatMap { prior in
+            guard prior.totalAmount != 0 else { return nil }
+            let change = (latest.totalAmount - prior.totalAmount) / prior.totalAmount
+            return NSDecimalNumber(decimal: change).doubleValue
+        }
+
+        var memberDeltas: [UUID: Double] = [:]
+        for entry in latestMembers {
+            guard let prior = previousById[entry.memberId], prior != 0 else { continue }
+            let change = (entry.amount - prior) / prior
+            memberDeltas[entry.memberId] = NSDecimalNumber(decimal: change).doubleValue
+        }
+
+        return FinancialDerivation(
+            totals: .init(amount: latest.totalAmount, missingCurrencies: []),
+            memberTotals: latestMembers,
+            monthDeltaPercent: deltaPercent,
+            monthDeltaAmount: deltaAmount,
+            memberDeltaPercent: memberDeltas,
+            sourceSnapshot: latest
+        )
+    }
+
+    private func memberTotals(in snapshot: PortfolioSnapshot) -> [NetWorthCalculator.MemberTotal] {
+        let holdingsById = Dictionary(uniqueKeysWithValues: holdings.map { ($0.id, $0) })
+        var amountsByMemberId: [UUID: Decimal] = [:]
+
+        for entry in snapshot.entries {
+            guard let amount = entry.convertedAmount else { continue }
+            let resolvedMember = entry.holdingId
+                .flatMap { holdingsById[$0]?.account?.member }
+                ?? members.first(where: { $0.name == entry.memberName })
+            guard let resolvedMember else { continue }
+            amountsByMemberId[resolvedMember.id, default: 0] += amount
+        }
+
+        return members.compactMap { member in
+            guard let amount = amountsByMemberId[member.id] else { return nil }
+            return NetWorthCalculator.MemberTotal(
+                memberId: member.id,
+                memberName: member.name,
+                amount: amount
+            )
+        }
     }
 
     var body: some View {
@@ -409,7 +475,8 @@ struct AssetsView: View {
                 .foregroundStyle(.orange)
                 .font(.footnote)
                 .padding(.top, 4)
-            } else if let latest = rates.map(\.date).max() {
+            } else if derivation.sourceSnapshot == nil,
+                      let latest = rates.map(\.date).max() {
                 Text(latestRatesFootnote(date: latest))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
