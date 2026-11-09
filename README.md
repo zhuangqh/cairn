@@ -118,7 +118,7 @@ Full spec: [PRD.md](PRD.md).
 ## 📚 Documentation
 
 - [Product spec (PRD)](PRD.md)
-- [Design notes](DESIGN.md)
+- [Development conventions](AGENTS.md) — guidance for contributors and coding agents
 - [Development guide](docs/development.md) — build, project structure, localization, contributing
 
 ## 🤝 Contributing
