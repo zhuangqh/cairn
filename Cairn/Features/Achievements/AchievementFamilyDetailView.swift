@@ -33,6 +33,7 @@ struct AchievementFamilyDetailView: View {
         let id: String
         let matchedID: String
         let presentation: AchievementPresentation
+        var stageKey: String?
         let title: String
         let requirement: String
     }
@@ -120,6 +121,7 @@ struct AchievementFamilyDetailView: View {
             if let selection = inspectedMedal {
                 AchievementMedalInspectionView(
                     presentation: selection.presentation,
+                    badgeStageKey: selection.stageKey,
                     title: selection.title,
                     requirement: selection.requirement,
                     sourceFrame: inspectedSourceFrame,
@@ -215,6 +217,7 @@ struct AchievementFamilyDetailView: View {
                         id: stage.id,
                         matchedID: stageMatchedID(stage),
                         presentation: presentation,
+                        stageKey: stage.stageKey,
                         title: stage.title,
                         requirement: stage.requirement
                     )

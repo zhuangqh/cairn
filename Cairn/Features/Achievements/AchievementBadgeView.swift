@@ -50,10 +50,12 @@ struct AchievementBadgeView: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(crackColor.opacity(0.075 * clampedCrack))
-                .frame(width: size * 1.22, height: size * 1.22)
-                .blur(radius: size * 0.15)
+            if size > 96 {
+                Circle()
+                    .fill(crackColor.opacity(0.075 * clampedCrack))
+                    .frame(width: size * 1.22, height: size * 1.22)
+                    .blur(radius: size * 0.15)
+            }
 
             medalBody
                 .rotation3DEffect(
@@ -84,8 +86,11 @@ struct AchievementBadgeView: View {
                     .opacity(0.34 + 0.66 * clampedReveal)
                     .modifier(MedalFaceVisibility(angle: rotationY, isFront: true))
 
-                backFace
-                    .frame(width: size * 1.26, height: size * 1.07)
+                Image(family == .prologue ? "AchievementStoneReverse" : "AchievementRoundedReverse")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size * 1.4, height: size * 1.4)
+                    .opacity(0.34 + 0.66 * clampedReveal)
                     .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
                     .modifier(MedalFaceVisibility(angle: rotationY, isFront: false))
             }
@@ -110,20 +115,42 @@ struct AchievementBadgeView: View {
         }
     }
 
-    /// Only milestones with supplied artwork replace the deterministic
-    /// SwiftUI medal. Unmatched wealth stages keep the existing renderer.
+    /// Monthly records retain the existing capped material progression.
+    /// Unmatched wealth stages keep the deterministic SwiftUI renderer.
     private var artworkAssetName: String? {
-        guard family == .wealthMilestone else { return nil }
-
-        switch stageKey {
-        case "wealth-0": return "AchievementWealth100K"
-        case "wealth-1": return "AchievementWealth200K"
-        case "wealth-2": return "AchievementWealth500K"
-        case "wealth-3": return "AchievementWealth1M"
-        case "wealth-4": return "AchievementWealth2M"
-        case "wealth-5": return "AchievementWealth5M"
-        case "wealth-6": return "AchievementWealth10M"
-        default: return nil
+        switch family {
+        case .prologue:
+            return stageKey == "first-stone" ? "AchievementFirstStone" : nil
+        case .wealthMilestone:
+            switch stageKey {
+            case "wealth-0": return "AchievementWealth100K"
+            case "wealth-1": return "AchievementWealth200K"
+            case "wealth-2": return "AchievementWealth500K"
+            case "wealth-3": return "AchievementWealth1M"
+            case "wealth-4": return "AchievementWealth2M"
+            case "wealth-5": return "AchievementWealth5M"
+            case "wealth-6": return "AchievementWealth10M"
+            default: return nil
+            }
+        case .monthlyAscent:
+            switch materialIndex {
+            case 0: return "AchievementAscentStart"
+            case 1: return "AchievementAscent10K"
+            case 2: return "AchievementAscent20K"
+            case 3: return "AchievementAscent50K"
+            case 4: return "AchievementAscent100K"
+            case 5: return "AchievementAscent200K"
+            default: return "AchievementAscent500K"
+            }
+        case .timeMark:
+            switch stageKey {
+            case "time-3": return "AchievementTime3"
+            case "time-6": return "AchievementTime6"
+            case "time-12": return "AchievementTime12"
+            case "time-24": return "AchievementTime24"
+            case "time-60": return "AchievementTime60"
+            default: return nil
+            }
         }
     }
 

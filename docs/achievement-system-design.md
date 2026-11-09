@@ -267,6 +267,8 @@ The achievement engine must be deterministic. Derived output should be reproduci
 
 ## 9. Badge visual system
 
+Design boards, generation prompts, and the stage-to-asset map for the shipped artwork live in [`design/achievement-icons`](design/achievement-icons/README.md).
+
 ### Anatomy
 
 Every artifact has five layers:

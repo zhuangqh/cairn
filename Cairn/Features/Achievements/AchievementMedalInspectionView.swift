@@ -5,6 +5,9 @@ import SwiftUI
 /// so the medal never pauses at its back face while another animation catches up.
 struct AchievementMedalInspectionView: View {
     let presentation: AchievementPresentation
+    /// Overrides the medal artwork when the source shows a tier rather than
+    /// the earned record, e.g. a Monthly Ascent tier unlocked by a larger record.
+    var badgeStageKey: String?
     let title: String
     let requirement: String
     let sourceFrame: CGRect
@@ -47,7 +50,8 @@ struct AchievementMedalInspectionView: View {
                 GeometryReader { proxy in
                     ZStack {
                         AchievementBadgeView(
-                            presentation,
+                            family: presentation.family,
+                            stageKey: badgeStageKey ?? presentation.stageKey,
                             size: 190,
                             rotationY: reduceMotion ? 0 : progress * 360
                         )
