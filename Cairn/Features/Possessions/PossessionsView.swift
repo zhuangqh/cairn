@@ -4,15 +4,16 @@ import SwiftData
 /// Lists physical `Possession` records (real estate, vehicles, electronics, …)
 /// grouped by category. Surfaced as the "Possessions" tab inside `AssetsView`.
 ///
-/// Empty state guides the user to create their first possession. Each row shows
-/// the owner, current value in its native currency, and the category badge.
-/// Sold possessions are grouped into a separate "Sold" section and rendered with
-/// reduced emphasis.
+/// Laid out like the Financial tab: a purchase-cost hero, then one breakdown
+/// card per category whose rows show the owner, holding period, and native
+/// purchase price (plus its home-currency equivalent). Sold possessions are
+/// grouped into a separate "Sold" card and rendered with reduced emphasis.
 struct PossessionsView: View {
     var addRequest: Int = 0
 
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(\.possessionInspector) private var inspector
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
@@ -42,6 +43,9 @@ struct PossessionsView: View {
         var sold: [Possession]
         var byCategory: [PossessionCategory: [Possession]]
         var categoryPurchaseCost: [PossessionCategory: Decimal]
+        /// Home-currency purchase cost for foreign-currency possessions
+        /// (active and sold) whose rate is available, keyed by id.
+        var homeEquivalents: [UUID: Decimal] = [:]
     }
 
     private func derive() -> Derivation {
@@ -53,14 +57,9 @@ struct PossessionsView: View {
         var categoryPurchaseCost: [PossessionCategory: Decimal] = [:]
         var total: Decimal = 0
         var missing: Set<String> = []
+        var homeEquivalents: [UUID: Decimal] = [:]
         active.reserveCapacity(possessions.count)
         for possession in possessions {
-            if possession.isSold {
-                sold.append(possession)
-                continue
-            }
-            active.append(possession)
-            byCategory[possession.category, default: []].append(possession)
             let converted: Decimal?
             if possession.purchaseCurrency == homeCurrency {
                 converted = possession.purchasePrice
@@ -70,7 +69,14 @@ struct PossessionsView: View {
                     from: possession.purchaseCurrency,
                     to: homeCurrency
                 )
+                homeEquivalents[possession.id] = converted
             }
+            if possession.isSold {
+                sold.append(possession)
+                continue
+            }
+            active.append(possession)
+            byCategory[possession.category, default: []].append(possession)
             if let value = converted {
                 total += value
                 categoryPurchaseCost[possession.category, default: 0] += value
@@ -84,7 +90,8 @@ struct PossessionsView: View {
             active: active,
             sold: sold,
             byCategory: byCategory,
-            categoryPurchaseCost: categoryPurchaseCost
+            categoryPurchaseCost: categoryPurchaseCost,
+            homeEquivalents: homeEquivalents
         )
     }
 
@@ -127,257 +134,175 @@ struct PossessionsView: View {
             emptyState
         } else {
             VStack(spacing: 20) {
-                summaryCard(derivation: derivation)
-                categorizedCards(derivation: derivation)
-                if !derivation.sold.isEmpty {
-                    soldCard(derivation: derivation)
+                // The total rides on the showcase as its nameplate; the full
+                // hero card only remains when nothing active is on display.
+                if derivation.active.isEmpty {
+                    heroSummary(derivation: derivation, compact: false).glassCard()
+                } else {
+                    showcase(derivation: derivation)
                 }
+                listCards(derivation: derivation)
             }
         }
     }
 
     // MARK: - Cards
 
-    private func summaryCard(derivation: Derivation) -> some View {
-        HStack(alignment: .center, spacing: 16) {
-            summaryCardText(derivation: derivation)
-            Spacer(minLength: 0)
-            #if os(macOS)
-            Button {
-                presentNewPossession()
-            } label: {
-                Label {
-                    Text("possession.new.title")
-                } icon: {
-                    Image(systemName: "plus")
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            #endif
-        }
-        .glassCard()
-    }
-
-    private func summaryCardText(derivation: Derivation) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Eyebrow row — mirrors the Financial hero ("NET WORTH · CNY").
-            HStack(spacing: 6) {
-                Text("possession.total.title")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                    .tracking(0.5)
-                Text(verbatim: "·")
-                    .foregroundStyle(.tertiary)
-                Text(verbatim: homeCurrency)
-                    .font(.caption2.monospaced().weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            Text(
-                derivation.purchaseCostTotal,
-                format: .currency(code: homeCurrency)
-                    .locale(locale)
-                    .precision(.fractionLength(0))
-            )
-                .font(.system(size: 40, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
-                .foregroundStyle(Color.notionInk)
-            if !derivation.missingCurrencies.isEmpty {
-                Label {
-                    Text(missingRatesMessage(derivation.missingCurrencies))
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                }
-                .foregroundStyle(.orange)
-                .font(.footnote)
-                .padding(.top, 4)
-            }
-            Text(possessionCountFootnote(activeCount: derivation.active.count))
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .padding(.top, 4)
-        }
-    }
-
-    @ViewBuilder
-    private func categorizedCards(derivation: Derivation) -> some View {
-        let buckets: [(PossessionCategory, [Possession], Decimal)] = PossessionCategory.allCases.compactMap { category in
-            guard let bucket = derivation.byCategory[category], !bucket.isEmpty else { return nil }
-            return (category, bucket, derivation.categoryPurchaseCost[category] ?? 0)
-        }
+    /// Mirrors the Financial tab's hero: eyebrow, headline total, footnotes,
+    /// and (on macOS) the primary action trailing the text. `compact` is the
+    /// showcase nameplate: a smaller total with the item count beside it.
+    private func heroSummary(derivation: Derivation, compact: Bool) -> some View {
         #if os(macOS)
-        let pairs = stride(from: 0, to: buckets.count, by: 2).map { start in
-            Array(buckets[start..<min(start + 2, buckets.count)])
-        }
-        VStack(spacing: 16) {
-            ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
-                HStack(alignment: .top, spacing: 16) {
-                    ForEach(Array(pair.enumerated()), id: \.offset) { _, item in
-                        categorySection(
-                            category: item.0,
-                            possessions: item.1,
-                            purchaseCost: item.2
-                        )
-                        .frame(maxWidth: .infinity, alignment: .top)
-                    }
-                    if pair.count == 1 {
-                        Color.clear.frame(maxWidth: .infinity)
-                    }
-                }
-                .frame(maxWidth: .infinity)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 16) {
+                heroTextBlock(derivation: derivation, compact: compact)
+                Spacer()
+                addPossessionButton(compact: compact)
+            }
+            VStack(alignment: .leading, spacing: compact ? 10 : 16) {
+                heroTextBlock(derivation: derivation, compact: compact)
+                addPossessionButton(compact: compact)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         #else
-        ForEach(buckets, id: \.0) { item in
-            categorySection(
-                category: item.0,
-                possessions: item.1,
-                purchaseCost: item.2
-            )
-        }
+        // iOS exposes "New possession" through the navigation bar "+".
+        heroTextBlock(derivation: derivation, compact: compact)
+            .frame(maxWidth: .infinity, alignment: .leading)
         #endif
     }
 
-    private func categorySection(
-        category: PossessionCategory,
-        possessions: [Possession],
-        purchaseCost: Decimal
+    private func heroTextBlock(derivation: Derivation, compact: Bool) -> some View {
+        PossessionsTotalSummary(
+            total: derivation.purchaseCostTotal,
+            homeCurrency: homeCurrency,
+            activeCount: derivation.active.count,
+            missingCurrencies: derivation.missingCurrencies,
+            compact: compact
+        )
+    }
+
+    #if os(macOS)
+    private func addPossessionButton(compact: Bool) -> some View {
+        Button {
+            presentNewPossession()
+        } label: {
+            Label {
+                Text("possession.new.title")
+            } icon: {
+                Image(systemName: "plus")
+            }
+        }
+        .controlSize(compact ? .regular : .large)
+        .cairnProminentButtonStyle()
+        // Hidden while a showcase item is open; Liquid Glass would otherwise
+        // shine through the dimmed page. Opacity keeps the header layout.
+        .opacity(inspector?.inspectedID == nil ? 1 : 0)
+        .disabled(inspector?.inspectedID != nil)
+    }
+    #endif
+
+    private func cardSpecs(derivation: Derivation) -> [PossessionListCard] {
+        var cards: [PossessionListCard] = PossessionCategory.allCases.compactMap { category in
+            guard let bucket = derivation.byCategory[category], !bucket.isEmpty else { return nil }
+            let subtotal = (derivation.categoryPurchaseCost[category] ?? 0).formatted(
+                .currency(code: homeCurrency)
+                    .locale(locale)
+                    .precision(.fractionLength(0))
+            )
+            return PossessionListCard(
+                id: category.rawValue,
+                titleKey: LocalizedStringKey(category.localizationKey),
+                accessory: "\(itemCountFootnote(count: bucket.count)) · \(subtotal)",
+                possessions: bucket,
+                dimmed: false
+            )
+        }
+        if !derivation.sold.isEmpty {
+            cards.append(PossessionListCard(
+                id: "sold",
+                titleKey: "possession.section.sold",
+                accessory: itemCountFootnote(count: derivation.sold.count),
+                possessions: derivation.sold,
+                dimmed: true
+            ))
+        }
+        return cards
+    }
+
+    /// Single column everywhere except wide macOS windows, where cards are
+    /// packed into two top-aligned columns (each card goes to the shorter
+    /// column) so mixed card heights don't leave holes.
+    @ViewBuilder
+    private func listCards(derivation: Derivation) -> some View {
+        let cards = cardSpecs(derivation: derivation)
+        #if os(macOS)
+        if cards.count > 1 {
+            let columns = PossessionListCard.balancedColumns(cards)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 20) {
+                    cardColumn(columns.0, homeEquivalents: derivation.homeEquivalents)
+                        .frame(minWidth: 380, maxWidth: .infinity)
+                    cardColumn(columns.1, homeEquivalents: derivation.homeEquivalents)
+                        .frame(minWidth: 380, maxWidth: .infinity)
+                }
+                cardColumn(cards, homeEquivalents: derivation.homeEquivalents)
+            }
+        } else {
+            cardColumn(cards, homeEquivalents: derivation.homeEquivalents)
+        }
+        #else
+        cardColumn(cards, homeEquivalents: derivation.homeEquivalents)
+        #endif
+    }
+
+    private func cardColumn(_ cards: [PossessionListCard], homeEquivalents: [UUID: Decimal]) -> some View {
+        VStack(spacing: 20) {
+            ForEach(cards) { card in
+                AssetsBreakdownCard(titleKey: card.titleKey, accessory: card.accessory) {
+                    possessionRows(card.possessions, homeEquivalents: homeEquivalents, dimmed: card.dimmed)
+                }
+            }
+        }
+    }
+
+    private func possessionRows(
+        _ possessions: [Possession],
+        homeEquivalents: [UUID: Decimal],
+        dimmed: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: category.iconName)
-                    .foregroundStyle(category.tint)
-                Text(LocalizedStringKey(category.localizationKey))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-                HStack(spacing: 6) {
-                    Text(itemCountFootnote(count: possessions.count))
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    Text(verbatim: "·")
-                        .foregroundStyle(.tertiary)
-                    Text(
-                        purchaseCost,
-                        format: .currency(code: homeCurrency)
-                            .locale(locale)
-                            .precision(.fractionLength(0))
-                    )
-                    .font(.caption.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                }
-            }
-            VStack(spacing: 0) {
-                ForEach(Array(possessions.enumerated()), id: \.element.id) { index, possession in
-                    possessionRow(possession)
-                    if index < possessions.count - 1 {
-                        Divider().opacity(0.4)
-                    }
-                }
+        ForEach(Array(possessions.enumerated()), id: \.element.id) { index, possession in
+            possessionRow(possession, homeEquivalent: homeEquivalents[possession.id])
+                .opacity(dimmed ? 0.7 : 1)
+            if index < possessions.count - 1 {
+                Divider().opacity(0.35)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
     }
 
-    private func soldCard(derivation: Derivation) -> some View {
-        let soldPossessions = derivation.sold
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "archivebox.fill")
-                    .foregroundStyle(.secondary)
-                Text("possession.section.sold")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-                Text(verbatim: "\(soldPossessions.count)")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.tertiary)
-            }
-            VStack(spacing: 0) {
-                ForEach(Array(soldPossessions.enumerated()), id: \.element.id) { index, possession in
-                    possessionRow(possession)
-                        .opacity(0.7)
-                    if index < soldPossessions.count - 1 {
-                        Divider().opacity(0.4)
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
-    }
-
-    private func possessionRow(_ possession: Possession) -> some View {
+    /// One breakdown row per possession, sharing the Financial tab's
+    /// leading-mark / title / trailing-amount columns.
+    private func possessionRow(_ possession: Possession, homeEquivalent: Decimal?) -> some View {
         Button {
             editingPossession = possession
         } label: {
-            HStack(alignment: .top, spacing: 12) {
-#if os(macOS)
-                GlyphBadge(
-                    systemName: possession.iconName ?? possession.category.iconName,
-                    tint: possession.category.tint
-                )
-#endif
-                VStack(alignment: .leading, spacing: 4) {
-                    // Line 1: name
-                    Text(verbatim: possession.name)
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(.primary)
-
-                    // Line 2: category · owner · currency
-                    Text(verbatim: rowSubtitle(for: possession))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-
-                    // Line 3: purchase cost
-                    HStack(spacing: 6) {
-                        Text("possession.row.purchaseCost")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                        Text(
-                            possession.purchasePrice,
-                            format: .currency(code: possession.purchaseCurrency).locale(locale)
-                        )
-                        .font(.callout.weight(.medium))
-                        .monospacedDigit()
-                        .foregroundStyle(.primary)
-                    }
-
-                    // Line 4: purchased {date}
-                    Text(purchasedOnText(for: possession))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-
-                    // Line 5: subtle valuation placeholder (active only) —
-                    // reserved for a future revaluation feature. Kept
-                    // secondary so it never competes with the purchase
-                    // ledger. Sold possessions show their sale info instead.
-                    if possession.isSold {
-                        Text("possession.badge.sold")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("possession.row.estimatedValueNotSet")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary.opacity(0.7))
-                    }
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 2)
-            }
-            .padding(.vertical, 10)
+            AssetsBreakdownRow(
+                leading: {
+                    PossessionPhotoBadge(
+                        photoData: possession.photoData,
+                        systemName: possession.iconName ?? possession.category.iconName,
+                        tint: possession.category.tint
+                    )
+                },
+                title: possession.name,
+                caption: rowCaption(for: possession),
+                trailing: { rowTrailing(for: possession, homeEquivalent: homeEquivalent) },
+                share: nil,
+                showsShare: false,
+                monthDelta: nil,
+                currencyCode: homeCurrency,
+                locale: locale
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -392,6 +317,37 @@ struct PossessionsView: View {
             } label: {
                 Label { Text("common.action.delete") } icon: { Image(systemName: "trash") }
             }
+        }
+    }
+
+    /// Native purchase price, with the home-currency equivalent underneath
+    /// for foreign purchases so the column still reads in one currency.
+    private func rowTrailing(for possession: Possession, homeEquivalent: Decimal?) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            VStack(alignment: .trailing, spacing: 2) {
+                AssetsBreakdownAmount(
+                    amount: possession.purchasePrice,
+                    currencyCode: possession.purchaseCurrency,
+                    locale: locale
+                )
+                if let converted = homeEquivalent {
+                    Text(
+                        converted,
+                        format: .currency(code: homeCurrency)
+                            .locale(locale)
+                            .precision(.fractionLength(0))
+                    )
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                }
+            }
+            // Amounts never wrap mid-number; the name column wraps instead.
+            .fixedSize(horizontal: true, vertical: false)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
     }
 
@@ -411,46 +367,29 @@ struct PossessionsView: View {
                     Image(systemName: "plus")
                 }
             }
-            .buttonStyle(.borderedProminent)
             .controlSize(.large)
+            .cairnProminentButtonStyle()
         }
         .padding(.top, 32)
     }
 
     // MARK: - Derived
 
-    /// Compose the secondary line: "Category · Owner · CUR".
-    /// Owner is omitted when missing so the dot separators stay clean.
-    private func rowSubtitle(for possession: Possession) -> String {
-        let category = NSLocalizedString(possession.category.localizationKey, comment: "")
-        var parts: [String] = [category]
-        if let member = possession.member {
-            parts.append(member.name)
+    /// "Owner · Mar 2023", or "Owner · Mar 2023 – Jun 2024" once sold.
+    /// Owner is omitted when missing so the separators stay clean.
+    private func rowCaption(for possession: Possession) -> String {
+        let style = Date.FormatStyle.dateTime.year().month(.abbreviated).locale(locale)
+        var held = possession.purchaseDate.formatted(style)
+        if let saleDate = possession.saleDate {
+            held += " – " + saleDate.formatted(style)
         }
-        parts.append(possession.purchaseCurrency)
-        return parts.joined(separator: " · ")
-    }
-
-    private func purchasedOnText(for possession: Possession) -> String {
-        let date = possession.purchaseDate.formatted(.dateTime.year().month(.abbreviated).locale(locale))
-        let template = String(localized: "possession.row.purchasedOn")
-        return template.replacingOccurrences(of: "{date}", with: date)
-    }
-
-    private func possessionCountFootnote(activeCount: Int) -> String {
-        let template = String(localized: "possession.count.active")
-        return template.replacingOccurrences(of: "{count}", with: String(activeCount))
+        guard let member = possession.member else { return held }
+        return "\(member.name) · \(held)"
     }
 
     private func itemCountFootnote(count: Int) -> String {
         let template = String(localized: "possession.section.itemCount")
         return template.replacingOccurrences(of: "{count}", with: String(count))
-    }
-
-    private func missingRatesMessage(_ currencies: [String]) -> String {
-        let list = currencies.joined(separator: ", ")
-        let template = String(localized: "assets.missingRates")
-        return template.replacingOccurrences(of: "{currencies}", with: list)
     }
 
     // MARK: - Actions
@@ -477,65 +416,25 @@ struct PossessionsView: View {
     }
 }
 
-/// Bundles the Possessions screen's sheet + delete-confirmation modifiers so
-/// `PossessionsView.body` stays comfortably under the function-length budget.
-private struct PossessionsSheetsModifier: ViewModifier {
-    @Binding var newPossessionDraft: Possession?
-    @Binding var newPossessionSaved: Bool
-    @Binding var pendingNewPossession: Possession?
-    @Binding var editingPossession: Possession?
-    @Binding var possessionPendingDeletion: Possession?
-    let context: ModelContext
-
-    func body(content: Content) -> some View {
-        content
-            .sheet(
-                item: $newPossessionDraft,
-                onDismiss: {
-                    // Covers both Cancel taps and interactive swipe-down
-                    // dismissal on iOS. By the time `onDismiss` fires the
-                    // sheet's `item` binding is already nil, so we use
-                    // `pendingNewPossession` to reach the draft we inserted.
-                    if !newPossessionSaved, let draft = pendingNewPossession {
-                        context.delete(draft)
-                    }
-                    pendingNewPossession = nil
-                    newPossessionSaved = false
-                }
-            ) { draft in
-                PossessionFormView(possession: draft, isNew: true) { saved in
-                    newPossessionSaved = saved
-                }
-            }
-            .sheet(item: $editingPossession) { possession in
-                PossessionFormView(possession: possession, isNew: false) { _ in
-                    editingPossession = nil
-                }
-            }
-            // Use `.alert` rather than `.confirmationDialog` here: when
-            // triggered from a row's context menu inside a `LazyVStack`,
-            // a confirmation dialog on iOS can race with the menu's
-            // dismissal animation (requiring a second tap) and anchors
-            // its popover oddly on iPad. An alert is system-modal and
-            // centered, which avoids both issues.
-            .alert(
-                Text("possession.delete.confirm.title"),
-                isPresented: Binding(
-                    get: { possessionPendingDeletion != nil },
-                    set: { if !$0 { possessionPendingDeletion = nil } }
-                ),
-                presenting: possessionPendingDeletion
-            ) { possession in
-                Button(role: .destructive) {
-                    context.delete(possession)
-                    possessionPendingDeletion = nil
-                } label: {
-                    Text("common.action.delete")
-                }
-                Button(role: .cancel) { possessionPendingDeletion = nil } label: { Text("common.action.cancel") }
-            } message: { _ in
-                Text("possession.delete.confirm.message")
-            }
+extension PossessionsView {
+    private func showcase(derivation: Derivation) -> some View {
+        PossessionShowcaseView(
+            header: { heroSummary(derivation: derivation, compact: true) },
+            shelves: PossessionShowcaseLayout.shelves(byCategory: derivation.byCategory) { possession in
+                possession.purchaseCurrency == homeCurrency
+                    ? possession.purchasePrice
+                    : derivation.homeEquivalents[possession.id]
+            },
+            priceText: { possession in
+                possession.purchasePrice.formatted(
+                    .currency(code: possession.purchaseCurrency)
+                        .locale(locale)
+                        .precision(.fractionLength(0))
+                )
+            },
+            onSelect: { editingPossession = $0 },
+            onDelete: { possessionPendingDeletion = $0 }
+        )
     }
 }
 

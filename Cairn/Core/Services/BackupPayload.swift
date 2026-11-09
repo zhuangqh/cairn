@@ -217,6 +217,8 @@ public struct PossessionDTO: Codable, Sendable {
     public let saleDate: Date?
     public let salePrice: Decimal?
     public let iconName: String?
+    /// Added in version 5; older backups omit this field and decode as `nil`.
+    public let photoData: Data?
     public let note: String?
     public let createdAt: Date
     public let memberId: UUID?
@@ -233,6 +235,7 @@ public struct PossessionDTO: Codable, Sendable {
         self.saleDate = possession.saleDate
         self.salePrice = possession.salePrice
         self.iconName = possession.iconName
+        self.photoData = possession.photoData
         self.note = possession.note
         self.createdAt = possession.createdAt
         self.memberId = possession.member?.id

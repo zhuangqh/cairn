@@ -7,7 +7,8 @@ import SwiftData
 /// helper layers a realistic graph on top so feature previews can exercise
 /// non-trivial states (multiple members, accounts across kinds, multi-currency
 /// holdings with several months of snapshots, FX rates, and a captured
-/// portfolio snapshot) without each call site re-building the same fixtures.
+/// portfolio snapshot, and in DEBUG builds possessions with bundled photos)
+/// without each call site re-building the same fixtures.
 @MainActor
 public enum PreviewSampleData {
 
@@ -165,6 +166,10 @@ public enum PreviewSampleData {
             note: "Preview sample"
         )
         context.insert(portfolio)
+
+        #if DEBUG
+        populatePossessions(context, alice: alice, bob: bob)
+        #endif
 
         return Seeded(
             alice: alice,

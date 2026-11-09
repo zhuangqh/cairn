@@ -143,7 +143,7 @@ struct AchievementMedalInspectionView: View {
 
 /// One transform owns the complete source-to-centre movement. A small lift at
 /// mid-flight keeps the path physical without separating translation from turn.
-private struct AchievementInspectionMotion: @MainActor AnimatableModifier {
+struct AchievementInspectionMotion: @MainActor AnimatableModifier {
     var progress: Double
     let sourceFrame: CGRect
     let targetFrame: CGRect
@@ -171,7 +171,7 @@ private struct AchievementInspectionMotion: @MainActor AnimatableModifier {
 
 /// Thresholded reveal driven by the same progress as the medal. Unlike a plain
 /// opacity animation, this keeps copy and controls quiet until the turn settles.
-private struct AchievementInspectionReveal: @MainActor AnimatableModifier {
+struct AchievementInspectionReveal: @MainActor AnimatableModifier {
     var progress: Double
     let start: Double
     let end: Double

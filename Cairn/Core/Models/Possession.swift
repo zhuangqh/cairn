@@ -33,6 +33,10 @@ public final class Possession {
 
     /// Optional custom SF Symbol override (reserved for a future icon library).
     public var iconName: String?
+    /// User photo shown in the Possessions showcase: an on-device subject
+    /// cutout (transparent PNG), or the downscaled original when no subject
+    /// was found. Kept out of the store file by external storage.
+    @Attribute(.externalStorage) public var photoData: Data?
     public var note: String?
     public var createdAt: Date = Date()
 
@@ -66,6 +70,7 @@ public final class Possession {
         saleDate: Date? = nil,
         salePrice: Decimal? = nil,
         iconName: String? = nil,
+        photoData: Data? = nil,
         note: String? = nil,
         member: Member? = nil,
         createdAt: Date = .now
@@ -81,6 +86,7 @@ public final class Possession {
         self.saleDate = saleDate
         self.salePrice = salePrice
         self.iconName = iconName
+        self.photoData = photoData
         self.note = note
         self.member = member
         self.createdAt = createdAt

@@ -19,7 +19,8 @@ public enum BackupService {
     /// - 3: added `Member.avatarData`.
     /// - 4: added auditable achievement events. Later gained the optional
     ///   `homeCurrency` setting, which older v4 readers ignore.
-    public static let currentVersion: Int = 4
+    /// - 5: added `Possession.photoData`.
+    public static let currentVersion: Int = 5
     public static let fileExtension: String = "cairn"
     public static let csvFileExtension: String = "csv"
 
@@ -342,6 +343,7 @@ public enum BackupService {
                 saleDate: dto.saleDate,
                 salePrice: dto.salePrice,
                 iconName: dto.iconName,
+                photoData: dto.photoData,
                 note: dto.note,
                 member: dto.memberId.flatMap { memberById[$0] },
                 createdAt: dto.createdAt

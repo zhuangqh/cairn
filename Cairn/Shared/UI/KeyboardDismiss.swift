@@ -33,6 +33,10 @@ struct DismissKeyboardOnScrollModifier: ViewModifier {
     /// bottom bar (e.g. a sticky footer with running totals) so the
     /// accessory doesn't visually collide with it.
     let showsToolbar: Bool
+    /// When `false`, skips the tap-anywhere gesture. On current iOS it
+    /// swallows taps on `.navigationLink` pickers in a `Form`, so forms
+    /// with those pickers rely on the "Done" button and scrolling instead.
+    var dismissesOnTap: Bool = true
 
     func body(content: Content) -> some View {
         #if os(iOS) || os(visionOS)
@@ -40,10 +44,11 @@ struct DismissKeyboardOnScrollModifier: ViewModifier {
             .scrollDismissesKeyboard(.interactively)
             // Tap anywhere outside a control to dismiss the keyboard.
             // `simultaneousGesture` lets the tap fire alongside any
-            // underlying button / row tap, so list selection, toggles,
-            // and form rows still work normally.
+            // underlying button / row tap, so toggles and plain rows still
+            // work normally.
             .simultaneousGesture(
-                TapGesture().onEnded { dismissKeyboard() }
+                TapGesture().onEnded { dismissKeyboard() },
+                including: dismissesOnTap ? .all : .subviews
             )
         if showsToolbar {
             base.toolbar {
@@ -71,9 +76,12 @@ extension View {
     /// `ScrollView`, or `NavigationStack` that hosts text input so the
     /// iPhone keyboard can always be dismissed.
     ///
-    /// - Parameter showsToolbar: pass `false` on screens with a sticky
-    ///   bottom footer to avoid overlapping it with the accessory bar.
-    func keyboardDismissable(showsToolbar: Bool = true) -> some View {
-        modifier(DismissKeyboardOnScrollModifier(showsToolbar: showsToolbar))
+    /// - Parameters:
+    ///   - showsToolbar: pass `false` on screens with a sticky bottom
+    ///     footer to avoid overlapping it with the accessory bar.
+    ///   - dismissesOnTap: pass `false` on forms with `.navigationLink`
+    ///     pickers, which the tap-anywhere gesture would block.
+    func keyboardDismissable(showsToolbar: Bool = true, dismissesOnTap: Bool = true) -> some View {
+        modifier(DismissKeyboardOnScrollModifier(showsToolbar: showsToolbar, dismissesOnTap: dismissesOnTap))
     }
 }

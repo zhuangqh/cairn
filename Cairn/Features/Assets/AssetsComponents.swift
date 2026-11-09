@@ -76,18 +76,30 @@ struct DeltaBadge: View {
 
 // MARK: - Breakdown card + row
 
-/// Titled card shared by the By member and By currency breakdowns so both
-/// use the same header, row dividers, and padding.
+/// Titled card shared by the By member / By currency breakdowns and the
+/// Possessions category cards so all use the same header, row dividers,
+/// and padding.
 struct AssetsBreakdownCard<Rows: View>: View {
     let titleKey: LocalizedStringKey
+    /// Optional trailing summary in the header, e.g. "3 items · ¥120,000".
+    var accessory: String?
     @ViewBuilder let rows: () -> Rows
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(titleKey)
-                .font(.headline)
-                .foregroundStyle(Color.notionInk)
-                .padding(.bottom, 2)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(titleKey)
+                    .font(.headline)
+                    .foregroundStyle(Color.notionInk)
+                Spacer(minLength: 8)
+                if let accessory {
+                    Text(verbatim: accessory)
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.bottom, 2)
             VStack(spacing: 0) {
                 rows()
             }

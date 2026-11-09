@@ -46,6 +46,7 @@ struct AssetsView: View {
     @State private var selectedYear: Int? = nil
     @State private var selectedTab: Tab = .financial
     @State private var possessionAddRequest: Int = 0
+    @State private var isInspectingPossession = false
 
     /// One-shot derivation for the financial tab. Computed in a single
     /// pass per `body` render so the hero, members, and snapshot cards
@@ -220,6 +221,7 @@ struct AssetsView: View {
             macBody
             #endif
         }
+        .possessionInspectionHost(isPresented: $isInspectingPossession)
         .ambientBackground()
         .navigationTitle(Text("assets.title", bundle: localization.bundle))
         #if os(iOS)
@@ -230,7 +232,8 @@ struct AssetsView: View {
             // Plain "+" style action in the nav bar on iOS, matching
             // the Accounts screen.
             ToolbarItem(placement: .primaryAction) {
-                if canAddInSelectedTab {
+                // Hidden while a showcase item is open; the overlay owns the screen.
+                if canAddInSelectedTab, !isInspectingPossession {
                     Button {
                         performPrimaryAddAction()
                     } label: {

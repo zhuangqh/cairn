@@ -20,15 +20,22 @@ struct PossessionFormView: View {
     @State private var pendingError: DomainError?
     @State private var revalueEnabled: Bool = false
     @State private var soldEnabled: Bool = false
+    @State private var isProcessingPhoto: Bool = false
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    PossessionPhotoWell(
+                        photoData: $possession.photoData,
+                        category: possession.category,
+                        isProcessing: $isProcessingPhoto
+                    )
+                }
                 basicsSection
                 purchaseSection
                 valuationSection
                 saleSection
-                ownerSection
                 notesSection
                 if let pendingError {
                     Section {
@@ -44,7 +51,9 @@ struct PossessionFormView: View {
             }
             .formStyle(.grouped)
             .glassListStyle()
-            .keyboardDismissable()
+            // Tap-to-dismiss would swallow taps on the navigation-link
+            // pickers (category, currency, owner).
+            .keyboardDismissable(dismissesOnTap: false)
             .navigationTitle(isNew ? "possession.new.title" : "possession.edit.title")
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -64,7 +73,7 @@ struct PossessionFormView: View {
                     } label: {
                         Text("common.action.save")
                     }
-                    .disabled(trimmedName.isEmpty)
+                    .disabled(trimmedName.isEmpty || isProcessingPhoto)
                 }
             }
             .onAppear {
@@ -98,7 +107,11 @@ struct PossessionFormView: View {
             }
             #if !os(macOS)
             .pickerStyle(.navigationLink)
+            // The value's category icon would otherwise pull the row
+            // separator in under the picker value.
+            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             #endif
+            ownerPicker
         } header: {
             Text("possession.form.section.basics")
         }
@@ -112,28 +125,40 @@ struct PossessionFormView: View {
             ) {
                 Text("possession.form.purchaseDate")
             }
+            if isNew {
+                Picker(selection: $possession.purchaseCurrency) {
+                    Section("currency.picker.pinned") {
+                        ForEach(CurrencyCatalog.pinned, id: \.self) { code in
+                            PossessionCurrencyRow(code: code).tag(code)
+                        }
+                    }
+                    Section("currency.picker.other") {
+                        ForEach(CurrencyCatalog.rest, id: \.self) { code in
+                            PossessionCurrencyRow(code: code).tag(code)
+                        }
+                    }
+                } label: {
+                    Text("currency.picker.title")
+                }
+                #if !os(macOS)
+                .pickerStyle(.navigationLink)
+                #endif
+            } else {
+                // Matches `HoldingEditView`: an immutable currency reads as a
+                // value, not as a disabled picker.
+                LabeledContent {
+                    Text(verbatim: possession.purchaseCurrency)
+                        .font(.body.monospaced().weight(.semibold))
+                        .foregroundStyle(Color.notionInkSecondary)
+                } label: {
+                    Text("currency.picker.title")
+                }
+            }
             DecimalField(
                 labelKey: "possession.form.purchasePrice",
+                currencyCode: possession.purchaseCurrency,
                 value: $possession.purchasePrice
             )
-            Picker(selection: $possession.purchaseCurrency) {
-                Section("currency.picker.pinned") {
-                    ForEach(CurrencyCatalog.pinned, id: \.self) { code in
-                        PossessionCurrencyRow(code: code).tag(code)
-                    }
-                }
-                Section("currency.picker.other") {
-                    ForEach(CurrencyCatalog.rest, id: \.self) { code in
-                        PossessionCurrencyRow(code: code).tag(code)
-                    }
-                }
-            } label: {
-                Text("currency.picker.title")
-            }
-            #if !os(macOS)
-            .pickerStyle(.navigationLink)
-            #endif
-            .disabled(!isNew)
         } header: {
             Text("possession.form.section.purchase")
         } footer: {
@@ -161,6 +186,7 @@ struct PossessionFormView: View {
             if revalueEnabled {
                 DecimalField(
                     labelKey: "possession.form.currentValue",
+                    currencyCode: possession.purchaseCurrency,
                     value: Binding(
                         get: { possession.currentValue ?? 0 },
                         set: { newValue in
@@ -209,6 +235,7 @@ struct PossessionFormView: View {
                 }
                 DecimalField(
                     labelKey: "possession.form.salePrice",
+                    currencyCode: possession.purchaseCurrency,
                     value: Binding(
                         get: { possession.salePrice ?? 0 },
                         set: { possession.salePrice = $0 }
@@ -220,26 +247,22 @@ struct PossessionFormView: View {
         }
     }
 
-    private var ownerSection: some View {
-        Section {
-            Picker(selection: Binding(
-                get: { possession.member?.id ?? members.first?.id ?? UUID() },
-                set: { newID in
-                    possession.member = members.first { $0.id == newID }
-                }
-            )) {
-                ForEach(members, id: \.id) { member in
-                    Text(verbatim: member.name).tag(member.id)
-                }
-            } label: {
-                Text("possession.form.owner")
+    private var ownerPicker: some View {
+        Picker(selection: Binding(
+            get: { possession.member?.id ?? members.first?.id ?? UUID() },
+            set: { newID in
+                possession.member = members.first { $0.id == newID }
             }
-            #if !os(macOS)
-            .pickerStyle(.navigationLink)
-            #endif
-        } header: {
-            Text("possession.form.section.owner")
+        )) {
+            ForEach(members, id: \.id) { member in
+                Text(verbatim: member.name).tag(member.id)
+            }
+        } label: {
+            Text("possession.form.owner")
         }
+        #if !os(macOS)
+        .pickerStyle(.navigationLink)
+        #endif
     }
 
     private var notesSection: some View {
@@ -286,22 +309,34 @@ struct PossessionFormView: View {
 
 // MARK: - Small helpers
 
-/// Decimal-friendly text field bound to a `Decimal` binding. Mirrors the
-/// behaviour of the `SnapshotFormView`'s amount input so the UX feels
-/// consistent across forms.
+/// Whole-unit amount field bound to a `Decimal`, with the possession's
+/// currency code trailing the value like `SnapshotFormView`'s amount input.
 private struct DecimalField: View {
     let labelKey: LocalizedStringKey
+    let currencyCode: String
     @Binding var value: Decimal
 
     var body: some View {
-        TextField(
-            labelKey,
-            value: $value,
-            format: .number.precision(.fractionLength(0))
-        )
-        #if !os(macOS)
-        .keyboardType(.numberPad)
-        #endif
+        LabeledContent {
+            HStack(spacing: 8) {
+                TextField(
+                    labelKey,
+                    value: $value,
+                    format: .number.precision(.fractionLength(0))
+                )
+                .labelsHidden()
+                .multilineTextAlignment(.trailing)
+                .monospacedDigit()
+                #if !os(macOS)
+                .keyboardType(.numberPad)
+                #endif
+                Text(verbatim: currencyCode)
+                    .font(.callout.monospaced().weight(.semibold))
+                    .foregroundStyle(Color.notionInkMuted)
+            }
+        } label: {
+            Text(labelKey)
+        }
     }
 }
 

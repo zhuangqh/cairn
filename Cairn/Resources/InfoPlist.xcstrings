@@ -1,0 +1,24 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSCameraUsageDescription" : {
+      "comment" : "Privacy - Camera Usage Description",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn uses the camera to photograph a possession for your showcase. Photos stay on this device."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cairn 使用相机为你的物品拍照并放入展示柜。照片仅保存在本设备上。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
