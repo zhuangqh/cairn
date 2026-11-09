@@ -2,7 +2,7 @@
 
 PROJECT := Cairn.xcodeproj
 SCHEME  := Cairn
-VERSION ?= 0.1.0
+VERSION ?= 0.2.0
 BUILD_DIR := build
 ARCHIVE_PATH := $(BUILD_DIR)/Cairn.xcarchive
 EXPORT_PATH  := $(BUILD_DIR)/export
