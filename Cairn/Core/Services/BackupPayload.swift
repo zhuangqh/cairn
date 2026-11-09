@@ -17,6 +17,10 @@ public struct BackupPayload: Codable, Sendable {
     /// Added in version 4. Older backups are replayed from explicit monthly
     /// portfolio snapshots after restore.
     public let achievements: [AchievementEventDTO]?
+    /// The exporting device's home currency (ISO 4217). Optional and
+    /// additive: older backups omit it, and older builds ignore it, so the
+    /// format version is unchanged. Restore applies it only when valid.
+    public let homeCurrency: String?
 
     public init(
         version: Int,
@@ -28,7 +32,8 @@ public struct BackupPayload: Codable, Sendable {
         fxRates: [FXRateDTO],
         portfolioSnapshots: [PortfolioSnapshotDTO]? = nil,
         possessions: [PossessionDTO]? = nil,
-        achievements: [AchievementEventDTO]? = nil
+        achievements: [AchievementEventDTO]? = nil,
+        homeCurrency: String? = nil
     ) {
         self.version = version
         self.exportedAt = exportedAt
@@ -40,6 +45,7 @@ public struct BackupPayload: Codable, Sendable {
         self.portfolioSnapshots = portfolioSnapshots
         self.possessions = possessions
         self.achievements = achievements
+        self.homeCurrency = homeCurrency
     }
 }
 

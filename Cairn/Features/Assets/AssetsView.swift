@@ -59,6 +59,9 @@ struct AssetsView: View {
         var monthDeltaAmount: Decimal?
         /// Per-member month-over-month percentage deltas, keyed by id.
         var memberDeltaPercent: [UUID: Double]
+        var currencyTotals: [NetWorthCalculator.CurrencyTotal]
+        /// Per-currency month-over-month percentage deltas, keyed by code.
+        var currencyDeltaPercent: [String: Double]
         /// The source snapshot when the displayed values are captured history.
         var sourceSnapshot: PortfolioSnapshot?
     }
@@ -85,6 +88,7 @@ struct AssetsView: View {
 
         var deltaAmount: Decimal?
         var memberDeltas: [UUID: Double] = [:]
+        var currencyDeltas: [String: Double] = [:]
 
         if let lastMonth {
             let prevTotal = NetWorthCalculator.total(
@@ -105,6 +109,15 @@ struct AssetsView: View {
                 let change = (entry.amount - prior) / prior
                 memberDeltas[entry.memberId] = NSDecimalNumber(decimal: change).doubleValue
             }
+
+            currencyDeltas = Self.currencyDeltas(
+                current: bundle.byCurrency,
+                previous: NetWorthCalculator.totalsByCurrency(
+                    homeCurrency: homeCurrency,
+                    asOf: lastMonth,
+                    context: context
+                )
+            )
         }
 
         return FinancialDerivation(
@@ -113,6 +126,8 @@ struct AssetsView: View {
             monthDeltaPercent: bundle.monthOverMonthDelta,
             monthDeltaAmount: deltaAmount,
             memberDeltaPercent: memberDeltas,
+            currencyTotals: bundle.byCurrency,
+            currencyDeltaPercent: currencyDeltas,
             sourceSnapshot: nil
         )
     }
@@ -141,14 +156,37 @@ struct AssetsView: View {
             memberDeltas[entry.memberId] = NSDecimalNumber(decimal: change).doubleValue
         }
 
+        let latestCurrencies = NetWorthCalculator.currencyTotals(in: latest.entries)
         return FinancialDerivation(
             totals: .init(amount: latest.totalAmount, missingCurrencies: []),
             memberTotals: latestMembers,
             monthDeltaPercent: deltaPercent,
             monthDeltaAmount: deltaAmount,
             memberDeltaPercent: memberDeltas,
+            currencyTotals: latestCurrencies,
+            currencyDeltaPercent: Self.currencyDeltas(
+                current: latestCurrencies,
+                previous: previous.map { NetWorthCalculator.currencyTotals(in: $0.entries) } ?? []
+            ),
             sourceSnapshot: latest
         )
+    }
+
+    /// Converted-amount change per currency; skipped when either side lacks
+    /// a rate or the prior balance is zero.
+    private static func currencyDeltas(
+        current: [NetWorthCalculator.CurrencyTotal],
+        previous: [NetWorthCalculator.CurrencyTotal]
+    ) -> [String: Double] {
+        let priorByCode = Dictionary(uniqueKeysWithValues: previous.map { ($0.currency, $0.convertedAmount) })
+        var deltas: [String: Double] = [:]
+        for entry in current {
+            guard let value = entry.convertedAmount,
+                  let prior = priorByCode[entry.currency] ?? nil,
+                  prior != 0 else { continue }
+            deltas[entry.currency] = NSDecimalNumber(decimal: (value - prior) / prior).doubleValue
+        }
+        return deltas
     }
 
     private func memberTotals(in snapshot: PortfolioSnapshot) -> [NetWorthCalculator.MemberTotal] {
@@ -368,22 +406,29 @@ struct AssetsView: View {
         }
     }
 
-    /// Snapshots + by-member cards. On wide macOS windows they sit
-    /// side-by-side; everywhere else they stack vertically.
+    /// Breakdown cards (by member, then by currency) + snapshots. On wide
+    /// macOS windows the breakdowns stack in the leading column beside
+    /// snapshots; everywhere else everything stacks vertically.
     @ViewBuilder
     private func bottomRow(derivation: FinancialDerivation) -> some View {
         let hasMembers = !derivation.memberTotals.isEmpty
+        // A single currency would be one 100% row, so the card waits for two.
+        let hasCurrencies = derivation.currencyTotals.count > 1
         #if os(macOS)
-        if hasMembers {
+        if hasMembers || hasCurrencies {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 20) {
-                    membersCard(derivation: derivation)
-                        .frame(minWidth: 380, maxWidth: .infinity)
+                    VStack(spacing: 20) {
+                        if hasMembers { membersCard(derivation: derivation) }
+                        if hasCurrencies { currencyCard(derivation: derivation) }
+                    }
+                    .frame(minWidth: 380, maxWidth: .infinity)
                     snapshotsCard
                         .frame(minWidth: 380, maxWidth: .infinity)
                 }
                 VStack(spacing: 20) {
-                    membersCard(derivation: derivation)
+                    if hasMembers { membersCard(derivation: derivation) }
+                    if hasCurrencies { currencyCard(derivation: derivation) }
                     snapshotsCard
                 }
             }
@@ -393,6 +438,7 @@ struct AssetsView: View {
         #else
         VStack(spacing: 20) {
             if hasMembers { membersCard(derivation: derivation) }
+            if hasCurrencies { currencyCard(derivation: derivation) }
             snapshotsCard
         }
         #endif
@@ -504,36 +550,38 @@ struct AssetsView: View {
         let membersById = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0) })
         let totalAmount = derivation.totals.amount
         let totalDouble = NSDecimalNumber(decimal: totalAmount).doubleValue
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("assets.byMember")
-                .font(.headline)
-                .foregroundStyle(Color.notionInk)
-                .padding(.bottom, 2)
-            VStack(spacing: 0) {
-                ForEach(Array(memberTotals.enumerated()), id: \.element.id) { index, entry in
-                    let share: Double = {
-                        guard totalDouble > 0 else { return 0 }
-                        let value = NSDecimalNumber(decimal: entry.amount).doubleValue
-                        return max(0, min(1, value / totalDouble))
-                    }()
-                    AssetsMemberRow(
-                        memberId: entry.memberId,
-                        memberName: entry.memberName,
-                        avatarData: membersById[entry.memberId]?.avatarData,
-                        amount: entry.amount,
-                        share: share,
-                        monthDelta: derivation.memberDeltaPercent[entry.memberId],
-                        currencyCode: homeCurrency,
-                        locale: locale
-                    )
-                    if index < memberTotals.count - 1 {
-                        Divider().opacity(0.35)
-                    }
+        return AssetsBreakdownCard(titleKey: "assets.byMember") {
+            ForEach(Array(memberTotals.enumerated()), id: \.element.id) { index, entry in
+                let share: Double = {
+                    guard totalDouble > 0 else { return 0 }
+                    let value = NSDecimalNumber(decimal: entry.amount).doubleValue
+                    return max(0, min(1, value / totalDouble))
+                }()
+                AssetsMemberRow(
+                    memberId: entry.memberId,
+                    memberName: entry.memberName,
+                    avatarData: membersById[entry.memberId]?.avatarData,
+                    amount: entry.amount,
+                    share: share,
+                    monthDelta: derivation.memberDeltaPercent[entry.memberId],
+                    currencyCode: homeCurrency,
+                    locale: locale
+                )
+                if index < memberTotals.count - 1 {
+                    Divider().opacity(0.35)
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
+    }
+
+    private func currencyCard(derivation: FinancialDerivation) -> some View {
+        AssetsCurrencyCard(
+            totals: derivation.currencyTotals,
+            householdTotal: derivation.totals.amount,
+            monthDeltas: derivation.currencyDeltaPercent,
+            homeCurrency: homeCurrency,
+            locale: locale
+        )
     }
 
     private var snapshotsCard: some View {

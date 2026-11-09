@@ -25,7 +25,7 @@ final class BackupServiceTests: XCTestCase {
         _ = SnapshotService.upsert(amount: 1_234, periodMonth: .now, for: holding, context: context)
         try context.save()
 
-        let data = try BackupService.makeBackup(in: context)
+        let data = try BackupService.makeBackup(in: context, homeCurrency: "USD")
         let payload = try BackupService.parse(data)
         XCTAssertEqual(payload.version, BackupService.currentVersion)
         XCTAssertEqual(payload.members.count, 1)
@@ -47,7 +47,7 @@ final class BackupServiceTests: XCTestCase {
         sourceContext.insert(holding)
         _ = SnapshotService.upsert(amount: 500, periodMonth: .now, for: holding, context: sourceContext)
         try sourceContext.save()
-        let backup = try BackupService.makeBackup(in: sourceContext)
+        let backup = try BackupService.makeBackup(in: sourceContext, homeCurrency: "USD")
 
         // Fresh container with different data.
         let other = try PersistenceController.makeContainer(.inMemory)
@@ -102,7 +102,7 @@ final class BackupServiceTests: XCTestCase {
         context.insert(phone)
         try context.save()
 
-        let data = try BackupService.makeBackup(in: context)
+        let data = try BackupService.makeBackup(in: context, homeCurrency: "USD")
         let other = try PersistenceController.makeContainer(.inMemory)
         _ = try BackupService.restoreReplacing(from: data, context: other.mainContext)
 
@@ -137,7 +137,7 @@ final class BackupServiceTests: XCTestCase {
         context.insert(event)
         try context.save()
 
-        let data = try BackupService.makeBackup(in: context)
+        let data = try BackupService.makeBackup(in: context, homeCurrency: "USD")
         let other = try PersistenceController.makeContainer(.inMemory)
         _ = try BackupService.restoreReplacing(from: data, context: other.mainContext)
 
@@ -177,6 +177,34 @@ final class BackupServiceTests: XCTestCase {
         XCTAssertTrue(possessions.isEmpty)
     }
 
+    func testBackupRoundTripsHomeCurrency() throws {
+        let data = try BackupService.makeBackup(in: container.mainContext, homeCurrency: "CNY")
+        let other = try PersistenceController.makeContainer(.inMemory)
+        let payload = try BackupService.restoreReplacing(from: data, context: other.mainContext)
+        XCTAssertEqual(payload.homeCurrency, "CNY")
+        XCTAssertEqual(BackupService.restorableHomeCurrency(in: payload), "CNY")
+    }
+
+    func testRestorableHomeCurrencyIgnoresMissingOrUnknownCodes() throws {
+        func payload(homeCurrencyJSON: String) throws -> BackupPayload {
+            let json = """
+            {
+              "version": 4,
+              "exportedAt": "2026-01-01T00:00:00Z",
+              "members": [], "accounts": [], "holdings": [], "snapshots": [], "fxRates": []
+              \(homeCurrencyJSON)
+            }
+            """
+            return try BackupService.parse(Data(json.utf8))
+        }
+        XCTAssertNil(BackupService.restorableHomeCurrency(in: try payload(homeCurrencyJSON: "")))
+        XCTAssertNil(BackupService.restorableHomeCurrency(in: try payload(homeCurrencyJSON: #", "homeCurrency": "XYZ1""#)))
+        XCTAssertEqual(
+            BackupService.restorableHomeCurrency(in: try payload(homeCurrencyJSON: #", "homeCurrency": " hkd ""#)),
+            "HKD"
+        )
+    }
+
     func testParseRejectsBackupFromNewerVersion() throws {
         let future = BackupService.currentVersion + 1
         let json = """
@@ -214,7 +242,7 @@ final class BackupServiceTests: XCTestCase {
         context.insert(member)
         try context.save()
 
-        let backup = try BackupService.makeBackup(in: context)
+        let backup = try BackupService.makeBackup(in: context, homeCurrency: "USD")
         let other = try PersistenceController.makeContainer(.inMemory)
         _ = try BackupService.restoreReplacing(from: backup, context: other.mainContext)
 
@@ -236,7 +264,7 @@ final class BackupServiceTests: XCTestCase {
         let holdingId = holding.id
         try context.save()
 
-        let backup = try BackupService.makeBackup(in: context)
+        let backup = try BackupService.makeBackup(in: context, homeCurrency: "USD")
         let other = try PersistenceController.makeContainer(.inMemory)
         _ = try BackupService.restoreReplacing(from: backup, context: other.mainContext)
 
@@ -495,7 +523,7 @@ final class BackupServiceTests: XCTestCase {
         context.insert(holding)
         try context.save()
 
-        let backup = try BackupService.makeBackup(in: context)
+        let backup = try BackupService.makeBackup(in: context, homeCurrency: "USD")
         let other = try PersistenceController.makeContainer(.inMemory)
         _ = try BackupService.restoreReplacing(from: backup, context: other.mainContext)
         let firstMemberId = try other.mainContext.fetch(FetchDescriptor<Member>()).first?.id

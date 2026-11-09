@@ -1118,6 +1118,40 @@
         }
       }
     },
+    "assets.byCurrency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By currency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按币种"
+          }
+        }
+      }
+    },
+    "assets.byCurrency.missingRate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No rate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少汇率"
+          }
+        }
+      }
+    },
     "assets.byMember" : {
       "extractionState" : "manual",
       "localizations" : {

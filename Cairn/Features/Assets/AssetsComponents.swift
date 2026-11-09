@@ -74,6 +74,116 @@ struct DeltaBadge: View {
     }
 }
 
+// MARK: - Breakdown card + row
+
+/// Titled card shared by the By member and By currency breakdowns so both
+/// use the same header, row dividers, and padding.
+struct AssetsBreakdownCard<Rows: View>: View {
+    let titleKey: LocalizedStringKey
+    @ViewBuilder let rows: () -> Rows
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(titleKey)
+                .font(.headline)
+                .foregroundStyle(Color.notionInk)
+                .padding(.bottom, 2)
+            VStack(spacing: 0) {
+                rows()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard()
+    }
+}
+
+/// Two-line breakdown row: a 32pt leading mark, title (plus optional
+/// caption), and trailing amount on top; share bar, share percent, and
+/// month-over-month delta underneath. Member and currency rows share this
+/// layout so their columns line up across cards.
+struct AssetsBreakdownRow<Leading: View, Trailing: View>: View {
+    @ViewBuilder let leading: () -> Leading
+    let title: String
+    var caption: String?
+    @ViewBuilder let trailing: () -> Trailing
+    /// 0…1 share of the household total; `nil` renders an empty bar and "—".
+    /// Ignored when `showsShare` is false.
+    let share: Double?
+    var showsShare: Bool = true
+    /// Fractional month-over-month change, or `nil` if no baseline.
+    let monthDelta: Double?
+    let currencyCode: String
+    let locale: Locale
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                leading()
+                    .frame(width: 32, height: 32)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(verbatim: title)
+                            .font(.callout.weight(.medium))
+                            .foregroundStyle(Color.notionInk)
+                        if let caption {
+                            Text(verbatim: caption)
+                                .font(.caption)
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer(minLength: 8)
+                    trailing()
+                }
+            }
+
+            if showsShare {
+                HStack(spacing: 10) {
+                    ShareBar(progress: share ?? 0)
+                        .frame(height: 4)
+                        .frame(maxWidth: .infinity)
+                    Text(verbatim: shareString)
+                        .font(.caption.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 38, alignment: .trailing)
+                    DeltaBadge(
+                        percent: monthDelta,
+                        currencyCode: currencyCode,
+                        locale: locale
+                    )
+                }
+            }
+        }
+        .padding(.vertical, 10)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var shareString: String {
+        guard let share else { return "—" }
+        return share.formatted(.percent.precision(.fractionLength(0)))
+    }
+}
+
+/// Home-currency amount shown in the trailing slot of breakdown rows.
+struct AssetsBreakdownAmount: View {
+    let amount: Decimal
+    let currencyCode: String
+    let locale: Locale
+
+    var body: some View {
+        Text(
+            amount,
+            format: .currency(code: currencyCode)
+                .locale(locale)
+                .precision(.fractionLength(0))
+        )
+        .font(.callout.weight(.semibold))
+        .monospacedDigit()
+        .foregroundStyle(Color.notionInk)
+    }
+}
+
 // MARK: - Member row
 
 /// Apple-Wallet-flavored row showing a member's contribution to the
@@ -92,55 +202,28 @@ struct AssetsMemberRow: View {
     let locale: Locale
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 12) {
+        AssetsBreakdownRow(
+            leading: {
                 MemberAvatarView(
                     name: memberName,
                     avatarData: avatarData,
                     seed: memberId,
                     size: 32
                 )
-                Text(verbatim: memberName)
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(Color.notionInk)
-                Spacer(minLength: 8)
-                Text(
-                    amount,
-                    format: .currency(code: currencyCode)
-                        .locale(locale)
-                        .precision(.fractionLength(0))
-                )
-                .font(.callout.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(Color.notionInk)
-            }
-
-            HStack(spacing: 10) {
-                ShareBar(progress: share)
-                    .frame(height: 4)
-                    .frame(maxWidth: .infinity)
-                Text(verbatim: shareString)
-                    .font(.caption.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .frame(width: 38, alignment: .trailing)
-                DeltaBadge(
-                    percent: monthDelta,
-                    currencyCode: currencyCode,
-                    locale: locale
-                )
-            }
-        }
-        .padding(.vertical, 10)
-        .accessibilityElement(children: .combine)
-    }
-
-    private var shareString: String {
-        share.formatted(.percent.precision(.fractionLength(0)))
+            },
+            title: memberName,
+            trailing: {
+                AssetsBreakdownAmount(amount: amount, currencyCode: currencyCode, locale: locale)
+            },
+            share: share,
+            monthDelta: monthDelta,
+            currencyCode: currencyCode,
+            locale: locale
+        )
     }
 }
 
-/// Thin proportional bar used inside `AssetsMemberRow`.
+/// Thin proportional bar used inside `AssetsBreakdownRow`.
 private struct ShareBar: View {
     let progress: Double
 

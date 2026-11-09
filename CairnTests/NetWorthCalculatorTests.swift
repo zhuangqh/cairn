@@ -123,4 +123,69 @@ final class NetWorthCalculatorTests: XCTestCase {
             XCTAssertLessThan(trend[index - 1].period, trend[index].period)
         }
     }
+
+    // MARK: - By currency
+
+    func testCurrencyTotalsFromSnapshotEntriesSumAndOrder() {
+        func entry(_ currency: String, _ amount: Decimal, _ converted: Decimal?) -> PortfolioSnapshot.Entry {
+            PortfolioSnapshot.Entry(
+                holdingId: nil,
+                memberName: "Alice",
+                accountName: "A",
+                holdingLabel: nil,
+                currency: currency,
+                amount: amount,
+                convertedAmount: converted
+            )
+        }
+        let totals = NetWorthCalculator.currencyTotals(in: [
+            entry("USD", 1_000, 7_000),
+            entry("CNY", 3_000, 3_000),
+            entry("USD", 500, 3_500),
+            entry("HKD", -2_000, -1_800),
+            entry("JPY", 50_000, nil),
+            entry("EUR", 0, 0),
+            entry("GBP", 100, 900),
+            entry("GBP", 50, nil)
+        ])
+
+        XCTAssertEqual(totals.map(\.currency), ["USD", "CNY", "HKD", "GBP", "JPY"])
+        XCTAssertEqual(totals[0].nativeAmount, 1_500)
+        XCTAssertEqual(totals[0].convertedAmount, 10_500)
+        XCTAssertEqual(totals[2].convertedAmount, -1_800)
+        // One unconverted balance makes the whole currency unconverted.
+        XCTAssertEqual(totals[3].nativeAmount, 150)
+        XCTAssertNil(totals[3].convertedAmount)
+        XCTAssertNil(totals[4].convertedAmount)
+    }
+
+    func testLiveTotalsByCurrencyConvertAndReportMissingRates() async throws {
+        let context = container.mainContext
+        let fetcher = StubFXFetcher(response: FXRateResponse(base: "USD", date: .now, rates: ["CNY": 7]))
+        try await FXService.refresh(base: "USD", quotes: ["CNY"], fetcher: fetcher, context: context)
+
+        let account = Account(name: "Mixed", kind: .cash)
+        let usd = Holding(currency: "USD", account: account)
+        let cny = Holding(currency: "CNY", account: account)
+        let jpy = Holding(currency: "JPY", account: account)
+        let otherAccount = Account(name: "Second", kind: .cash)
+        let otherUSD = Holding(currency: "USD", account: otherAccount)
+        [account, otherAccount].forEach(context.insert)
+        [usd, cny, jpy, otherUSD].forEach(context.insert)
+        _ = SnapshotService.upsert(amount: 100, periodMonth: .now, for: usd, context: context)
+        _ = SnapshotService.upsert(amount: 50, periodMonth: .now, for: otherUSD, context: context)
+        _ = SnapshotService.upsert(amount: 7_000, periodMonth: .now, for: cny, context: context)
+        _ = SnapshotService.upsert(amount: 10_000, periodMonth: .now, for: jpy, context: context)
+
+        let totals = NetWorthCalculator.totalsByCurrency(homeCurrency: "USD", context: context)
+        XCTAssertEqual(totals.map(\.currency), ["CNY", "USD", "JPY"])
+        XCTAssertEqual(totals[0].nativeAmount, 7_000)
+        XCTAssertEqual(totals[0].convertedAmount, 1_000)
+        XCTAssertEqual(totals[1].convertedAmount, 150)
+        XCTAssertEqual(totals[2].nativeAmount, 10_000)
+        XCTAssertNil(totals[2].convertedAmount)
+
+        let bundle = NetWorthCalculator.bundle(homeCurrency: "USD", context: context)
+        XCTAssertEqual(bundle.byCurrency, totals)
+    }
 }

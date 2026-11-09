@@ -424,7 +424,7 @@ struct SettingsView: View {
     @MainActor
     private func beginExport() {
         do {
-            let data = try BackupService.makeBackup(in: context)
+            let data = try BackupService.makeBackup(in: context, homeCurrency: homeCurrency)
             exportDocument = BackupDocument(data: data)
             isExporting = true
         } catch {
@@ -475,7 +475,10 @@ struct SettingsView: View {
         guard let data = importConfirmation else { return }
         importConfirmation = nil
         do {
-            _ = try BackupService.restoreReplacing(from: data, context: context)
+            let payload = try BackupService.restoreReplacing(from: data, context: context)
+            if let restoredCurrency = BackupService.restorableHomeCurrency(in: payload) {
+                homeCurrency = restoredCurrency
+            }
             _ = try AchievementService.recompute(in: context, source: .imported)
             importedAchievements = AchievementService.allPresentations(in: context)
             isShowingImportSummary = true

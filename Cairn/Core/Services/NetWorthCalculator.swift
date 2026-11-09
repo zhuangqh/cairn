@@ -49,6 +49,7 @@ public enum NetWorthCalculator {
         public var totals: Totals
         public var byKind: [KindTotal]
         public var byMember: [MemberTotal]
+        public var byCurrency: [CurrencyTotal]
         /// Percentage change vs the previous month, or `nil` when the
         /// previous month was zero.
         public var monthOverMonthDelta: Double?
@@ -102,6 +103,7 @@ public enum NetWorthCalculator {
             totals: Totals(amount: current.total, missingCurrencies: current.missing.sorted()),
             byKind: kindTotals,
             byMember: memberTotals,
+            byCurrency: sortedCurrencyTotals(current.byCurrency),
             monthOverMonthDelta: delta
         )
     }
@@ -374,6 +376,7 @@ public enum NetWorthCalculator {
         var missing: Set<String>
         var byKind: [AccountKind: Decimal]
         var byMember: [UUID: (name: String, amount: Decimal)]
+        var byCurrency: [String: CurrencySum]
     }
 
     /// Single-pass aggregator. Walks every active holding once, valuing it
@@ -393,6 +396,7 @@ public enum NetWorthCalculator {
         var missing: Set<String> = []
         var byKind: [AccountKind: Decimal] = [:]
         var byMember: [UUID: (name: String, amount: Decimal)] = [:]
+        var byCurrency: [String: CurrencySum] = [:]
 
         for holding in holdings where holding.isArchived == false {
             guard let account = holding.account, account.isArchived == false else { continue }
@@ -403,6 +407,7 @@ public enum NetWorthCalculator {
             } else {
                 converted = cache.convert(amount: amount, from: holding.currency, to: homeCurrency)
             }
+            byCurrency[holding.currency, default: CurrencySum()].add(native: amount, converted: converted)
             guard let value = converted else {
                 missing.insert(holding.currency)
                 continue
@@ -415,7 +420,7 @@ public enum NetWorthCalculator {
             }
         }
 
-        return AggregateResult(total: total, missing: missing, byKind: byKind, byMember: byMember)
+        return AggregateResult(total: total, missing: missing, byKind: byKind, byMember: byMember, byCurrency: byCurrency)
     }
 
     /// Returns the last instant of the month that contains `periodMonth`, so

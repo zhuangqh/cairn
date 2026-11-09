@@ -61,15 +61,17 @@ Use Conventional Commits: `type(scope): concise description`.
   "enhance", "fix stuff", or "various changes".
 - Choose the type that matches the staged implementation, such as `feat`, `fix`,
   `docs`, `refactor`, `test`, `perf`, `build`, `ci`, or `chore`.
-- For non-trivial changes, include a body explaining what changed, the underlying
-  problem or motivation, and how important behavior or architecture works.
-  Preserve relevant API, compatibility, error-handling, performance, resource
-  lifecycle, concurrency, and synchronization details.
+- Keep the body short: for non-trivial changes, a few sentences per logical part
+  on what changed and why. Add a detail only when a future reader could not
+  infer it from the diff, such as a compatibility, migration, or concurrency
+  consequence. Leave out UI minutiae, lists of API names, and implementation
+  walkthroughs; those belong in the diff or the delivery report.
 - Write for someone who has not read the conversation. Describe the implemented
   result, not an intended result. Do not mechanically list every modified file,
   repeat the subject, add redundant bullets, or use marketing language.
-- Make only supported claims, including claims about validation. When useful,
-  distinguish checks run from checks not performed.
+- Make only supported claims. Omit validation from the message unless it is
+  unusual or a significant check could not be run, and then keep it to one
+  line; report full validation in the delivery report instead.
 - Mark actual breaking changes with `!` or a `BREAKING CHANGE:` footer and explain
   their impact and migration path.
 

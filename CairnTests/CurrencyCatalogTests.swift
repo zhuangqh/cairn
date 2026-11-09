@@ -23,6 +23,15 @@ final class CurrencyCatalogTests: XCTestCase {
         XCTAssertTrue(CurrencyCatalog.pinned.contains("AUD"))
     }
 
+    func testFlagEmojiUsesIssuingRegionAndSkipsSupranationalCodes() {
+        XCTAssertEqual(CurrencyCatalog.flagEmoji(for: "CNY"), "🇨🇳")
+        XCTAssertEqual(CurrencyCatalog.flagEmoji(for: "usd"), "🇺🇸")
+        XCTAssertEqual(CurrencyCatalog.flagEmoji(for: "EUR"), "🇪🇺")
+        XCTAssertNil(CurrencyCatalog.flagEmoji(for: "XAU"))
+        XCTAssertNil(CurrencyCatalog.flagEmoji(for: "XOF"))
+        XCTAssertNil(CurrencyCatalog.flagEmoji(for: "ZZZ"))
+    }
+
     @MainActor
     func testCompactCurrencyFormatterAbbreviatesLargeValues() {
         let locale = Locale(identifier: "en_US")

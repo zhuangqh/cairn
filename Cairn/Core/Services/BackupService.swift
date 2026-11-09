@@ -17,15 +17,17 @@ public enum BackupService {
     /// - 2: added `portfolioSnapshots` and `possessions` (decoded as nil on
     ///   older clients via optionals).
     /// - 3: added `Member.avatarData`.
-    /// - 4: added auditable achievement events.
+    /// - 4: added auditable achievement events. Later gained the optional
+    ///   `homeCurrency` setting, which older v4 readers ignore.
     public static let currentVersion: Int = 4
     public static let fileExtension: String = "cairn"
     public static let csvFileExtension: String = "csv"
 
     // MARK: - Export
 
-    /// Serializes everything currently in `context` to a JSON backup payload.
-    public static func makeBackup(in context: ModelContext) throws -> Data {
+    /// Serializes everything currently in `context`, plus the user's home
+    /// currency setting, to a JSON backup payload.
+    public static func makeBackup(in context: ModelContext, homeCurrency: String) throws -> Data {
         let members = (try? context.fetch(FetchDescriptor<Member>())) ?? []
         let accounts = (try? context.fetch(FetchDescriptor<Account>())) ?? []
         let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
@@ -45,7 +47,8 @@ public enum BackupService {
             fxRates: rates.map(FXRateDTO.init),
             portfolioSnapshots: portfolioSnapshots.map(PortfolioSnapshotDTO.init),
             possessions: possessions.map(PossessionDTO.init),
-            achievements: achievements.map(AchievementEventDTO.init)
+            achievements: achievements.map(AchievementEventDTO.init),
+            homeCurrency: homeCurrency
         )
 
         let encoder = JSONEncoder()
@@ -182,6 +185,15 @@ public enum BackupService {
             throw DomainError.backupWriteFailed
         }
         return payload
+    }
+
+    /// The backup's home currency when it is a known ISO 4217 code, or
+    /// `nil` for older backups and unrecognized values so restore keeps
+    /// the current setting.
+    public static func restorableHomeCurrency(in payload: BackupPayload) -> String? {
+        guard let code = payload.homeCurrency?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
+              CurrencyCatalog.all.contains(code) else { return nil }
+        return code
     }
 
     // Bottom-up delete to avoid dangling references. Iterates fetched
