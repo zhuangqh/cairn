@@ -1,4 +1,4 @@
-.PHONY: gen open build test lint clean archive export dmg install reinstall
+.PHONY: gen open build test lint screenshot screenshot-ios clean archive export dmg install reinstall
 
 PROJECT := Cairn.xcodeproj
 SCHEME  := Cairn
@@ -18,6 +18,15 @@ LOCAL_XCFLAGS := \
 
 DESTINATION ?= platform=macOS,arch=arm64
 
+# Per-checkout DerivedData keeps parallel git worktrees from sharing build state.
+DERIVED_DATA ?= $(BUILD_DIR)/DerivedData
+# Keep errors, warnings, test counts, and the final status line. LOG_FILTER=cat shows full logs.
+LOG_FILTER ?= grep -E ': (error|warning): |Executed [0-9]+ tests?|\*\* [A-Z ]+ \*\*'
+# Focused tests: make test ONLY=CairnTests/SnapshotServiceTests
+ONLY ?=
+XCODEBUILD := xcodebuild -project $(PROJECT) -scheme $(SCHEME) \
+	-derivedDataPath $(DERIVED_DATA)
+
 gen:
 	xcodegen generate
 
@@ -25,28 +34,40 @@ open: gen
 	open $(PROJECT)
 
 build: gen
-	xcodebuild -project $(PROJECT) -scheme $(SCHEME) \
+	set -o pipefail; $(XCODEBUILD) \
 		-destination '$(DESTINATION)' -configuration Debug \
-		$(LOCAL_XCFLAGS) build
+		$(LOCAL_XCFLAGS) build | $(LOG_FILTER)
 
 test: gen
-	xcodebuild -project $(PROJECT) -scheme $(SCHEME) \
+	set -o pipefail; $(XCODEBUILD) \
 		-destination '$(DESTINATION)' -configuration Debug \
-		-enableCodeCoverage NO \
-		$(LOCAL_XCFLAGS) test
+		-enableCodeCoverage NO $(if $(ONLY),-only-testing:$(ONLY)) \
+		$(LOCAL_XCFLAGS) test | $(LOG_FILTER)
 
 lint:
 	swiftlint lint
+
+# Debug-only: launch with in-memory sample data and capture the window.
+# make screenshot SCREEN=assets LANG_CODE=zh-Hans APPEARANCE=dark OUT=build/screenshots/assets.png
+screenshot: build
+	SCREEN="$(SCREEN)" LANG_CODE="$(LANG_CODE)" APPEARANCE="$(APPEARANCE)" OUT="$(OUT)" \
+		scripts/screenshot-macos.sh
+
+# Same as screenshot, on a simulator (default: the booted one). Set DEVICE=<udid> to pick one.
+screenshot-ios: gen
+	$(MAKE) build DESTINATION='generic/platform=iOS Simulator'
+	DEVICE="$(DEVICE)" SCREEN="$(SCREEN)" LANG_CODE="$(LANG_CODE)" APPEARANCE="$(APPEARANCE)" OUT="$(OUT)" \
+		scripts/screenshot-ios.sh
 
 clean:
 	rm -rf build DerivedData $(PROJECT)
 
 archive: gen
 	mkdir -p $(BUILD_DIR)
-	xcodebuild -project $(PROJECT) -scheme $(SCHEME) \
+	set -o pipefail; $(XCODEBUILD) \
 		-configuration Release -destination 'generic/platform=macOS' \
 		-archivePath $(ARCHIVE_PATH) \
-		$(LOCAL_XCFLAGS) archive
+		$(LOCAL_XCFLAGS) archive | $(LOG_FILTER)
 
 export: archive
 	@printf '%s\n' \

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(make gen)",
+      "Bash(make build:*)",
+      "Bash(make test:*)",
+      "Bash(make lint)",
+      "Bash(make screenshot:*)",
+      "Bash(make screenshot-ios:*)",
+      "Bash(xcrun simctl list:*)",
+      "Bash(xcrun simctl io:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
+    ],
+    "ask": [
+      "Bash(make install:*)",
+      "Bash(make reinstall:*)",
+      "Bash(make archive:*)",
+      "Bash(make export:*)",
+      "Bash(make dmg:*)",
+      "Bash(make clean:*)",
+      "Bash(git push:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/swiftlint-edited-file.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -13,6 +13,13 @@ struct CairnApp: App {
     }
 
     private let container: ModelContainer = {
+        #if DEBUG
+        // Visual-review launches (scripts/screenshot-macos.sh) use seeded
+        // in-memory data so they never open or modify the user's store.
+        if ProcessInfo.processInfo.arguments.contains("-CairnSampleData") {
+            return MainActor.assumeIsolated { PreviewSampleData.container() }
+        }
+        #endif
         do {
             return try PersistenceController.makeContainer(.localOnly)
         } catch {

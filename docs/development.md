@@ -9,7 +9,8 @@ Technical notes for building Cairn from source and contributing. Product spec li
   The source uses Liquid Glass APIs from the 26 SDKs with older-OS fallbacks.
   App deployment targets remain macOS 14 and iOS/iPadOS 17; `project.yml` selects
   Swift 5.10 language mode with complete strict concurrency checking.
-- Homebrew packages: `xcodegen`, `swiftlint`
+- Homebrew packages: `xcodegen`, `swiftlint`. The shared Claude Code hook in
+  `.claude/settings.json` lints edited Swift files when SwiftLint is installed.
   ```sh
   brew install xcodegen swiftlint
   ```
@@ -56,21 +57,23 @@ Shared UI and platform API changes should also be checked on macOS and iOS when
 the SDKs are available. For visual changes, inspect the affected layout and
 interaction, including language overrides, accessibility, and resizing as relevant.
 
-To run one existing test class with the Makefile's local signing settings:
+To run one existing test class (or `Class/testMethod`) with the Makefile's local
+signing settings:
 
 ```sh
-make gen
-xcodebuild -project Cairn.xcodeproj -scheme Cairn \
-  -destination 'platform=macOS,arch=arm64' -configuration Debug \
-  -enableCodeCoverage NO \
-  CODE_SIGN_IDENTITY='-' CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM='' \
-  -only-testing:CairnTests/SnapshotServiceTests test
+make test ONLY=CairnTests/SnapshotServiceTests
 ```
 
-Replace the test class or destination as needed; simulator tests require a concrete
-installed simulator destination, not a generic build destination. Use `make test`
-when the change's impact or a concrete risk warrants the full macOS suite, or an
-authorized release workflow requires it. Use `make lint` for Swift changes.
+Replace the test class or `DESTINATION` as needed; simulator tests require a concrete
+installed simulator destination, not a generic build destination.
+
+Makefile builds filter `xcodebuild` output to errors, warnings, test counts, and
+the final status line while preserving its exit status; run with `LOG_FILTER=cat`
+for the full log. DerivedData lives in `build/DerivedData` per checkout, so
+parallel git worktrees do not share build state.
+
+Use `make test` when the change's impact or a concrete risk warrants the full
+macOS suite, or an authorized release workflow requires it. Use `make lint` for Swift changes.
 Add regression tests for meaningful behavior, not tests that mirror low-risk
 implementation or only assert versions, counts, wording, or field order. Small
 demos and version updates should not introduce test frameworks, checkers, or CI
@@ -120,8 +123,29 @@ For visual refinements, compare before/after at the same viewport and with the
 same data; inspect screenshots for alignment and the running UI for interaction.
 Fix visible defects caused by the change or blocking its acceptance, then recheck
 the affected area. Report other findings without expanding scope. Summarize which
-cases were inspected and any unavailable checks; introduce screenshot automation
-only within an explicitly authorized infrastructure change.
+cases were inspected and any unavailable checks.
+
+### Sample-data screenshots
+
+Debug builds accept `-CairnSampleData`, which replaces the persistent store with
+`PreviewSampleData` in memory, and `-CairnScreen dashboard|assets|accounts|settings`
+to choose the initial screen. The screenshot scripts also pass onboarding, home
+currency (USD), language, and appearance settings as launch arguments, which are
+read for that launch only, so the user's store and saved settings are not used.
+
+```sh
+make screenshot-ios SCREEN=assets LANG_CODE=zh-Hans APPEARANCE=dark
+```
+
+This builds for the iOS Simulator, installs over the booted simulator's Cairn
+(set `DEVICE=<udid>` for another), and writes
+`build/screenshots/ios-<screen>-<lang>-<appearance>.png`. Its data container is
+left untouched. `make screenshot` is the macOS equivalent and writes
+`build/screenshots/<screen>-<lang>-<appearance>.png`. It needs Screen Recording
+permission for the terminal, launches a separate instance from `build/`, and exits
+if one from that build is already running. Instances from Xcode or `/Applications`
+are left alone. The scripts cover launch state only; use the running app for
+interaction, resizing, and larger text.
 
 ## Release Builds
 

@@ -36,12 +36,23 @@ target; iPhone and iPad share the SwiftUI codebase.
 | Generate project | `make gen` |
 | Build macOS | `make build` |
 | Build iOS Simulator | `make build DESTINATION='generic/platform=iOS Simulator'` |
+| Focused tests | `make test ONLY=CairnTests/SnapshotServiceTests` |
 | Full macOS unit suite | `make test` |
 | SwiftLint, including localization rules | `make lint` |
+| Sample-data screenshot (macOS) | `make screenshot SCREEN=assets LANG_CODE=zh-Hans APPEARANCE=dark` |
+| Sample-data screenshot (booted simulator) | `make screenshot-ios SCREEN=assets` |
 
 The Makefile defaults to Apple silicon macOS and ad-hoc signing with the shipped
-entitlements. Override `DESTINATION` for another installed destination. See
-`docs/development.md` for focused test commands and device signing.
+entitlements. Override `DESTINATION` for another installed destination. Builds
+use per-checkout DerivedData in `build/` and print only errors, warnings, test
+counts, and the final status; pass `LOG_FILTER=cat` for full logs. See `docs/development.md`
+for screenshot options and device signing.
+
+If XcodeBuildMCP is configured, use it for simulator interaction: tapping,
+typing, reading the view hierarchy, and capturing logs. Keep builds, tests, lint,
+and screenshots on the Makefile targets above so signing, DerivedData, and log
+filtering stay consistent. Launch the app with the sample-data arguments used
+by `scripts/screenshot-ios.sh`, and do not use it to install on physical devices.
 
 ## Swift and platform UI
 
@@ -52,6 +63,8 @@ entitlements. Override `DESTINATION` for another installed destination. See
   out of SwiftUI `body`; reuse the FX cache and snapshot index for aggregations.
 - Guard platform-specific APIs with conditional compilation and newer APIs with
   availability checks. Preserve older-OS fallbacks, including Liquid Glass.
+  Confirm signatures of recent SDK APIs in the installed SDK's `.swiftinterface`
+  files or Apple documentation rather than relying on memory.
 - Preserve macOS sidebar and iOS tab navigation, adaptive layouts, and unsaved
   edits across resizing/rotation. Support keyboard dismissal, VoiceOver,
   scalable text, and Reduce Motion in affected UI; reuse shared styles.

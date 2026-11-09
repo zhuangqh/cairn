@@ -13,7 +13,18 @@ struct RootView: View {
     @AppStorage(AppSettingsKeys.featureTourSeen)
     private var featureTourSeen: Bool = false
 
-    @State private var selection: SidebarItem = .dashboard
+    @State private var selection: SidebarItem = Self.initialSelection
+
+    /// Debug-only `-CairnScreen <item>` launch argument used by visual review.
+    private static var initialSelection: SidebarItem {
+        #if DEBUG
+        if let name = UserDefaults.standard.string(forKey: "CairnScreen"),
+           let item = SidebarItem.allCases.first(where: { "\($0)" == name }) {
+            return item
+        }
+        #endif
+        return .dashboard
+    }
 
     /// First-run sheet is the unified `FeatureTourView` running in
     /// `.firstRun` mode, which itself rolls highlights → home currency →
