@@ -138,10 +138,10 @@ by `scripts/screenshot-ios.sh`, and do not use it to install on physical devices
 
 ## Commit standards
 
-- When preparing a commit, inspect `git status --short`, then read the complete
-  `git diff --cached` (equivalently `git diff --staged`). A file list, diff summary,
-  working-tree diff, or conversation history does not replace reviewing the
-  actual staged patch. Recheck it if the staged content changes.
+- When preparing a commit, follow the `commit-changes` skill: start from
+  `git status --short` and the staged stat, and read each patch once. Changes
+  you made this session need no re-read; read the patch for anything you did not
+  author or whose stat is unexpected. Recheck if the staged content changes.
 - Stage only intended files or hunks within the approved scope. Preserve other
   staged and unstaged work; unrelated staged changes must be resolved with the
   user before committing. Keep one logical change per commit.

@@ -203,19 +203,20 @@ Pull requests welcome. Before opening one:
 ### Commit preparation and messages
 
 For an authorized commit task, inspect the working tree and index, stage only the
-intended files or hunks, then read the final staged patch:
+intended files or hunks, then check the staged result:
 
 ```sh
 git status --short
 git diff --cached --stat
-git diff --cached
 git diff --cached --check
 ```
 
-The full staged diff is the basis for both review and the message. The stat is
-only an overview; `git diff` without `--cached` shows a different set of changes.
-Inspect new files and non-text assets as relevant. If the index changes after
-review, inspect the updated staged patch. Preserve unrelated work and existing
+Read each patch once, not before and again after staging. An agent that made
+the changes in the current session already knows them and confirms the scope
+from the stat; read the patch (`git diff --cached -U1 -- <path>`) for work it did
+not author or for any file whose stat is unexpected. Show only changed lines for
+bulky files such as string catalogs. If the index changes after review, inspect
+the updated staged content. Preserve unrelated work and existing
 staging; ask the user to resolve unrelated staged changes rather than silently
 including or unstaging them. Do not create an empty commit to complete a task.
 

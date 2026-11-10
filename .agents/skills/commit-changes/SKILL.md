@@ -23,13 +23,24 @@ with a message useful for debugging, git bisect, code archaeology, and review.
 - This workflow does not authorize source edits, unrelated fixes, pushing,
   amending commits, resetting work, or rewriting history.
 
-## 2. Inspect the Actual Changes
+## 2. Inspect the Changes
 
-- Start with `git status --short --untracked-files=all`, `git diff`, and the full
-  `git diff --cached`. Inspect relevant new files and non-text assets directly;
-  untracked content is absent from both diffs.
-- Inspect surrounding code when needed to understand behavior and motivation.
-  Never derive a message solely from conversation history or a diff summary.
+Read each change once, and only as much as the message and scope decision need.
+
+- Start with an overview, not a patch: `git status --short --untracked-files=all`,
+  `git diff --stat`, and `git diff --cached --stat` in one command.
+- Changes you made in this session and have not touched since are already known;
+  do not re-read their patch. Confirm with the stat that the files and line
+  counts match what you edited.
+- Read the patch only for changes you cannot account for: work from earlier
+  sessions or the user, existing staging, or files whose stat differs from what
+  you expect. Read per path with little context, such as
+  `git diff -U1 -- <path>` (add `--cached` for staged content).
+- Do not dump generated, bulky, or binary content (`*.xcstrings`, lockfiles,
+  images). Use the stat, and for string catalogs only the changed lines
+  (`git diff -U0 -- <path>`). Read untracked files only when deciding whether
+  they belong in the commit.
+- Inspect surrounding code only when the change's motivation is unclear.
 - Distinguish intended changes from unrelated work, including existing staging.
   If ownership or scope is unclear, ask a focused question before changing the
   index or committing the ambiguous content.
@@ -39,14 +50,15 @@ with a message useful for debugging, git bisect, code archaeology, and review.
 - If there are no intended changes to commit, report that and stop without an
   empty commit.
 
-## 3. Stage and Review
+## 3. Stage and Check
 
 - Stage the intended paths or hunks explicitly. Preserve unrelated staged and
   unstaged work; do not use a blanket `git add .` or `git add -A` without inspecting
   and establishing the scope of everything it would include.
-- Read the complete final `git diff --cached` and run `git diff --cached --check`.
-  The staged patch is the source of truth for the message and the commit. Recheck
-  it if the index changes after review.
+- Run `git diff --cached --stat` and `git diff --cached --check` together. The
+  staged stat must match the intended scope; do not re-read patches already
+  reviewed in step 2. Read a staged patch only when the stat shows a file or
+  size you did not expect, or when the index changed after your review.
 - Use relevant validation already performed when it still covers the staged
   changes. Add or repeat checks only for new changes, failures, or concrete risks;
   do not introduce tests or tooling just to make a commit.
@@ -88,18 +100,16 @@ Use Conventional Commits: `type(scope): concise description`.
 - Respect repository hooks. If the commit fails, report the reason and preserve
   the work; do not bypass hooks, broaden scope, or claim success. If an authorized
   retry changes staged content, review that content again first.
-- After success, inspect `git log -1 --format=fuller`,
-  `git show --stat --oneline HEAD`, and `git status --short --untracked-files=all`
-  to verify the created commit and identify remaining work. Confirm that the
-  commit message contains a `Signed-off-by` trailer matching the committer identity.
-  Do not push.
+- After success, verify with one command:
+  `git log -1 --format='%h %s%n%(trailers:key=Signed-off-by)' && git status --short`.
+  Confirm the `Signed-off-by` trailer matches the committer identity and note
+  remaining work. Do not push.
 
 ## 6. Delivery
 
 For a completed commit, report:
 
 - Commit ID and complete commit message.
-- A brief explanation of how the message represents the committed changes.
 - Validation results, checks not performed, and any remaining staged, unstaged,
   or untracked work.
 
