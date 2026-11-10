@@ -17,7 +17,7 @@ struct MemberDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 0) {
                 memberHeader
 
                 if (member.accounts ?? []).isEmpty {
@@ -38,7 +38,7 @@ struct MemberDetailView: View {
                 }
             }
             .pageHorizontalPadding()
-            .padding(.vertical, 20)
+            .padding(.bottom, 24)
             .frame(maxWidth: 1100)
             .frame(maxWidth: .infinity)
         }
@@ -129,50 +129,33 @@ struct MemberDetailView: View {
             VStack(spacing: 4) {
                 Text(verbatim: member.name.isEmpty ? " " : member.name)
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.ink)
                     .lineLimit(1)
-                HStack(spacing: 4) {
-                    Text((member.accounts ?? []).count, format: .number)
-                    Text("accounts.title")
-                }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                Text(verbatim: String(localized: "assets.member.accountCount \((member.accounts ?? []).count)"))
+                    .font(.subheadline)
+                    .foregroundStyle(Color.ink3)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
+        .padding(.bottom, 24)
     }
 
-    @ViewBuilder
     private func kindSection(for kind: AccountKind, accounts: [Account]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Image(systemName: kind.iconName)
-                    .foregroundStyle(kind.tint)
-                Text(LocalizedStringKey(kind.localizationKey))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-
-            VStack(spacing: 10) {
-                ForEach(accounts) { account in
-                    NavigationLink(value: account) {
-                        MemberAccountRow(account: account, tint: kind.tint, locale: locale)
-                            .glassCard(cornerRadius: 14, padding: 14)
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            accountPendingDeletion = account
-                        } label: {
-                            Label {
-                                Text("common.action.delete")
-                            } icon: {
-                                Image(systemName: "trash")
-                            }
+        LedgerSection(Text(LocalizedStringKey(kind.localizationKey))) {
+            LedgerRows(data: accounts, inset: LedgerMetrics.leadingColumn + LedgerMetrics.columnSpacing) { account in
+                NavigationLink(value: account) {
+                    MemberAccountRow(account: account, tint: kind.tint, locale: locale)
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button(role: .destructive) {
+                        accountPendingDeletion = account
+                    } label: {
+                        Label {
+                            Text("common.action.delete")
+                        } icon: {
+                            Image(systemName: "trash")
                         }
                     }
                 }
@@ -225,33 +208,25 @@ struct MemberAccountRow: View {
         return (primary.snapshots ?? []).sorted { $0.periodMonth > $1.periodMonth }.first
     }
 
+    /// Ledger row (§4): glyph tile / name with kind and currencies / latest
+    /// balance of the primary holding / chevron.
     var body: some View {
-        HStack(spacing: 14) {
-            GlyphBadge(systemName: account.kind.iconName, tint: tint)
+        HStack(spacing: LedgerMetrics.columnSpacing) {
+            LedgerGlyphTile(systemName: account.kind.iconName, size: 30)
+                .frame(width: LedgerMetrics.leadingColumn, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: account.name.isEmpty ? " " : account.name)
-                    .font(.callout.weight(.semibold))
-                HStack(spacing: 6) {
-                    if account.isArchived {
-                        Text("common.label.archived")
-                            .font(.caption2.weight(.medium))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.secondary.opacity(0.18), in: Capsule())
-                    }
-                    ForEach(activeCurrencies.prefix(2), id: \.self) { code in
-                        Text(verbatim: code)
-                            .font(.caption.monospaced().weight(.semibold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(tint.opacity(0.15), in: Capsule())
-                            .foregroundStyle(tint)
-                    }
-                }
+                    .font(.callout)
+                    .foregroundStyle(Color.ink)
+                    .lineLimit(2)
+                Text(verbatim: captionLine)
+                    .font(.caption)
+                    .foregroundStyle(Color.ink3)
+                    .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
             if let primary = primaryHolding, let latest = latestSnapshot {
                 Text(
@@ -260,15 +235,30 @@ struct MemberAccountRow: View {
                         .locale(locale)
                         .precision(.fractionLength(0))
                 )
-                .font(.callout.monospacedDigit().weight(.semibold))
+                .font(.callout.weight(.medium))
+                .monospacedDigit()
+                .foregroundStyle(Color.ink)
+                .fixedSize()
             }
 
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
+            LedgerChevron()
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+        .frame(minHeight: LedgerMetrics.rowHeight + 4)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+
+    /// "Cash · USD, EUR" (plus "Archived" when relevant).
+    private var captionLine: String {
+        var parts = [String(localized: String.LocalizationValue(account.kind.localizationKey))]
+        if !activeCurrencies.isEmpty {
+            parts.append(activeCurrencies.formatted(.list(type: .and).locale(locale)))
+        }
+        if account.isArchived {
+            parts.append(String(localized: "common.label.archived"))
+        }
+        return parts.joined(separator: " · ")
     }
 }
 

@@ -9,6 +9,7 @@ struct AccountDetailView: View {
     @Bindable var account: Account
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var editingSnapshot: Snapshot?
     @State private var snapshotPendingDeletion: Snapshot?
@@ -17,23 +18,27 @@ struct AccountDetailView: View {
     @State private var selectedYear: Int? = nil
     @State private var didInitFilter = false
 
+    /// Shared ledger column widths (§5.5), scaled with Dynamic Type.
+    @ScaledMetric(relativeTo: .callout) private var balanceColumn: CGFloat = 112
+    @ScaledMetric(relativeTo: .callout) private var changeColumn: CGFloat = 76
+
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 20, pinnedViews: [.sectionHeaders]) {
+            VStack(alignment: .leading, spacing: 0) {
                 headerCard
                 if let primary = primaryHolding {
-                    Section {
+                    LedgerSection(Text("account.detail.snapshots")) {
+                        yearFilterMenu(for: primary)
+                    } content: {
                         snapshotList(for: primary)
-                            .padding(.top, 4)
-                    } header: {
-                        snapshotFilterHeader(for: primary)
                     }
+                    holdingsSection
                 } else {
                     emptyHoldingCard
                 }
             }
             .pageHorizontalPadding()
-            .padding(.vertical, 20)
+            .padding(.bottom, 24)
             .frame(maxWidth: 1100)
             .frame(maxWidth: .infinity)
         }
@@ -78,7 +83,11 @@ struct AccountDetailView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Label {
+                        Text("common.action.more")
+                    } icon: {
+                        Image(systemName: "ellipsis")
+                    }
                 }
             }
         }
@@ -119,77 +128,93 @@ struct AccountDetailView: View {
         }
     }
 
-    // MARK: - Cards
+    // MARK: - Hero
 
+    /// Account identity row, then the primary holding's latest balance with
+    /// its change from the previous record (§5.2).
     private var headerCard: some View {
-        HStack(spacing: 14) {
-            GlyphBadge(systemName: account.kind.iconName, tint: account.kind.tint)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(LocalizedStringKey(account.kind.localizationKey))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                if let note = account.note, !note.isEmpty {
-                    Text(verbatim: note)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+        let primary = primaryHolding
+        let sorted = primary.map(sortedSnapshots(for:)) ?? []
+        let latest = sorted.first
+        let previous = sorted.dropFirst().first
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: LedgerMetrics.columnSpacing) {
+                LedgerGlyphTile(systemName: account.kind.iconName)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(LocalizedStringKey(account.kind.localizationKey))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.ink)
+                    Text(verbatim: identityLine)
+                        .font(.caption)
+                        .foregroundStyle(Color.ink3)
                 }
-                HStack(spacing: 6) {
-                    if account.isArchived {
-                        Text("common.label.archived")
-                            .font(.caption2.weight(.medium))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.secondary.opacity(0.18), in: Capsule())
-                    }
-                    ForEach(activeCurrencies.prefix(3), id: \.self) { code in
-                        Text(verbatim: code)
-                            .font(.caption.monospaced().weight(.semibold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(account.kind.tint.opacity(0.15), in: Capsule())
-                            .foregroundStyle(account.kind.tint)
-                    }
+                Spacer(minLength: 8)
+                if account.isArchived {
+                    Text("common.label.archived")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Color.ink2)
+                }
+                if let primary {
+                    CurrencyChip(code: primary.currency)
                 }
             }
-            Spacer()
-            if let primary = primaryHolding, let latest = sortedSnapshots(for: primary).first {
-                Text(
-                    latest.amount,
-                    format: .currency(code: primary.currency)
-                        .locale(locale)
-                        .precision(.fractionLength(0))
-                )
-                .font(.title3.monospacedDigit().weight(.semibold))
+
+            if let primary, let latest {
+                LedgerHeroAmount(amount: latest.amount, code: primary.currency, locale: locale)
+                    .padding(.top, 18)
+                if let previous {
+                    LedgerDeltaLine(
+                        amount: latest.amount - previous.amount,
+                        percent: previous.amount == 0
+                            ? nil
+                            : NSDecimalNumber(decimal: (latest.amount - previous.amount) / previous.amount).doubleValue,
+                        code: primary.currency,
+                        locale: locale,
+                        caption: Text("dashboard.vsLastMonth")
+                    )
+                    .padding(.top, 10)
+                }
+                Text(latest.periodMonth, format: .dateTime.year().month(.wide).locale(locale))
+                    .font(.footnote)
+                    .foregroundStyle(Color.ink3)
+                    .padding(.top, 3)
+            }
+
+            if let note = account.note, !note.isEmpty {
+                Text(verbatim: note)
+                    .font(.footnote)
+                    .foregroundStyle(Color.ink2)
+                    .padding(.top, 10)
             }
         }
+        .padding(.top, 14)
+        .padding(.bottom, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
+    }
+
+    /// "Alice · Holds USD, EUR" — owner and active currencies.
+    private var identityLine: String {
+        var parts: [String] = []
+        if let owner = account.member?.name, !owner.isEmpty { parts.append(owner) }
+        if !activeCurrencies.isEmpty {
+            let list = activeCurrencies.formatted(.list(type: .and).locale(locale))
+            parts.append(String(localized: "account.detail.holds \(list)"))
+        }
+        return parts.joined(separator: " · ")
     }
 
     private var emptyHoldingCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("holding.empty")
                 .font(.callout.weight(.medium))
+                .foregroundStyle(Color.ink)
             Text("holding.empty.hint")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.ink2)
         }
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
-    }
-
-    @ViewBuilder
-    private func snapshotFilterHeader(for holding: Holding) -> some View {
-        HStack {
-            Text("account.detail.snapshots")
-                .font(.headline)
-            Spacer()
-            yearFilterMenu(for: holding)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .modifier(LiquidGlassBackground(cornerRadius: 14))
+        .overlay(alignment: .top) { LedgerHairline() }
     }
 
     @ViewBuilder
@@ -219,56 +244,118 @@ struct AccountDetailView: View {
                     }
                 }
             } label: {
-                Label {
-                    Text(verbatim: selectedYear.map(String.init) ?? String(localized: "assets.snapshots.filter.allYears"))
-                } icon: {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                }
+                LedgerFilterLabel(
+                    title: selectedYear.map(String.init) ?? String(localized: "assets.snapshots.filter.allYears")
+                )
             }
             .menuStyle(.borderlessButton)
-            .font(.callout)
+            .menuIndicator(.hidden)
+            .fixedSize()
         }
     }
 
+    /// Single-line three-column ledger (§5.5): month / balance / change,
+    /// under a light header naming the unit. Balances keep the currency's
+    /// minor-unit precision; shared column widths keep the columns aligned.
     @ViewBuilder
     private func snapshotList(for holding: Holding) -> some View {
         let snapshots = filteredSnapshots(for: holding)
+        let all = sortedSnapshots(for: holding)
         if snapshots.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 Text("snapshot.empty")
                     .font(.callout.weight(.medium))
+                    .foregroundStyle(Color.ink)
                 Text("snapshot.empty.hint")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.ink2)
             }
             .padding(.vertical, 8)
         } else {
-            VStack(spacing: 8) {
-                ForEach(Array(snapshots.enumerated()), id: \.element.id) { index, snapshot in
-                    AccountSnapshotRow(
-                        snapshot: snapshot,
-                        previous: index + 1 < snapshots.count ? snapshots[index + 1] : nil,
-                        currency: holding.currency,
-                        locale: locale
+            let digits = LedgerAmountFormat.minorUnits(for: holding.currency, locale: locale)
+            let symbol = CurrencyAmountParts(0, code: holding.currency, locale: locale).symbol
+            VStack(spacing: 0) {
+                HStack(spacing: 16) {
+                    Text("account.detail.column.month")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(verbatim: String(localized: "account.detail.column.balance \(symbol)"))
+                        .frame(minWidth: balanceColumn, alignment: .trailing)
+                    Text("account.detail.column.change")
+                        .frame(minWidth: changeColumn, alignment: .trailing)
+                }
+                .font(.caption)
+                .foregroundStyle(Color.ink3)
+                .lineLimit(1)
+                .frame(minHeight: 30)
+                .accessibilityHidden(true)
+
+                ForEach(snapshots) { snapshot in
+                    LedgerHairline()
+                    ledgerRow(
+                        snapshot,
+                        previous: all.first { $0.periodMonth < snapshot.periodMonth },
+                        digits: digits
                     )
-                    .glassCard(cornerRadius: 12, padding: 12)
-                    .onTapGesture {
-                        editingSnapshot = snapshot
-                    }
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            snapshotPendingDeletion = snapshot
-                        } label: {
-                            Label {
-                                Text("common.action.delete")
-                            } icon: {
-                                Image(systemName: "trash")
-                            }
-                        }
-                    }
                 }
             }
         }
+    }
+
+    private func ledgerRow(_ snapshot: Snapshot, previous: Snapshot?, digits: Int) -> some View {
+        let delta = previous.map { snapshot.amount - $0.amount }
+        return HStack(spacing: 16) {
+            // Abbreviated month at large text sizes so the column wraps on
+            // a word boundary instead of hyphenating the month name.
+            Text(
+                snapshot.periodMonth,
+                format: .dateTime.year()
+                    .month(dynamicTypeSize >= .xxLarge ? .abbreviated : .wide)
+                    .locale(locale)
+            )
+                .font(.callout)
+                .foregroundStyle(Color.ink)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(snapshot.amount, format: .number.precision(.fractionLength(digits)).locale(locale))
+                .font(.callout.weight(.medium))
+                .foregroundStyle(Color.ink)
+                .fixedSize()
+                .frame(minWidth: balanceColumn, alignment: .trailing)
+            Group {
+                if let delta {
+                    Text(verbatim: LedgerAmountFormat.signed(delta, digits: digits, locale: locale))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(delta > 0 ? Color.accent : Color.ink2)
+                } else {
+                    Text("account.detail.firstRecord")
+                        .font(.caption)
+                        .foregroundStyle(Color.ink3)
+                }
+            }
+            .fixedSize()
+            .frame(minWidth: changeColumn, alignment: .trailing)
+        }
+        .monospacedDigit()
+        .lineLimit(1)
+        .padding(.vertical, 6)
+        .frame(minHeight: LedgerMetrics.rowHeight)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            editingSnapshot = snapshot
+        }
+        .contextMenu {
+            Button(role: .destructive) {
+                snapshotPendingDeletion = snapshot
+            } label: {
+                Label {
+                    Text("common.action.delete")
+                } icon: {
+                    Image(systemName: "trash")
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Derived
@@ -313,53 +400,55 @@ struct AccountDetailView: View {
     }
 }
 
-private struct AccountSnapshotRow: View {
-    let snapshot: Snapshot
-    let previous: Snapshot?
-    let currency: String
-    let locale: Locale
+extension AccountDetailView {
+    // MARK: - Holdings
 
-    private var delta: Decimal? {
-        guard let previous else { return nil }
-        return snapshot.amount - previous.amount
-    }
-
-    var body: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(snapshot.periodMonth, format: .dateTime.year().locale(locale))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(snapshot.periodMonth, format: .dateTime.month(.wide).locale(locale))
-                    .font(.callout.weight(.semibold))
-            }
-            .frame(width: 96, alignment: .leading)
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(
-                    snapshot.amount,
-                    format: .currency(code: currency).locale(locale)
-                )
-                .font(.callout.monospacedDigit().weight(.semibold))
-
-                if let delta, delta != 0 {
-                    let positive = delta >= 0
-                    HStack(spacing: 2) {
-                        Image(systemName: positive ? "arrow.up.right" : "arrow.down.right")
-                        Text(
-                            delta,
-                            format: .currency(code: currency).locale(locale).precision(.fractionLength(0))
-                        )
+    /// Every active holding with its latest native balance.
+    @ViewBuilder
+    private var holdingsSection: some View {
+        let active = (account.holdings ?? [])
+            .filter { !$0.isArchived }
+            .sorted { $0.createdAt < $1.createdAt }
+        if !active.isEmpty {
+            LedgerSection(Text("account.detail.holdings")) {
+                LedgerRows(data: active, inset: LedgerMetrics.leadingColumn + LedgerMetrics.columnSpacing) { holding in
+                    HStack(spacing: LedgerMetrics.columnSpacing) {
+                        CurrencyCodeTag(code: holding.currency)
+                            .frame(width: LedgerMetrics.leadingColumn, alignment: .leading)
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(verbatim: CurrencyCatalog.displayName(holding.currency, in: locale))
+                                .font(.callout)
+                                .foregroundStyle(Color.ink)
+                            if let label = holding.label, !label.isEmpty {
+                                Text(verbatim: label)
+                                    .font(.caption)
+                                    .foregroundStyle(Color.ink3)
+                            }
+                        }
+                        .lineLimit(1)
+                        Spacer(minLength: 8)
+                        if let latest = sortedSnapshots(for: holding).first {
+                            Text(
+                                latest.amount,
+                                format: .currency(code: holding.currency)
+                                    .precision(.fractionLength(0))
+                                    .locale(locale)
+                            )
+                            .font(.callout.weight(.medium))
+                            .monospacedDigit()
+                            .foregroundStyle(Color.ink)
+                            .fixedSize()
+                        } else {
+                            Text(verbatim: "—")
+                                .font(.callout)
+                                .foregroundStyle(Color.ink3)
+                        }
                     }
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(positive ? Color.green : Color.red)
+                    .frame(minHeight: LedgerMetrics.rowHeight)
+                    .accessibilityElement(children: .combine)
                 }
             }
         }
-        .padding(.vertical, 2)
-        .contentShape(Rectangle())
     }
 }
 

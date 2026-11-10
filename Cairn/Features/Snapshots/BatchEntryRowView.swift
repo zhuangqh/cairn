@@ -69,21 +69,24 @@ struct BatchEntryRowView: View {
         HStack(spacing: 6) {
             Text(verbatim: currency)
                 .font(.caption.weight(.semibold).monospaced())
-                .foregroundStyle(Color.notionInkMuted)
+                .foregroundStyle(Color.ink3)
 
             Divider()
                 .frame(height: 17)
 
+            // Blank shows last month's value as a pale prompt (§5.12); a
+            // filled or carried-forward value renders in solid ink.
             TextField(
                 placeholderText,
                 value: $amount,
-                format: .number.precision(.fractionLength(0))
+                format: .number.precision(.fractionLength(0)),
+                prompt: Text(verbatim: placeholderText).foregroundStyle(Color.placeholder)
             )
             .focused($isFieldFocused)
             .textFieldStyle(.plain)
             .multilineTextAlignment(.trailing)
             .font(.callout.weight(.semibold).monospacedDigit())
-            .foregroundStyle(Color.notionInk)
+            .foregroundStyle(Color.ink)
             .lineLimit(1)
             .minimumScaleFactor(0.76)
             #if !os(macOS)
@@ -94,12 +97,12 @@ struct BatchEntryRowView: View {
         .frame(width: amountFieldWidth)
         .frame(height: 38)
         .background(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(fieldBackground)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.field)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .strokeBorder(fieldBorder, lineWidth: isFieldFocused ? 1.5 : 0.75)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(fieldBorder, lineWidth: isFieldFocused ? 1.5 : 1)
         )
         .animation(.easeInOut(duration: 0.15), value: isFieldFocused)
     }
@@ -186,20 +189,15 @@ struct BatchEntryRowView: View {
         return DeltaInfo(
             absoluteText: absText,
             percentText: percentText,
-            iconName: isUp ? "arrow.up" : "arrow.down",
-            color: isUp ? .green : .red
+            iconName: isUp ? "arrow.up.right" : "arrow.down.right",
+            color: isUp ? .accent : .ink2
         )
     }
 
-    private var fieldBackground: Color {
-        if isFieldFocused { return Color.notionBlue.opacity(0.055) }
-        return Color.notionSurfaceAlt.opacity(0.72)
-    }
-
     private var fieldBorder: Color {
-        if isFieldFocused { return Color.notionBlue.opacity(0.65) }
-        if isDirty { return Color.notionBlue.opacity(0.24) }
-        return Color.notionBorder
+        if isFieldFocused { return Color.accent }
+        if isDirty { return Color.accent.opacity(0.24) }
+        return Color.line
     }
 
     private var placeholderText: String {
@@ -228,6 +226,16 @@ struct BatchEntryRowView: View {
         190
         #else
         148
+        #endif
+    }
+
+    /// Leading offset of the name column (glyph + spacing), so row
+    /// hairlines start where the text does.
+    static var textColumnInset: CGFloat {
+        #if os(macOS)
+        44
+        #else
+        36
         #endif
     }
 

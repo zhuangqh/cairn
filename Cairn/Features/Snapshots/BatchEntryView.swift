@@ -234,27 +234,27 @@ struct BatchEntryView: View {
 
     private var entryScroll: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 monthCard
                 memberGroupsSection
                 notesCard
             }
             .padding(.horizontal, pageHorizontalInset)
-            .padding(.vertical, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
             .frame(maxWidth: 1100)
             .frame(maxWidth: .infinity)
         }
     }
 
     private var monthCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 0) {
             monthHeader
+                .padding(.bottom, 14)
             fillFromLastAction
-
             ratesSection
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: monthCardCornerRadius, padding: monthCardPadding)
     }
 
     private var monthHeader: some View {
@@ -273,18 +273,14 @@ struct BatchEntryView: View {
     }
 
     private var monthSummary: some View {
-        HStack(spacing: 10) {
-            GlyphBadge(systemName: "calendar", tint: .accentColor, size: monthGlyphSize)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("batch.monthCard.title")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.notionInkSecondary)
-                    .textCase(.uppercase)
-                    .tracking(0.4)
-                Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Color.notionInk)
-            }
+        VStack(alignment: .leading, spacing: 4) {
+            Text("batch.monthCard.title")
+                .font(.subheadline)
+                .foregroundStyle(Color.ink2)
+            Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
+                .font(.title.bold())
+                .monospacedDigit()
+                .foregroundStyle(Color.ink)
         }
     }
 
@@ -312,17 +308,17 @@ struct BatchEntryView: View {
             HStack(spacing: 10) {
                 Image(systemName: "arrow.down.to.line")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.notionBlue)
-                    .frame(width: 28, height: 28)
-                    .background(Color.notionBlue.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                    .foregroundStyle(Color.accent)
+                    .frame(width: 30, height: 30)
+                    .background(Color.accentSoft, in: RoundedRectangle(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("batch.fillFromLast")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.notionInk)
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(Color.accent)
                     Text("batch.fillFromLast.hint")
                         .font(.caption)
-                        .foregroundStyle(Color.notionInkSecondary)
+                        .foregroundStyle(Color.ink3)
                         .lineLimit(1)
                 }
 
@@ -330,46 +326,17 @@ struct BatchEntryView: View {
 
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.notionInkMuted)
+                    .foregroundStyle(Color.ink3)
             }
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.notionSurfaceAlt.opacity(0.72), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(Color.notionBorder.opacity(0.72), lineWidth: 0.7)
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: LedgerMetrics.rowHeight + 8, alignment: .leading)
+        .overlay(alignment: .top) { LedgerHairline() }
+        .contentShape(Rectangle())
         .disabled(!hasBlankWithPrevious)
         .opacity(hasBlankWithPrevious ? 1 : 0.52)
         .help(Text("batch.fillFromLast.hint"))
-    }
-
-    private var monthCardPadding: CGFloat {
-        #if os(macOS)
-        20
-        #else
-        16
-        #endif
-    }
-
-    private var monthCardCornerRadius: CGFloat {
-        #if os(macOS)
-        16
-        #else
-        14
-        #endif
-    }
-
-    private var monthGlyphSize: CGFloat {
-        #if os(macOS)
-        38
-        #else
-        34
-        #endif
     }
 
     @ViewBuilder
@@ -379,9 +346,11 @@ struct BatchEntryView: View {
         }
     }
 
+    /// Member group (§4): hairline rule, avatar + name header, then the
+    /// member's holdings as entry rows.
     private func memberGroupCard(_ group: MemberGroup) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 10) {
                 MemberAvatarView(
                     name: group.member.name,
                     avatarData: group.member.avatarData,
@@ -389,56 +358,37 @@ struct BatchEntryView: View {
                     size: memberAvatarSize
                 )
                 Text(verbatim: group.member.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.notionInk)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.ink)
                 Spacer()
             }
-
-            Divider().opacity(0.45)
+            .frame(minHeight: LedgerMetrics.rowHeight)
 
             VStack(spacing: 0) {
                 ForEach(Array(group.rows.enumerated()), id: \.element.holding.id) { index, row in
                     entryRow(row)
                     if index < group.rows.count - 1 {
-                        Divider().opacity(0.4)
+                        LedgerHairline().padding(.leading, BatchEntryRowView.textColumnInset)
                     }
                 }
             }
         }
+        .padding(.top, 12)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: memberCardCornerRadius, padding: memberCardPadding)
+        .overlay(alignment: .top) { LedgerHairline() }
     }
 
     private var pageHorizontalInset: CGFloat {
         #if os(macOS)
         24
         #else
-        10
-        #endif
-    }
-
-    private var memberCardPadding: CGFloat {
-        #if os(macOS)
-        20
-        #else
-        12
-        #endif
-    }
-
-    private var memberCardCornerRadius: CGFloat {
-        #if os(macOS)
-        16
-        #else
-        14
+        22
         #endif
     }
 
     private var memberAvatarSize: CGFloat {
-        #if os(macOS)
         28
-        #else
-        26
-        #endif
     }
 
     @ViewBuilder
@@ -471,7 +421,7 @@ struct BatchEntryView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("batch.total")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.notionInkSecondary)
+                .foregroundStyle(Color.ink2)
                 .textCase(.uppercase)
             Text(
                 totalInHome,
@@ -480,7 +430,7 @@ struct BatchEntryView: View {
                     .locale(locale)
             )
                 .font(.title3.monospacedDigit().weight(.semibold))
-                .foregroundStyle(Color.notionInk)
+                .foregroundStyle(Color.ink)
         }
     }
 
@@ -516,7 +466,7 @@ struct BatchEntryView: View {
             HStack(alignment: .firstTextBaseline, spacing: 16) {
                 Text("batch.total")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.notionInkMuted)
+                    .foregroundStyle(Color.ink3)
                     .textCase(.uppercase)
                     .tracking(0.5)
 
@@ -529,7 +479,7 @@ struct BatchEntryView: View {
                         .locale(locale)
                 )
                     .font(.headline.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
             }
@@ -547,7 +497,7 @@ struct BatchEntryView: View {
         .padding(.horizontal, 15)
         .padding(.vertical, 10)
         .frame(maxWidth: 420, alignment: .leading)
-        .liquidGlassBackground(cornerRadius: 16, tint: Color.notionBlue.opacity(0.018))
+        .liquidGlassBackground(cornerRadius: 16, tint: Color.accent.opacity(0.018))
         .padding(.horizontal, 28)
         .padding(.top, 10)
         .padding(.bottom, 8)

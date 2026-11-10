@@ -12,16 +12,16 @@ struct AchievementImportSummaryView: View {
                 VStack(spacing: 18) {
                     Image(systemName: "sparkles")
                         .font(.system(size: 34, weight: .semibold))
-                        .foregroundStyle(Color.notionBlue)
+                        .foregroundStyle(Color.accent)
                         .frame(width: 86, height: 86)
-                        .background(Color.notionBlue.opacity(0.10), in: Circle())
+                        .background(Color.accent.opacity(0.10), in: Circle())
 
                     VStack(spacing: 6) {
                         Text("achievement.import.title", bundle: localization.bundle)
                             .font(.title2.bold())
                         Text("achievement.import.subtitle", bundle: localization.bundle)
                             .font(.subheadline)
-                            .foregroundStyle(Color.notionInkSecondary)
+                            .foregroundStyle(Color.ink2)
                             .multilineTextAlignment(.center)
                     }
 
@@ -75,7 +75,7 @@ struct AchievementImportSummaryView: View {
             Spacer()
             Text(verbatim: "\(count)")
                 .font(.headline.monospacedDigit())
-                .foregroundStyle(count == 0 ? Color.notionInkMuted : Color.notionBlue)
+                .foregroundStyle(count == 0 ? Color.ink3 : Color.accent)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

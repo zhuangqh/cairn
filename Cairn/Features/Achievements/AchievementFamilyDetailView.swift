@@ -184,10 +184,10 @@ struct AchievementFamilyDetailView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(LocalizedStringKey(familyTitleKey), bundle: localization.bundle)
                     .font(.title2.bold())
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                 Text(LocalizedStringKey(familySubtitleKey), bundle: localization.bundle)
                     .font(.subheadline)
-                    .foregroundStyle(Color.notionInkSecondary)
+                    .foregroundStyle(Color.ink2)
                 Text(
                     String(
                         format: String(localized: "achievement.detail.progress", bundle: localization.bundle),
@@ -196,7 +196,7 @@ struct AchievementFamilyDetailView: View {
                     )
                 )
                 .font(.caption.monospacedDigit().weight(.semibold))
-                .foregroundStyle(Color.notionBlue)
+                .foregroundStyle(Color.accent)
             }
 
             Spacer(minLength: 0)
@@ -245,23 +245,23 @@ struct AchievementFamilyDetailView: View {
             VStack(spacing: 4) {
                 Text(verbatim: stage.title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(isEarned ? Color.notionInk : Color.notionInkMuted)
+                    .foregroundStyle(isEarned ? Color.ink : Color.ink3)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
 
                 Text(verbatim: stage.requirement)
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(Color.notionInkSecondary)
+                    .foregroundStyle(Color.ink2)
                     .multilineTextAlignment(.center)
 
                 if let earned = stage.earned {
                     Text(verbatim: AchievementFormatting.month(earned.logicalMonth, locale: locale))
                         .font(.caption2)
-                        .foregroundStyle(Color.notionBlue)
+                        .foregroundStyle(Color.accent)
                 } else {
                     Text("achievement.detail.future", bundle: localization.bundle)
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color.notionInkMuted)
+                        .foregroundStyle(Color.ink3)
                 }
             }
         }
@@ -272,7 +272,7 @@ struct AchievementFamilyDetailView: View {
                 .fill(isEarned ? Color.notionSurface : Color.notionSurfaceAlt.opacity(0.62))
                 .overlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.notionBorder.opacity(isEarned ? 1 : 0.55), lineWidth: 0.8)
+                        .strokeBorder(Color.line.opacity(isEarned ? 1 : 0.55), lineWidth: 0.8)
                 }
         }
         .accessibilityElement(children: .combine)
@@ -307,11 +307,11 @@ struct AchievementFamilyDetailView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(LocalizedStringKey(presentation.titleKey), bundle: localization.bundle)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.notionInk)
+                            .foregroundStyle(Color.ink)
                         if let value = historyValue(presentation) {
                             Text(verbatim: value)
                                 .font(.caption.monospacedDigit())
-                                .foregroundStyle(Color.notionInkSecondary)
+                                .foregroundStyle(Color.ink2)
                         }
                     }
 
@@ -319,7 +319,7 @@ struct AchievementFamilyDetailView: View {
 
                     Text(verbatim: AchievementFormatting.month(presentation.logicalMonth, locale: locale))
                         .font(.caption2)
-                        .foregroundStyle(Color.notionInkMuted)
+                        .foregroundStyle(Color.ink3)
                 }
                 .padding(.vertical, 11)
 
@@ -556,6 +556,6 @@ struct AchievementFamilyDetailView: View {
             .font(.caption.weight(.bold))
             .tracking(0.65)
             .textCase(.uppercase)
-            .foregroundStyle(Color.notionInkSecondary)
+            .foregroundStyle(Color.ink2)
     }
 }

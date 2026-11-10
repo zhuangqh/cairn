@@ -45,7 +45,7 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var localization = localization
 
-        Form {
+        SettingsContainer {
             Section {
                 Picker(selection: $localization.override) {
                     ForEach(LocalizationService.LanguageOverride.allCases, id: \.self) { option in
@@ -55,8 +55,7 @@ struct SettingsView: View {
                 } label: {
                     settingsRowLabel(
                         titleKey: "settings.language.title",
-                        systemImage: "globe",
-                        tint: .notionBlue
+                        systemImage: "globe"
                     )
                 }
 
@@ -66,17 +65,16 @@ struct SettingsView: View {
                     HStack {
                         settingsRowLabel(
                             titleKey: "settings.homeCurrency.title",
-                            systemImage: "dollarsign.circle.fill",
-                            tint: .notionGreen
+                            systemImage: "dollarsign.circle"
                         )
                         Spacer(minLength: 12)
-                        VStack(alignment: .trailing, spacing: 2) {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(verbatim: homeCurrency)
-                                .font(.callout.monospaced().weight(.semibold))
-                                .foregroundStyle(Color.notionInk)
+                                .font(.callout.weight(.medium))
+                                .foregroundStyle(Color.ink)
                             Text(verbatim: CurrencyCatalog.displayName(homeCurrency))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(.callout)
+                                .foregroundStyle(Color.ink2)
                                 .lineLimit(1)
                         }
                     }
@@ -90,20 +88,18 @@ struct SettingsView: View {
                 } label: {
                     settingsRowLabel(
                         titleKey: "settings.appearance.title",
-                        systemImage: "circle.righthalf.filled",
-                        tint: .notionPurple
+                        systemImage: "circle.righthalf.filled"
                     )
                 }
             } header: {
-                NotionSectionHeader("settings.section.general")
+                sectionHeader("settings.section.general")
             }
 
             Section {
                 Toggle(isOn: $reminderEnabled) {
                     settingsRowLabel(
                         titleKey: "settings.reminder.toggle",
-                        systemImage: "bell.fill",
-                        tint: .notionOrange
+                        systemImage: "bell"
                     )
                 }
                 if reminderEnabled {
@@ -114,8 +110,7 @@ struct SettingsView: View {
                     } label: {
                         settingsRowLabel(
                             titleKey: "settings.reminder.day",
-                            systemImage: "calendar",
-                            tint: .notionPurple
+                            systemImage: "calendar"
                         )
                     }
                     .pickerStyle(.menu)
@@ -126,17 +121,14 @@ struct SettingsView: View {
                     ) {
                         settingsRowLabel(
                             titleKey: "settings.reminder.time",
-                            systemImage: "clock.fill",
-                            tint: .notionInkSecondary
+                            systemImage: "clock"
                         )
                     }
                 }
             } header: {
-                NotionSectionHeader("settings.section.reminder")
+                sectionHeader("settings.section.reminder")
             } footer: {
-                Text("settings.reminder.footer")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                sectionFooter("settings.reminder.footer")
             }
             .onChange(of: reminderEnabled) { _, newValue in
                 Task { await applyReminder(enabled: newValue) }
@@ -157,8 +149,7 @@ struct SettingsView: View {
                 } label: {
                     settingsRowLabel(
                         titleKey: "settings.backup.export",
-                        systemImage: "square.and.arrow.up",
-                        tint: .notionBlue
+                        systemImage: "square.and.arrow.up"
                     )
                 }
                 .buttonStyle(.plain)
@@ -168,8 +159,7 @@ struct SettingsView: View {
                 } label: {
                     settingsRowLabel(
                         titleKey: "settings.backup.exportCSV",
-                        systemImage: "tablecells",
-                        tint: .notionGreen
+                        systemImage: "tablecells"
                     )
                 }
                 .buttonStyle(.plain)
@@ -179,17 +169,14 @@ struct SettingsView: View {
                 } label: {
                     settingsRowLabel(
                         titleKey: "settings.backup.import",
-                        systemImage: "square.and.arrow.down",
-                        tint: .notionTeal
+                        systemImage: "square.and.arrow.down"
                     )
                 }
                 .buttonStyle(.plain)
             } header: {
-                NotionSectionHeader("settings.section.backup")
+                sectionHeader("settings.section.backup")
             } footer: {
-                Text("settings.backup.footer")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                sectionFooter("settings.backup.footer")
             }
 
             Section {
@@ -198,29 +185,25 @@ struct SettingsView: View {
                 } label: {
                     settingsRowLabel(
                         titleKey: "settings.featureTour.show",
-                        systemImage: "sparkles",
-                        tint: .notionPurple
+                        systemImage: "sparkles"
                     )
                 }
                 .buttonStyle(.plain)
             } header: {
-                NotionSectionHeader("settings.section.help")
+                sectionHeader("settings.section.help")
             } footer: {
-                Text("settings.featureTour.footer")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                sectionFooter("settings.featureTour.footer")
             }
 
             Section {
                 LabeledContent {
                     Text(verbatim: appVersion)
                         .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.ink2)
                 } label: {
                     settingsRowLabel(
                         titleKey: "settings.about.version",
-                        systemImage: "info.circle.fill",
-                        tint: .notionInkSecondary
+                        systemImage: "info.circle"
                     )
                 }
 
@@ -228,12 +211,12 @@ struct SettingsView: View {
                     HStack {
                         settingsRowLabel(
                             titleKey: "settings.about.sourceCode",
-                            systemImage: "chevron.left.forwardslash.chevron.right",
-                            tint: .notionInk
+                            systemImage: "chevron.left.forwardslash.chevron.right"
                         )
                         Spacer(minLength: 8)
-                        Image(systemName: "arrow.up.right.square")
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "arrow.up.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.ink3)
                     }
                 }
                 .buttonStyle(.plain)
@@ -242,12 +225,12 @@ struct SettingsView: View {
                     HStack {
                         settingsRowLabel(
                             titleKey: "settings.about.star",
-                            systemImage: "star.fill",
-                            tint: .notionOrange
+                            systemImage: "star"
                         )
                         Spacer(minLength: 8)
-                        Image(systemName: "arrow.up.right.square")
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "arrow.up.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.ink3)
                     }
                 }
                 .buttonStyle(.plain)
@@ -256,25 +239,21 @@ struct SettingsView: View {
                     HStack {
                         settingsRowLabel(
                             titleKey: "settings.about.bugReport",
-                            systemImage: "ladybug.fill",
-                            tint: .notionPink
+                            systemImage: "ladybug"
                         )
                         Spacer(minLength: 8)
-                        Image(systemName: "arrow.up.right.square")
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "arrow.up.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.ink3)
                     }
                 }
                 .buttonStyle(.plain)
             } header: {
-                NotionSectionHeader("settings.section.about")
+                sectionHeader("settings.section.about")
             } footer: {
-                Text("settings.about.footer")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                sectionFooter("settings.about.footer")
             }
         }
-        .formStyle(.grouped)
-        .glassListStyle()
         .navigationTitle(Text("settings.title", bundle: localization.bundle))
         .fileExporter(
             isPresented: $isExporting,
@@ -363,17 +342,41 @@ struct SettingsView: View {
 
     // MARK: - Helpers
 
+    /// Row label (§5.11): 22pt monochrome line icon in `ink2`, then the title.
     private func settingsRowLabel(
         titleKey: LocalizedStringKey,
-        systemImage: String,
-        tint: Color
+        systemImage: String
     ) -> some View {
-        HStack(spacing: 12) {
-            GlyphBadge(systemName: systemImage, tint: tint, size: 28)
+        HStack(spacing: 14) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .regular))
+                .foregroundStyle(Color.ink2)
+                .frame(width: 22)
+                .accessibilityHidden(true)
             Text(titleKey)
                 .font(.body)
-                .foregroundStyle(Color.notionInk)
+                .foregroundStyle(Color.ink)
         }
+    }
+
+    /// 20pt bold section title (§3), sentence case.
+    private func sectionHeader(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .font(.title3.bold())
+            .tracking(-0.2)
+            .foregroundStyle(Color.ink)
+            .textCase(nil)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 20)
+            .overlay(alignment: .top) { LedgerHairline() }
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    /// Supplementary note at the end of a section (§5.11).
+    private func sectionFooter(_ key: LocalizedStringKey) -> some View {
+        Text(key)
+            .font(.footnote)
+            .foregroundStyle(Color.ink3)
     }
 
     private var appVersion: String {
@@ -518,7 +521,7 @@ private struct CurrencyPickerView: View {
             HStack(spacing: 12) {
                 Text(verbatim: code)
                     .font(.body.monospaced().weight(.semibold))
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                     .frame(width: 44, alignment: .leading)
                 Text(verbatim: CurrencyCatalog.displayName(code))
                     .font(.body)
@@ -541,4 +544,29 @@ private struct CurrencyPickerView: View {
     SettingsView()
         .environment(LocalizationService())
         .modelContainer(PreviewSampleData.container())
+}
+
+/// Settings chrome. iOS shows flat rows on the ivory ground — no inset
+/// cards — separated by hairlines (§5.11); macOS keeps its grouped form.
+private struct SettingsContainer<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        #if os(iOS)
+        List {
+            content()
+                .listRowBackground(Color.clear)
+                .listRowSeparatorTint(Color.line)
+                .listSectionSeparator(.hidden)
+        }
+        .listStyle(.grouped)
+        .glassListStyle()
+        #else
+        Form {
+            content()
+        }
+        .formStyle(.grouped)
+        .glassListStyle()
+        #endif
+    }
 }

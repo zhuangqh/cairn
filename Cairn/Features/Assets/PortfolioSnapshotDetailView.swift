@@ -146,7 +146,7 @@ struct PortfolioSnapshotDetailView: View {
             )
                 .font(.system(size: 36, weight: .bold))
                 .monospacedDigit()
-                .foregroundStyle(Color.notionInk)
+                .foregroundStyle(Color.ink)
             if let totalDelta {
                 headerDeltaLine(totalDelta)
             }
@@ -251,7 +251,7 @@ struct PortfolioSnapshotDetailView: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.notionBorder.opacity(0.65), lineWidth: 0.7)
+                    .strokeBorder(Color.line.opacity(0.65), lineWidth: 0.7)
             )
         #else
         memberGroupSection(group)
@@ -276,7 +276,7 @@ struct PortfolioSnapshotDetailView: View {
                     )
                     Text(verbatim: displayName)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.notionInk)
+                        .foregroundStyle(Color.ink)
                     Spacer(minLength: 8)
                     Text(
                         group.total,
@@ -285,7 +285,7 @@ struct PortfolioSnapshotDetailView: View {
                             .locale(locale)
                     )
                     .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Color.notionInkSecondary)
+                    .foregroundStyle(Color.ink2)
                 }
                 if let memberDelta = group.delta {
                     HStack {
@@ -397,7 +397,7 @@ struct PortfolioSnapshotDetailView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: entry.accountName)
                     .font(.body.weight(.medium))
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                     .lineLimit(1)
                     .allowsTightening(true)
                     .minimumScaleFactor(0.82)
@@ -459,12 +459,12 @@ struct PortfolioSnapshotDetailView: View {
         return HStack(spacing: 6) {
             Text(verbatim: currency)
                 .font(.caption.weight(.semibold).monospaced())
-                .foregroundStyle(Color.notionInkMuted)
+                .foregroundStyle(Color.ink3)
 
             if showsConversionAffordance {
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.notionInkMuted.opacity(0.8))
+                    .foregroundStyle(Color.ink3.opacity(0.8))
             } else {
                 Divider()
                     .frame(height: 17)
@@ -477,7 +477,7 @@ struct PortfolioSnapshotDetailView: View {
                     .locale(locale)
             )
             .font(.callout.weight(.semibold).monospacedDigit())
-            .foregroundStyle(Color.notionInk)
+            .foregroundStyle(Color.ink)
             .lineLimit(1)
             .minimumScaleFactor(0.76)
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -491,7 +491,7 @@ struct PortfolioSnapshotDetailView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .strokeBorder(Color.notionBorder, lineWidth: 0.75)
+                .strokeBorder(Color.line, lineWidth: 0.75)
         )
     }
 
@@ -526,7 +526,7 @@ struct PortfolioSnapshotDetailView: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(row.titleKey)
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                     .lineLimit(1)
                 Spacer(minLength: 8)
 
@@ -540,7 +540,7 @@ struct PortfolioSnapshotDetailView: View {
 
             Text(row.subtitleKey)
                 .font(.caption)
-                .foregroundStyle(Color.notionInkSecondary)
+                .foregroundStyle(Color.ink2)
                 .fixedSize(horizontal: false, vertical: true)
 
             if !rateChanges.isEmpty {
@@ -548,11 +548,11 @@ struct PortfolioSnapshotDetailView: View {
                     HStack(spacing: 6) {
                         Text("portfolioSnapshot.detail.rates")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.notionInkSecondary)
+                            .foregroundStyle(Color.ink2)
                         Spacer()
                         Text(verbatim: snapshot.homeCurrency)
                             .font(.caption2.monospaced().weight(.semibold))
-                            .foregroundStyle(Color.notionInkMuted)
+                            .foregroundStyle(Color.ink3)
                     }
                     .padding(.horizontal, 11)
                     .padding(.vertical, 8)
@@ -563,18 +563,18 @@ struct PortfolioSnapshotDetailView: View {
                         HStack(spacing: 10) {
                             Text(verbatim: change.currency)
                                 .font(.caption.monospaced().weight(.semibold))
-                                .foregroundStyle(Color.notionInk)
+                                .foregroundStyle(Color.ink)
                                 .frame(width: 34, alignment: .leading)
 
                             Text(verbatim: formattedRate(change.oldRate))
-                                .foregroundStyle(Color.notionInkMuted)
+                                .foregroundStyle(Color.ink3)
 
                             Image(systemName: "arrow.right")
                                 .font(.caption2.weight(.medium))
-                                .foregroundStyle(Color.notionInkMuted.opacity(0.65))
+                                .foregroundStyle(Color.ink3.opacity(0.65))
 
                             Text(verbatim: formattedRate(change.newRate))
-                                .foregroundStyle(Color.notionInk)
+                                .foregroundStyle(Color.ink)
                                 .fontWeight(.medium)
 
                             Spacer(minLength: 0)
@@ -608,7 +608,7 @@ struct PortfolioSnapshotDetailView: View {
     private func detailSectionTitle(_ key: LocalizedStringKey) -> some View {
         Text(key)
             .font(.headline.weight(.semibold))
-            .foregroundStyle(Color.notionInk)
+            .foregroundStyle(Color.ink)
     }
 
     @ViewBuilder

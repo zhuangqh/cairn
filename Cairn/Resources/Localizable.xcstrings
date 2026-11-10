@@ -41,6 +41,74 @@
         }
       }
     },
+    "account.detail.column.balance %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "余额 (%@)"
+          }
+        }
+      }
+    },
+    "account.detail.column.change" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "变动"
+          }
+        }
+      }
+    },
+    "account.detail.column.month" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月份"
+          }
+        }
+      }
+    },
+    "account.detail.firstRecord" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First record"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "首次记录"
+          }
+        }
+      }
+    },
     "account.detail.holdings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -54,6 +122,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "持仓"
+          }
+        }
+      }
+    },
+    "account.detail.holds %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Holds %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "持有 %@"
           }
         }
       }
@@ -326,6 +411,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仅计算金融资产"
+          }
+        }
+      }
+    },
+    "achievement.dashboard.latest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achievement Journal · Latest"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "财富纪念册 · 最新"
           }
         }
       }
@@ -706,6 +808,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最新成就"
+          }
+        }
+      }
+    },
+    "achievement.journal.lit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Earned"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已点亮"
           }
         }
       }
@@ -1220,6 +1339,35 @@
         }
       }
     },
+    "assets.member.accountCount %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld account"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld accounts"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个账户"
+          }
+        }
+      }
+    },
     "assets.missingRates" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1260,13 +1408,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Net worth"
+            "value" : "Financial net worth"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "净资产"
+            "value" : "金融资产净值"
           }
         }
       }
@@ -2328,6 +2476,40 @@
         }
       }
     },
+    "common.delta.down" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Down"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下跌"
+          }
+        }
+      }
+    },
+    "common.delta.up" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上涨"
+          }
+        }
+      }
+    },
     "common.label.archived" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2532,6 +2714,23 @@
         }
       }
     },
+    "dashboard.composition.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No assets recorded yet."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚无资产记录。"
+          }
+        }
+      }
+    },
     "dashboard.members" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2640,13 +2839,30 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trend"
+            "value" : "Asset trend"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "趋势"
+            "value" : "资产趋势"
+          }
+        }
+      }
+    },
+    "dashboard.trend.monthEnd" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month-end"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月末值"
           }
         }
       }
@@ -2663,7 +2879,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "对比上月"
+            "value" : "较上月"
           }
         }
       }
@@ -3140,6 +3356,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "成员"
+          }
+        }
+      }
+    },
+    "members.total" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All accounts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部账户合计"
           }
         }
       }
@@ -3875,6 +4108,23 @@
         }
       }
     },
+    "possession.count.sold" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{count} sold"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已出售 {count} 项"
+          }
+        }
+      }
+    },
     "possession.delete.confirm.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4551,6 +4801,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已出售"
+          }
+        }
+      }
+    },
+    "possession.showcase.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Showcase"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "陈列柜"
           }
         }
       }

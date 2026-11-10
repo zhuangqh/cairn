@@ -275,7 +275,7 @@ struct AssetsView: View {
                 .padding(.bottom, 4)
 
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 0) {
                     switch selectedTab {
                     case .financial:
                         financialTab
@@ -284,7 +284,7 @@ struct AssetsView: View {
                     }
                 }
                 .pageHorizontalPadding()
-                .padding(.vertical, 20)
+                .padding(.bottom, 24)
                 .frame(maxWidth: 1100)
                 .frame(maxWidth: .infinity)
             }
@@ -306,12 +306,12 @@ struct AssetsView: View {
     private var iosBody: some View {
         VStack(spacing: 0) {
             tabPicker
-                .padding(.horizontal, 28)
-                .padding(.top, 10)
-                .padding(.bottom, 6)
+                .pageHorizontalPadding()
+                .padding(.top, 6)
+                .padding(.bottom, 2)
 
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 0) {
                     switch selectedTab {
                     case .financial:
                         financialTab
@@ -320,7 +320,7 @@ struct AssetsView: View {
                     }
                 }
                 .pageHorizontalPadding()
-                .padding(.vertical, 20)
+                .padding(.bottom, 24)
                 .frame(maxWidth: 1100)
                 .frame(maxWidth: .infinity)
             }
@@ -347,19 +347,12 @@ struct AssetsView: View {
     }
     #endif
 
-    /// Native segmented picker used by both platforms. On iOS 26 and
-    /// macOS 26 the system supplies the current Liquid Glass treatment.
+    /// Page-level segmented control (design.md §5.7).
     private var tabPicker: some View {
-        Picker("", selection: $selectedTab) {
-            ForEach(Tab.allCases, id: \.self) { tab in
-                Label(tab.titleKey, systemImage: tab.iconName)
-                    .labelStyle(.titleAndIcon)
-                    .tag(tab)
-            }
+        LedgerSegmentedControl(selection: $selectedTab, options: Tab.allCases) { tab in
+            Text(tab.titleKey)
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .frame(maxWidth: 360)
+        .frame(maxWidth: 420)
     }
 
     private var canAddInSelectedTab: Bool {
@@ -402,7 +395,7 @@ struct AssetsView: View {
             .padding(.top, 64)
         } else {
             let derivation = deriveFinancial()
-            VStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 0) {
                 heroCard(derivation: derivation)
                 bottomRow(derivation: derivation)
             }
@@ -420,8 +413,8 @@ struct AssetsView: View {
         #if os(macOS)
         if hasMembers || hasCurrencies {
             ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 20) {
-                    VStack(spacing: 20) {
+                HStack(alignment: .top, spacing: 40) {
+                    VStack(spacing: 0) {
                         if hasMembers { membersCard(derivation: derivation) }
                         if hasCurrencies { currencyCard(derivation: derivation) }
                     }
@@ -429,7 +422,7 @@ struct AssetsView: View {
                     snapshotsCard
                         .frame(minWidth: 380, maxWidth: .infinity)
                 }
-                VStack(spacing: 20) {
+                VStack(spacing: 0) {
                     if hasMembers { membersCard(derivation: derivation) }
                     if hasCurrencies { currencyCard(derivation: derivation) }
                     snapshotsCard
@@ -439,7 +432,7 @@ struct AssetsView: View {
             snapshotsCard
         }
         #else
-        VStack(spacing: 20) {
+        VStack(spacing: 0) {
             if hasMembers { membersCard(derivation: derivation) }
             if hasCurrencies { currencyCard(derivation: derivation) }
             snapshotsCard
@@ -449,88 +442,41 @@ struct AssetsView: View {
 
     // MARK: - Cards
 
+    /// Hero summary (§5.2) for the latest snapshot. On macOS the "Add
+    /// snapshot" action sits under it; on iOS it lives in the navigation bar.
+    @ViewBuilder
     private func heroCard(derivation: FinancialDerivation) -> some View {
-        #if os(macOS)
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 16) {
-                heroTextBlock(derivation: derivation)
-                Spacer()
-                addSnapshotButton
-            }
-            VStack(alignment: .leading, spacing: 16) {
-                heroTextBlock(derivation: derivation)
-                addSnapshotButton
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        LedgerHero(
+            eyebrow: Text("assets.netWorth"),
+            amount: derivation.totals.amount,
+            code: homeCurrency,
+            locale: locale,
+            deltaAmount: derivation.monthDeltaPercent == nil ? nil : derivation.monthDeltaAmount,
+            deltaPercent: derivation.monthDeltaPercent
+        ) {
+            heroMeta(derivation: derivation)
         }
-        .glassCard()
-        #else
-        // On iOS the "Add snapshot" action lives in a floating action
-        // button overlaid on the ScrollView, so the hero only carries
-        // the total and the contextual badges.
-        heroTextBlock(derivation: derivation)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .glassCard()
+        #if os(macOS)
+        addSnapshotButton
+            .padding(.bottom, 20)
         #endif
     }
 
-    private func heroTextBlock(derivation: FinancialDerivation) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Eyebrow row — net worth label + tiny home currency tag.
-            HStack(spacing: 6) {
-                Text("assets.netWorth")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                    .tracking(0.5)
-                Text(verbatim: "·")
-                    .foregroundStyle(.tertiary)
-                Text(verbatim: homeCurrency)
-                    .font(.caption2.monospaced().weight(.semibold))
-                    .foregroundStyle(.secondary)
+    /// Snapshot month, or a missing-rates warning / rates footnote for the
+    /// live (pre-snapshot) total.
+    @ViewBuilder
+    private func heroMeta(derivation: FinancialDerivation) -> some View {
+        if !derivation.totals.missingCurrencies.isEmpty {
+            Label {
+                Text(missingRatesMessage(derivation.totals.missingCurrencies))
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
             }
-
-            Text(
-                derivation.totals.amount,
-                format: .currency(code: homeCurrency)
-                    .locale(locale)
-                    .precision(.fractionLength(0))
-            )
-                .font(.system(size: 40, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
-                .foregroundStyle(Color.notionInk)
-
-            // Delta line — the "decision dashboard" headline number.
-            if derivation.monthDeltaPercent != nil {
-                DeltaBadge(
-                    percent: derivation.monthDeltaPercent,
-                    amount: derivation.monthDeltaAmount,
-                    currencyCode: homeCurrency,
-                    locale: locale,
-                    style: .full
-                )
-            }
-
-            // Subtle context: missing-rates warning OR (de-emphasized)
-            // "Rates as of …" footnote.
-            if !derivation.totals.missingCurrencies.isEmpty {
-                Label {
-                    Text(missingRatesMessage(derivation.totals.missingCurrencies))
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                }
-                .foregroundStyle(.orange)
-                .font(.footnote)
-                .padding(.top, 4)
-            } else if derivation.sourceSnapshot == nil,
-                      let latest = rates.map(\.date).max() {
-                Text(latestRatesFootnote(date: latest))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 4)
-            }
+            .foregroundStyle(Color.red)
+        } else if let snapshot = derivation.sourceSnapshot {
+            Text(snapshot.periodMonth, format: .dateTime.year().month(.wide).locale(locale))
+        } else if let latest = rates.map(\.date).max() {
+            Text(latestRatesFootnote(date: latest))
         }
     }
 
@@ -554,7 +500,7 @@ struct AssetsView: View {
         let totalAmount = derivation.totals.amount
         let totalDouble = NSDecimalNumber(decimal: totalAmount).doubleValue
         return AssetsBreakdownCard(titleKey: "assets.byMember") {
-            ForEach(Array(memberTotals.enumerated()), id: \.element.id) { index, entry in
+            ForEach(memberTotals) { entry in
                 let share: Double = {
                     guard totalDouble > 0 else { return 0 }
                     let value = NSDecimalNumber(decimal: entry.amount).doubleValue
@@ -564,15 +510,15 @@ struct AssetsView: View {
                     memberId: entry.memberId,
                     memberName: entry.memberName,
                     avatarData: membersById[entry.memberId]?.avatarData,
+                    accountCount: membersById[entry.memberId].map { member in
+                        (member.accounts ?? []).filter { !$0.isArchived }.count
+                    },
                     amount: entry.amount,
                     share: share,
                     monthDelta: derivation.memberDeltaPercent[entry.memberId],
                     currencyCode: homeCurrency,
                     locale: locale
                 )
-                if index < memberTotals.count - 1 {
-                    Divider().opacity(0.35)
-                }
             }
         }
     }
@@ -588,84 +534,76 @@ struct AssetsView: View {
     }
 
     private var snapshotsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("assets.snapshots")
-                    .font(.headline)
-                Spacer()
-                if !availableYears.isEmpty {
-                    Menu {
-                        Button {
-                            selectedYear = nil
-                        } label: {
-                            if selectedYear == nil {
-                                Label("assets.snapshots.filter.allYears", systemImage: "checkmark")
-                            } else {
-                                Text("assets.snapshots.filter.allYears")
-                            }
-                        }
-                        Divider()
-                        ForEach(availableYears, id: \.self) { year in
-                            Button {
-                                selectedYear = year
-                            } label: {
-                                if selectedYear == year {
-                                    Label(String(year), systemImage: "checkmark")
-                                } else {
-                                    Text(verbatim: String(year))
-                                }
-                            }
-                        }
-                    } label: {
-                        Label {
-                            Text(verbatim: selectedYear.map(String.init) ?? String(localized: "assets.snapshots.filter.allYears"))
-                        } icon: {
-                            Image(systemName: "line.3.horizontal.decrease.circle")
-                        }
-                    }
-                    .menuStyle(.borderlessButton)
-                    .font(.callout)
-                }
+        LedgerSection(Text("assets.snapshots")) {
+            if !availableYears.isEmpty {
+                yearFilterMenu
             }
+        } content: {
             if portfolioSnapshots.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("assets.snapshots.empty.title")
                         .font(.callout.weight(.medium))
+                        .foregroundStyle(Color.ink)
                     Text("assets.snapshots.empty.hint")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.ink2)
                 }
                 .padding(.vertical, 8)
             } else if filteredSnapshots.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("assets.snapshots.filter.empty")
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 8)
+                Text("assets.snapshots.filter.empty")
+                    .font(.callout)
+                    .foregroundStyle(Color.ink2)
+                    .padding(.vertical, 8)
             } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(filteredSnapshots.enumerated()), id: \.element.id) { index, snapshot in
-                        let previous = previousSnapshot(for: snapshot)
-                        let isLast = index == filteredSnapshots.count - 1
-                        NavigationLink {
-                            PortfolioSnapshotDetailView(snapshot: snapshot, previous: previous)
-                        } label: {
-                            AssetsSnapshotRow(
-                                snapshot: snapshot,
-                                previous: previous,
-                                isLast: isLast,
-                                homeCurrency: homeCurrency,
-                                locale: locale
-                            )
-                        }
-                        .buttonStyle(.plain)
+                LedgerRows(data: filteredSnapshots) { snapshot in
+                    let previous = previousSnapshot(for: snapshot)
+                    NavigationLink {
+                        PortfolioSnapshotDetailView(snapshot: snapshot, previous: previous)
+                    } label: {
+                        AssetsSnapshotRow(
+                            snapshot: snapshot,
+                            previous: previous,
+                            homeCurrency: homeCurrency,
+                            locale: locale
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
+    }
+
+    private var yearFilterMenu: some View {
+        Menu {
+            Button {
+                selectedYear = nil
+            } label: {
+                if selectedYear == nil {
+                    Label("assets.snapshots.filter.allYears", systemImage: "checkmark")
+                } else {
+                    Text("assets.snapshots.filter.allYears")
+                }
+            }
+            Divider()
+            ForEach(availableYears, id: \.self) { year in
+                Button {
+                    selectedYear = year
+                } label: {
+                    if selectedYear == year {
+                        Label(String(year), systemImage: "checkmark")
+                    } else {
+                        Text(verbatim: String(year))
+                    }
+                }
+            }
+        } label: {
+            LedgerFilterLabel(
+                title: selectedYear.map(String.init) ?? String(localized: "assets.snapshots.filter.allYears")
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
     }
 
     private func previousSnapshot(for snapshot: PortfolioSnapshot) -> PortfolioSnapshot? {

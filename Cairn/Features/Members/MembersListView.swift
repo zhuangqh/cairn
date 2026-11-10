@@ -1,10 +1,8 @@
 import SwiftUI
 import SwiftData
 
-/// Lists every `Member`. Tapping the row navigates to
-/// `MemberDetailView` (account list). A trailing chevron button on each
-/// card also lets the user expand an inline preview of the accounts
-/// without leaving the list.
+/// Lists every `Member` with their accounts beneath (design.md §4). The
+/// member header opens `MemberDetailView`; each account opens its detail.
 struct MembersListView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
@@ -25,7 +23,6 @@ struct MembersListView: View {
     /// not fire the form's `onFinish` callback).
     @State private var pendingNewDraft: Member?
     @State private var memberPendingDeletion: Member?
-    @State private var expandedMemberIDs: Set<UUID> = []
     @State private var editingMember: Member?
 
     private var memberTotals: [UUID: Decimal] {
@@ -55,22 +52,29 @@ struct MembersListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        LedgerHero(
+                            eyebrow: Text("members.total"),
+                            amount: totals.values.reduce(0, +),
+                            code: homeCurrency,
+                            locale: locale,
+                            showsDelta: false
+                        ) {
+                            Text(verbatim: String(localized: "assets.member.accountCount \(members.reduce(0) { $0 + ($1.accounts ?? []).count })"))
+                        }
                         ForEach(members) { member in
-                            MemberRowCard(
+                            MemberSection(
                                 member: member,
                                 total: totals[member.id] ?? 0,
                                 homeCurrency: homeCurrency,
                                 locale: locale,
-                                isExpanded: expandedMemberIDs.contains(member.id),
-                                toggle: { toggle(member: member) },
                                 onEditMember: { editingMember = member },
                                 onDeleteMember: { memberPendingDeletion = member }
                             )
                         }
                     }
                     .pageHorizontalPadding()
-                    .padding(.vertical, 20)
+                    .padding(.bottom, 24)
                     .frame(maxWidth: 1100)
                     .frame(maxWidth: .infinity)
                 }
@@ -143,132 +147,55 @@ struct MembersListView: View {
             Text("member.delete.confirm.message")
         }
     }
-
-    private func toggle(member: Member) {
-        withAnimation(.snappy) {
-            if expandedMemberIDs.contains(member.id) {
-                expandedMemberIDs.remove(member.id)
-            } else {
-                expandedMemberIDs.insert(member.id)
-            }
-        }
-    }
 }
 
-// MARK: - Member row card
+// MARK: - Member section
 
-private struct MemberRowCard: View {
+/// One member (§4): a hairline-ruled header row — avatar, name, account
+/// count, total — followed by the member's accounts as ledger rows.
+private struct MemberSection: View {
     @Bindable var member: Member
     let total: Decimal
     let homeCurrency: String
     let locale: Locale
-    let isExpanded: Bool
-    let toggle: () -> Void
     let onEditMember: () -> Void
     let onDeleteMember: () -> Void
 
-    private var accountCount: Int {
-        (member.accounts ?? []).count
-    }
-
     var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                NavigationLink(value: member) {
-                    summaryContent
-                }
-                .buttonStyle(.plain)
-                .contextMenu {
-                    Button {
-                        onEditMember()
-                    } label: {
-                        Label {
-                            Text("member.edit.title")
-                        } icon: {
-                            Image(systemName: "pencil")
-                        }
-                    }
-                    Divider()
-                    Button(role: .destructive) {
-                        onDeleteMember()
-                    } label: {
-                        Label {
-                            Text("common.action.delete")
-                        } icon: {
-                            Image(systemName: "trash")
-                        }
+        VStack(alignment: .leading, spacing: 0) {
+            NavigationLink(value: member) {
+                header
+            }
+            .buttonStyle(.plain)
+            .contextMenu {
+                Button {
+                    onEditMember()
+                } label: {
+                    Label {
+                        Text("member.edit.title")
+                    } icon: {
+                        Image(systemName: "pencil")
                     }
                 }
-
-                Button(action: toggle) {
-                    Image(systemName: "chevron.down")
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                        .frame(width: 32, height: 32)
-                        .background(.secondary.opacity(0.12), in: Circle())
+                Divider()
+                Button(role: .destructive) {
+                    onDeleteMember()
+                } label: {
+                    Label {
+                        Text("common.action.delete")
+                    } icon: {
+                        Image(systemName: "trash")
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text(isExpanded ? "common.action.collapse" : "common.action.expand"))
             }
 
-            if isExpanded {
-                expandedContent
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .glassCard(cornerRadius: 16, padding: 16)
-    }
-
-    private var summaryContent: some View {
-        HStack(spacing: 16) {
-            MemberAvatarView(
-                name: member.name,
-                avatarData: member.avatarData,
-                seed: member.id,
-                size: 44
-            )
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: member.name.isEmpty ? " " : member.name)
-                    .font(.headline)
-                HStack(spacing: 4) {
-                    Text(accountCount, format: .number)
-                    Text("accounts.title")
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Text(
-                total,
-                format: .currency(code: homeCurrency)
-                    .locale(locale)
-                    .precision(.fractionLength(0))
-            )
-            .font(.callout.weight(.semibold).monospacedDigit())
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-        }
-        .contentShape(Rectangle())
-    }
-
-    @ViewBuilder
-    private var expandedContent: some View {
-        Divider().opacity(0.4)
-        VStack(alignment: .leading, spacing: 8) {
             if sortedAccounts.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("account.empty")
-                        .font(.callout.weight(.medium))
-                    Text("account.empty.hint")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                Text("account.empty.hint")
+                    .font(.footnote)
+                    .foregroundStyle(Color.ink3)
+                    .padding(.bottom, 12)
             } else {
-                ForEach(sortedAccounts) { account in
+                LedgerRows(data: sortedAccounts, inset: LedgerMetrics.leadingColumn + LedgerMetrics.columnSpacing) { account in
                     NavigationLink(value: account) {
                         MemberAccountRow(account: account, tint: account.kind.tint, locale: locale)
                     }
@@ -276,6 +203,44 @@ private struct MemberRowCard: View {
                 }
             }
         }
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+        .overlay(alignment: .top) { LedgerHairline() }
+    }
+
+    private var header: some View {
+        HStack(spacing: LedgerMetrics.columnSpacing) {
+            MemberAvatarView(
+                name: member.name,
+                avatarData: member.avatarData,
+                seed: member.id,
+                size: 28
+            )
+            .frame(width: LedgerMetrics.leadingColumn, alignment: .leading)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(verbatim: member.name.isEmpty ? " " : member.name)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.ink)
+                Text(verbatim: String(localized: "assets.member.accountCount \((member.accounts ?? []).count)"))
+                    .font(.caption)
+                    .foregroundStyle(Color.ink3)
+            }
+            .lineLimit(1)
+            Spacer(minLength: 8)
+            Text(
+                total,
+                format: .currency(code: homeCurrency)
+                    .locale(locale)
+                    .precision(.fractionLength(0))
+            )
+            .font(.callout.weight(.semibold))
+            .monospacedDigit()
+            .foregroundStyle(Color.ink)
+            .fixedSize()
+        }
+        .frame(minHeight: LedgerMetrics.rowHeight)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 
     private var sortedAccounts: [Account] {

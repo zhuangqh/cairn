@@ -123,7 +123,7 @@ struct FeatureTourView: View {
             Button(action: finish) {
                 Text("tour.skip")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.notionInkSecondary)
+                    .foregroundStyle(Color.ink2)
                     .padding(.vertical, 6)
                     .padding(.horizontal, 12)
             }
@@ -139,7 +139,7 @@ struct FeatureTourView: View {
         HStack(spacing: 6) {
             ForEach(0..<pages.count, id: \.self) { idx in
                 Capsule()
-                    .fill(idx == index ? indicatorTint(for: pages[index]) : Color.notionInkMuted.opacity(0.35))
+                    .fill(idx == index ? indicatorTint(for: pages[index]) : Color.ink3.opacity(0.35))
                     .frame(width: idx == index ? 22 : 6, height: 6)
                     .animation(.spring(response: 0.35, dampingFraction: 0.85), value: index)
             }
@@ -180,7 +180,7 @@ struct FeatureTourView: View {
 
     private func indicatorTint(for page: Page) -> Color {
         if case .highlight(let highlight) = page { return highlight.tint }
-        return .notionBlue
+        return .accent
     }
 
     // MARK: - Actions
@@ -219,7 +219,7 @@ private extension FeatureTourView {
         static let all: [Highlight] = [
             Highlight(
                 symbol: "mountain.2.fill",
-                tint: .notionBlue,
+                tint: .accent,
                 titleKey: "tour.page.welcome.title",
                 bodyKey: "tour.page.welcome.body",
                 bullets: [
@@ -319,13 +319,13 @@ private struct HighlightPageView: View {
             VStack(spacing: 12) {
                 Text(highlight.titleKey)
                     .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(highlight.bodyKey)
                     .font(.system(size: 15))
-                    .foregroundStyle(Color.notionInkSecondary)
+                    .foregroundStyle(Color.ink2)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -339,7 +339,7 @@ private struct HighlightPageView: View {
                             .padding(.top, 2)
                         Text(bullet)
                             .font(.system(size: 14))
-                            .foregroundStyle(Color.notionInk)
+                            .foregroundStyle(Color.ink)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -366,18 +366,18 @@ private struct HomeCurrencyPageView: View {
             VStack(spacing: 12) {
                 Text("onboarding.homeCurrency.title")
                     .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                     .multilineTextAlignment(.center)
                 Text("onboarding.homeCurrency.body")
                     .font(.system(size: 15))
-                    .foregroundStyle(Color.notionInkSecondary)
+                    .foregroundStyle(Color.ink2)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
                 Text("settings.homeCurrency.title")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                 Spacer()
                 Picker("", selection: $homeCurrency) {
                     Section("currency.picker.pinned") {

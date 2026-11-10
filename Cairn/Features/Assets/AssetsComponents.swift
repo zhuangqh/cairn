@@ -3,17 +3,18 @@ import SwiftData
 
 // MARK: - Delta badge
 
-/// Compact "↑ +2.9%" / "↓ -1.4%" pill used across the Assets screen.
+/// Compact direction-arrow change, e.g. `↗ 2.9%` (accent) or `↘ 1.4%` (ink2).
+/// Direction is carried by the arrow, so no `+` sign (design.md §6).
 /// Hidden when `percent` is `nil` (no baseline available).
 struct DeltaBadge: View {
-    /// Fractional change, e.g. `0.029` → `+2.9%`. `nil` renders nothing.
+    /// Fractional change, e.g. `0.029` → `2.9%`. `nil` renders nothing.
     let percent: Double?
-    /// Optional absolute delta — when supplied, drawn before the percent.
+    /// Optional absolute delta — when supplied in `.full`, drawn before the percent.
     let amount: Decimal?
     let currencyCode: String
     let locale: Locale
 
-    /// Compact (just the percent) or full ("+¥134,462 (+2.9%)").
+    /// Compact (just the percent) or full (amount + percent).
     enum Style { case compact, full }
     var style: Style = .compact
 
@@ -33,147 +34,72 @@ struct DeltaBadge: View {
 
     var body: some View {
         if let percent {
-            let isPositive = percent >= 0
-            let tint: Color = isPositive ? .notionGreen : .notionOrange
-            HStack(spacing: 4) {
-                Image(systemName: isPositive ? "arrow.up" : "arrow.down")
-                    .font(.caption2.weight(.bold))
-                if style == .full, let amount {
-                    Text(verbatim: signedAmount(amount, isPositive: isPositive))
-                        .monospacedDigit()
-                    Text(verbatim: "(\(percentString(percent, isPositive: isPositive)))")
-                        .monospacedDigit()
-                        .foregroundStyle(tint.opacity(0.85))
-                } else {
-                    Text(verbatim: percentString(percent, isPositive: isPositive))
-                        .monospacedDigit()
-                }
-            }
+            LedgerDeltaLine(
+                amount: style == .full ? amount : nil,
+                percent: percent,
+                code: currencyCode,
+                locale: locale
+            )
             .font(.caption.weight(.semibold))
-            .foregroundStyle(tint)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(tint.opacity(0.10), in: Capsule(style: .continuous))
         }
-    }
-
-    private func percentString(_ value: Double, isPositive: Bool) -> String {
-        let abs = Swift.abs(value)
-        let formatted = abs.formatted(.percent.precision(.fractionLength(1)))
-        return (isPositive ? "+" : "−") + formatted
-    }
-
-    private func signedAmount(_ value: Decimal, isPositive: Bool) -> String {
-        let abs = value < 0 ? -value : value
-        let formatted = abs.formatted(
-            .currency(code: currencyCode)
-                .locale(locale)
-                .precision(.fractionLength(0))
-        )
-        return (isPositive ? "+" : "−") + formatted
     }
 }
 
-// MARK: - Breakdown card + row
+// MARK: - Breakdown section + row
 
-/// Titled card shared by the By member / By currency breakdowns and the
-/// Possessions category cards so all use the same header, row dividers,
-/// and padding.
+/// Titled section shared by the By member / By currency breakdowns and the
+/// Possessions category sections: hairline rule, 20pt bold title, optional
+/// trailing meta text (e.g. "3 items · ¥120,000").
 struct AssetsBreakdownCard<Rows: View>: View {
     let titleKey: LocalizedStringKey
-    /// Optional trailing summary in the header, e.g. "3 items · ¥120,000".
+    /// Optional trailing summary in the header.
     var accessory: String?
     @ViewBuilder let rows: () -> Rows
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(titleKey)
-                    .font(.headline)
-                    .foregroundStyle(Color.notionInk)
-                Spacer(minLength: 8)
-                if let accessory {
-                    Text(verbatim: accessory)
-                        .font(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
+        LedgerSection(Text(titleKey)) {
+            if let accessory {
+                Text(verbatim: accessory)
+                    .font(.footnote)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.ink3)
             }
-            .padding(.bottom, 2)
+        } content: {
             VStack(spacing: 0) {
                 rows()
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
     }
 }
 
-/// Two-line breakdown row: a 32pt leading mark, title (plus optional
-/// caption), and trailing amount on top; share bar, share percent, and
-/// month-over-month delta underneath. Member and currency rows share this
-/// layout so their columns line up across cards.
+/// Progress row used by member, currency, and possession breakdowns: leading
+/// mark, name with inline caption, trailing amount, share column, and a meter
+/// under the row. Sharing one row type keeps the columns aligned across
+/// sections.
 struct AssetsBreakdownRow<Leading: View, Trailing: View>: View {
     @ViewBuilder let leading: () -> Leading
     let title: String
     var caption: String?
     @ViewBuilder let trailing: () -> Trailing
-    /// 0…1 share of the household total; `nil` renders an empty bar and "—".
+    /// 0…1 share of the household total; `nil` renders an empty meter and "—".
     /// Ignored when `showsShare` is false.
     let share: Double?
     var showsShare: Bool = true
-    /// Fractional month-over-month change, or `nil` if no baseline.
+    /// Fractional month-over-month change. Not drawn in the ledger layout;
+    /// retained so callers keep a single row API.
     let monthDelta: Double?
     let currencyCode: String
     let locale: Locale
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 12) {
-                leading()
-                    .frame(width: 32, height: 32)
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(verbatim: title)
-                            .font(.callout.weight(.medium))
-                            .foregroundStyle(Color.notionInk)
-                        if let caption {
-                            Text(verbatim: caption)
-                                .font(.caption)
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer(minLength: 8)
-                    trailing()
-                }
-            }
-
-            if showsShare {
-                HStack(spacing: 10) {
-                    ShareBar(progress: share ?? 0)
-                        .frame(height: 4)
-                        .frame(maxWidth: .infinity)
-                    Text(verbatim: shareString)
-                        .font(.caption.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                        .frame(width: 38, alignment: .trailing)
-                    DeltaBadge(
-                        percent: monthDelta,
-                        currencyCode: currencyCode,
-                        locale: locale
-                    )
-                }
-            }
-        }
-        .padding(.vertical, 10)
-        .accessibilityElement(children: .combine)
-    }
-
-    private var shareString: String {
-        guard let share else { return "—" }
-        return share.formatted(.percent.precision(.fractionLength(0)))
+        LedgerProgressRow(
+            leading: leading,
+            title: title,
+            caption: caption,
+            trailing: trailing,
+            share: share,
+            showsShare: showsShare
+        )
     }
 }
 
@@ -190,21 +116,18 @@ struct AssetsBreakdownAmount: View {
                 .locale(locale)
                 .precision(.fractionLength(0))
         )
-        .font(.callout.weight(.semibold))
-        .monospacedDigit()
-        .foregroundStyle(Color.notionInk)
     }
 }
 
 // MARK: - Member row
 
-/// Apple-Wallet-flavored row showing a member's contribution to the
-/// household net worth: avatar, name, amount, share bar with percent, and
-/// month-over-month delta.
+/// A member's contribution to household net worth: avatar, name with account
+/// count, amount, share, and meter.
 struct AssetsMemberRow: View {
     let memberId: UUID
     let memberName: String
     let avatarData: Data?
+    var accountCount: Int?
     let amount: Decimal
     /// 0…1 — share of household total.
     let share: Double
@@ -220,10 +143,11 @@ struct AssetsMemberRow: View {
                     name: memberName,
                     avatarData: avatarData,
                     seed: memberId,
-                    size: 32
+                    size: 28
                 )
             },
             title: memberName,
+            caption: accountCount.map { String(localized: "assets.member.accountCount \($0)") },
             trailing: {
                 AssetsBreakdownAmount(amount: amount, currencyCode: currencyCode, locale: locale)
             },
@@ -235,117 +159,53 @@ struct AssetsMemberRow: View {
     }
 }
 
-/// Thin proportional bar used inside `AssetsBreakdownRow`.
-private struct ShareBar: View {
-    let progress: Double
+// MARK: - Snapshot row
 
-    var body: some View {
-        GeometryReader { geo in
-            let clamped = max(0, min(1, progress))
-            ZStack(alignment: .leading) {
-                Capsule(style: .continuous)
-                    .fill(Color.secondary.opacity(0.12))
-                Capsule(style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.accentColor.opacity(0.85), Color.accentColor],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: max(2, geo.size.width * clamped))
-            }
-        }
-        .accessibilityHidden(true)
-    }
-}
-
-// MARK: - Snapshot timeline row
-
-/// Apple-Stocks-meets-timeline row: a small dot + connector line on the
-/// leading edge, the period and amount on the trailing side, and a
-/// delta-vs-prior-snapshot pill underneath.
+/// Single-line snapshot entry: month with optional note, total, chevron.
 struct AssetsSnapshotRow: View {
     let snapshot: PortfolioSnapshot
-    /// The chronologically-prior snapshot (older). Used to compute delta.
+    /// The chronologically-prior snapshot (older). Used for the VoiceOver delta.
     let previous: PortfolioSnapshot?
-    /// `false` for the last (oldest) row so the connector trails off.
-    let isLast: Bool
-    /// User's current home currency — used to decide whether to show the
-    /// snapshot's own currency badge subtly.
+    /// User's current home currency — snapshots captured in another currency
+    /// show their code tag.
     let homeCurrency: String
     let locale: Locale
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            timelineRail
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(verbatim: monthLabel)
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(Color.notionInk)
-                    Spacer(minLength: 8)
-                    Text(
-                        snapshot.totalAmount,
-                        format: .currency(code: snapshot.homeCurrency)
-                            .locale(locale)
-                            .precision(.fractionLength(0))
-                    )
-                    .font(.callout.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Color.notionInk)
+        HStack(spacing: LedgerMetrics.columnSpacing) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(verbatim: monthLabel)
+                    .font(.callout)
+                    .foregroundStyle(Color.ink)
+                    .fixedSize()
+                if let note = snapshot.note, !note.isEmpty {
+                    Text(verbatim: note)
+                        .font(.caption)
+                        .foregroundStyle(Color.ink3)
+                        .lineLimit(1)
                 }
-                metaRow
             }
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .padding(.top, 2)
-        }
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
-    }
-
-    private var timelineRail: some View {
-        VStack(spacing: 0) {
-            Circle()
-                .fill(Color.accentColor.opacity(0.9))
-                .frame(width: 8, height: 8)
-                .padding(.top, 6)
-            Rectangle()
-                .fill(Color.secondary.opacity(0.18))
-                .frame(width: 1)
-                .frame(maxHeight: .infinity)
-                .opacity(isLast ? 0 : 1)
-        }
-        .frame(width: 10)
-    }
-
-    private var metaRow: some View {
-        HStack(spacing: 8) {
-            if let percent = deltaPercent {
-                DeltaBadge(
-                    percent: percent,
-                    currencyCode: snapshot.homeCurrency,
-                    locale: locale
-                )
-            }
-            if let note = snapshot.note, !note.isEmpty {
-                Text(verbatim: note)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+            Spacer(minLength: 8)
             if snapshot.homeCurrency != homeCurrency {
-                Text(verbatim: snapshot.homeCurrency)
-                    .font(.caption2.monospaced().weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(.secondary.opacity(0.12), in: Capsule())
+                CurrencyCodeTag(code: snapshot.homeCurrency)
             }
-            Spacer(minLength: 0)
+            Text(
+                snapshot.totalAmount,
+                format: .currency(code: snapshot.homeCurrency)
+                    .locale(locale)
+                    .precision(.fractionLength(0))
+            )
+            .font(.callout.weight(.medium))
+            .monospacedDigit()
+            .foregroundStyle(Color.ink)
+            .lineLimit(1)
+            .fixedSize()
+            LedgerChevron()
         }
+        .frame(minHeight: LedgerMetrics.rowHeight)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(deltaPercent.map { Text($0, format: .percent.precision(.fractionLength(1))) } ?? Text(verbatim: ""))
     }
 
     private var monthLabel: String {

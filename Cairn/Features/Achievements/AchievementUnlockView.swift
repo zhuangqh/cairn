@@ -91,7 +91,7 @@ struct AchievementUnlockView: View {
                         .frame(minWidth: 84)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(Color.notionBlue)
+                    .tint(Color.accent)
                 }
                 .controlSize(.large)
                 .opacity(phase.detailsOpacity)

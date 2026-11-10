@@ -36,7 +36,7 @@ struct RootView: View {
 
     var body: some View {
         shell
-            .tint(Color.notionBlue)
+            .tint(Color.accent)
             .sheet(isPresented: .init(
                 get: { showsFirstRun },
                 set: { _ in }
@@ -80,7 +80,7 @@ struct RootView: View {
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .fill(Color.notionBlue)
+                        .fill(Color.accent)
 
                     Image(systemName: "mountain.2.fill")
                         .font(.system(size: 17, weight: .semibold))
@@ -92,11 +92,11 @@ struct RootView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("app.name", bundle: localization.bundle)
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color.notionInk)
+                        .foregroundStyle(Color.ink)
 
                     Text("dashboard.totalWealth", bundle: localization.bundle)
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(Color.notionInkMuted)
+                        .foregroundStyle(Color.ink3)
                 }
 
                 Spacer(minLength: 0)
@@ -115,7 +115,7 @@ struct RootView: View {
             Spacer(minLength: 24)
 
             Divider()
-                .overlay(Color.notionBorder)
+                .overlay(Color.line)
                 .padding(.horizontal, 16)
 
             sidebarButton(for: .settings)
@@ -138,12 +138,12 @@ struct RootView: View {
                 Image(systemName: item.systemImage)
                     .font(.system(size: 15, weight: isSelected ? .semibold : .medium))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isSelected ? Color.notionBlue : Color.notionInkSecondary)
+                    .foregroundStyle(isSelected ? Color.accent : Color.ink2)
                     .frame(width: 22, height: 22)
 
                 Text(LocalizedStringKey(item.titleKey), bundle: localization.bundle)
                     .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
-                    .foregroundStyle(isSelected ? Color.notionInk : Color.notionInkSecondary)
+                    .foregroundStyle(isSelected ? Color.ink : Color.ink2)
 
                 Spacer(minLength: 0)
             }
@@ -168,7 +168,7 @@ struct RootView: View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
 
         if isSelected {
-            shape.fill(Color.notionBlue.opacity(0.11))
+            shape.fill(Color.accent.opacity(0.11))
         } else if isHovered {
             shape.fill(Color.primary.opacity(0.045))
         } else {

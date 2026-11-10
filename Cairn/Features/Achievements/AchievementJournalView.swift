@@ -5,6 +5,7 @@ struct AchievementJournalView: View {
     @Environment(\.locale) private var locale
     @Environment(LocalizationService.self) private var localization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
@@ -28,7 +29,7 @@ struct AchievementJournalView: View {
     var body: some View {
         ZStack {
             ScrollView {
-                VStack(spacing: 18) {
+                VStack(alignment: .leading, spacing: 0) {
                     if let featured = presentations.first {
                         featuredCard(featured)
                     } else {
@@ -42,7 +43,7 @@ struct AchievementJournalView: View {
                     }
                 }
                 .pageHorizontalPadding()
-                .padding(.vertical, 20)
+                .padding(.bottom, 24)
                 .frame(maxWidth: 920)
                 .frame(maxWidth: .infinity)
             }
@@ -69,41 +70,32 @@ struct AchievementJournalView: View {
         .navigationTitle(Text("achievement.journal.title", bundle: localization.bundle))
         .onPreferenceChange(AchievementInspectionSourceFramesKey.self) { sourceFrames = $0 }
         #if os(iOS)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         #endif
         .onDisappear {
             inspectionTask?.cancel()
         }
     }
 
+    /// Latest achievement (§5.2 hero position): badge beside the copy, or
+    /// above it at accessibility text sizes.
     private func featuredCard(_ presentation: AchievementPresentation) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 28) {
-                inspectButton(presentation, size: 116)
-                featuredCopy(presentation)
-            }
-
-            VStack(spacing: 18) {
-                inspectButton(presentation, size: 108)
-                featuredCopy(presentation)
-            }
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.notionBlue.opacity(0.16), Color.notionSurface, Color(hex: 0xD4A96A).opacity(0.08)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(Color.notionBorder, lineWidth: 0.8)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 14) {
+                    inspectButton(presentation, size: 84)
+                    featuredCopy(presentation)
                 }
+            } else {
+                HStack(alignment: .center, spacing: 12) {
+                    inspectButton(presentation, size: 84)
+                    featuredCopy(presentation)
+                }
+            }
         }
+        .padding(.top, 12)
+        .padding(.bottom, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func inspectButton(_ presentation: AchievementPresentation, size: CGFloat) -> some View {
@@ -128,60 +120,66 @@ struct AchievementJournalView: View {
 
     private func featuredCopy(_ presentation: AchievementPresentation) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("achievement.journal.featured", bundle: localization.bundle)
-                .font(.caption2.weight(.bold))
-                .tracking(0.7)
-                .textCase(.uppercase)
-                .foregroundStyle(Color.notionBlue)
+            HStack(spacing: 0) {
+                Text("achievement.journal.featured", bundle: localization.bundle)
+                Text(verbatim: " · " + AchievementFormatting.month(presentation.logicalMonth, locale: locale))
+            }
+            .font(.caption)
+            .foregroundStyle(Color.ink3)
 
             Text(LocalizedStringKey(presentation.titleKey), bundle: localization.bundle)
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(Color.notionInk)
+                .font(.title.bold())
+                .foregroundStyle(Color.ink)
 
             eventDescription(presentation)
                 .font(.subheadline)
-                .foregroundStyle(Color.notionInkSecondary)
+                .foregroundStyle(Color.ink2)
+                .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 12) {
-                Label(
-                    AchievementFormatting.month(presentation.logicalMonth, locale: locale),
-                    systemImage: "calendar"
-                )
-                .font(.caption)
-                .foregroundStyle(Color.notionInkMuted)
-
-                AchievementShareButton(presentation: presentation)
-                .font(.caption.weight(.semibold))
-            }
-            .padding(.top, 4)
+            AchievementShareButton(presentation: presentation)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Color.accent)
+                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var familySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("achievement.journal.families")
-            familyRow(
-                family: .wealthMilestone,
-                titleKey: "achievement.family.wealth",
-                subtitleKey: "achievement.family.wealth.subtitle",
-                current: latest(for: .wealthMilestone),
-                next: nextWealthLabel
-            )
-            familyRow(
-                family: .monthlyAscent,
-                titleKey: "achievement.family.monthlyAscent",
-                subtitleKey: "achievement.family.monthlyAscent.subtitle",
-                current: currentAscent,
-                next: nil
-            )
-            familyRow(
-                family: .timeMark,
-                titleKey: "achievement.family.timeMark",
-                subtitleKey: "achievement.family.timeMark.subtitle",
-                current: latest(for: .timeMark),
-                next: nextTimeMarkLabel
-            )
+        let families: [AchievementPresentation?] = [
+            latest(for: .wealthMilestone), currentAscent, latest(for: .timeMark)
+        ]
+        let lit = families.compactMap { $0 }.count
+        return LedgerSection(Text("achievement.journal.families", bundle: localization.bundle)) {
+            Text(verbatim: "\(String(localized: "achievement.journal.lit")) \(lit) / \(families.count)")
+                .font(.footnote)
+                .monospacedDigit()
+                .foregroundStyle(Color.ink3)
+        } content: {
+            VStack(spacing: 0) {
+                familyRow(
+                    family: .wealthMilestone,
+                    titleKey: "achievement.family.wealth",
+                    subtitleKey: "achievement.family.wealth.subtitle",
+                    current: families[0],
+                    next: nextWealthLabel
+                )
+                LedgerHairline().padding(.leading, 40 + LedgerMetrics.columnSpacing)
+                familyRow(
+                    family: .monthlyAscent,
+                    titleKey: "achievement.family.monthlyAscent",
+                    subtitleKey: "achievement.family.monthlyAscent.subtitle",
+                    current: families[1],
+                    next: nil
+                )
+                LedgerHairline().padding(.leading, 40 + LedgerMetrics.columnSpacing)
+                familyRow(
+                    family: .timeMark,
+                    titleKey: "achievement.family.timeMark",
+                    subtitleKey: "achievement.family.timeMark.subtitle",
+                    current: families[2],
+                    next: nextTimeMarkLabel
+                )
+            }
         }
     }
 
@@ -195,22 +193,22 @@ struct AchievementJournalView: View {
         NavigationLink {
             AchievementFamilyDetailView(family: family)
         } label: {
-            HStack(spacing: 14) {
+            HStack(spacing: LedgerMetrics.columnSpacing) {
                 AchievementBadgeView(
                     family: family,
                     stageKey: current?.stageKey ?? lockedStage(for: family),
-                    size: 50
+                    size: 40
                 )
-                .saturation(current == nil ? 0.08 : 1)
-                .opacity(current == nil ? 0.42 : 1)
+                .saturation(current == nil ? 0 : 1)
+                .opacity(current == nil ? 0.55 : 1)
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(LocalizedStringKey(titleKey), bundle: localization.bundle)
-                        .font(.headline)
-                        .foregroundStyle(Color.notionInk)
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(Color.ink)
                     Text(LocalizedStringKey(subtitleKey), bundle: localization.bundle)
                         .font(.caption)
-                        .foregroundStyle(Color.notionInkSecondary)
+                        .foregroundStyle(Color.ink2)
                 }
 
                 Spacer(minLength: 12)
@@ -218,62 +216,58 @@ struct AchievementJournalView: View {
                 VStack(alignment: .trailing, spacing: 3) {
                     if let current {
                         eventValue(current)
-                            .font(.subheadline.monospacedDigit().weight(.semibold))
-                            .foregroundStyle(Color.notionInk)
+                            .font(.callout.monospacedDigit().weight(.medium))
+                            .foregroundStyle(Color.ink)
                     } else {
                         Text("achievement.locked", bundle: localization.bundle)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.notionInkMuted)
+                            .foregroundStyle(Color.ink3)
                     }
                     if let next {
                         Text(verbatim: next)
                             .font(.caption2)
-                            .foregroundStyle(Color.notionBlue)
+                            .monospacedDigit()
+                            .foregroundStyle(Color.ink3)
                     }
                 }
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.notionInkMuted)
+                LedgerChevron()
             }
-            .padding(16)
-            .glassCard(cornerRadius: 16, padding: 0)
+            .padding(.vertical, 8)
+            .frame(minHeight: 60)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
     private var timelineSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("achievement.journal.timeline")
+        LedgerSection(Text("achievement.journal.timeline", bundle: localization.bundle)) {
             VStack(spacing: 0) {
                 ForEach(Array(presentations.enumerated()), id: \.element.id) { index, presentation in
                     HStack(spacing: 13) {
                         Circle()
-                            .fill(Color.notionBlue)
-                            .frame(width: 8, height: 8)
-                            .shadow(color: Color.notionBlue.opacity(0.35), radius: 5)
+                            .fill(Color.accent)
+                            .frame(width: 7, height: 7)
+                            .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(LocalizedStringKey(presentation.titleKey), bundle: localization.bundle)
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Color.notionInk)
+                                .foregroundStyle(Color.ink)
                             eventDescription(presentation)
                                 .font(.caption)
-                                .foregroundStyle(Color.notionInkSecondary)
+                                .foregroundStyle(Color.ink2)
                         }
                         Spacer(minLength: 10)
                         Text(verbatim: AchievementFormatting.month(presentation.logicalMonth, locale: locale))
                             .font(.caption2)
-                            .foregroundStyle(Color.notionInkMuted)
+                            .foregroundStyle(Color.ink3)
                     }
                     .padding(.vertical, 12)
                     if index < presentations.count - 1 {
-                        Divider().opacity(0.45).padding(.leading, 21)
+                        LedgerHairline().padding(.leading, 20)
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .glassCard(cornerRadius: 16, padding: 0)
         }
     }
 
@@ -286,20 +280,11 @@ struct AchievementJournalView: View {
                 .font(.title3.bold())
             Text("achievement.empty.message", bundle: localization.bundle)
                 .font(.subheadline)
-                .foregroundStyle(Color.notionInkSecondary)
+                .foregroundStyle(Color.ink2)
                 .multilineTextAlignment(.center)
         }
-        .padding(30)
+        .padding(.vertical, 30)
         .frame(maxWidth: .infinity)
-        .glassCard(cornerRadius: 18, padding: 0)
-    }
-
-    private func sectionHeader(_ key: String) -> some View {
-        Text(LocalizedStringKey(key), bundle: localization.bundle)
-            .font(.caption.weight(.bold))
-            .tracking(0.65)
-            .textCase(.uppercase)
-            .foregroundStyle(Color.notionInkSecondary)
     }
 
     private func latest(for family: AchievementFamily) -> AchievementPresentation? {

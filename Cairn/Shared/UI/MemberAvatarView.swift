@@ -8,8 +8,8 @@ import ImageIO
 import UniformTypeIdentifiers
 
 /// Circular avatar for a `Member`. Shows the uploaded photo when present,
-/// otherwise falls back to a colored gradient bubble with the member's
-/// initials — same palette the Members list used before photo support.
+/// otherwise falls back to a low-saturation tinted disc with the member's
+/// initials in a deeper shade of the same hue (design.md §2).
 struct MemberAvatarView: View {
     let name: String
     let avatarData: Data?
@@ -22,10 +22,22 @@ struct MemberAvatarView: View {
         return letters.isEmpty ? "?" : letters.uppercased()
     }
 
-    private var tint: Color {
-        let palette: [Color] = [.blue, .indigo, .teal, .pink, .orange, .purple, .green]
-        let hash = abs(seed.hashValue)
-        return palette[hash % palette.count]
+    /// Muted (fill, letter) pairs of equal lightness. Indexed by a stable
+    /// digest of the member id so a member keeps its tone across launches
+    /// (`hashValue` is reseeded per process).
+    private static let palette: [(fill: Color, letter: Color)] = [
+        (Color(light: Color(hex: 0xDCE5DF), dark: Color(hex: 0x2A3A32)), .accent),
+        (Color(light: Color(hex: 0xEAE5DA), dark: Color(hex: 0x3A352B)),
+         Color(light: Color(hex: 0x6B604B), dark: Color(hex: 0xD4C8AE))),
+        (Color(light: Color(hex: 0xDFE3E8), dark: Color(hex: 0x2C333A)),
+         Color(light: Color(hex: 0x4F5D6A), dark: Color(hex: 0xBAC6D2))),
+        (Color(light: Color(hex: 0xE8E0DD), dark: Color(hex: 0x3A2F2C)),
+         Color(light: Color(hex: 0x6E5852), dark: Color(hex: 0xD9C2BB)))
+    ]
+
+    private var tone: (fill: Color, letter: Color) {
+        let digest = withUnsafeBytes(of: seed.uuid) { $0.reduce(0) { $0 &+ Int($1) } }
+        return Self.palette[digest % Self.palette.count]
     }
 
     var body: some View {
@@ -36,16 +48,10 @@ struct MemberAvatarView: View {
                     .scaledToFill()
             } else {
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [tint.opacity(0.85), tint.opacity(0.55)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(tone.fill)
                 Text(verbatim: initials)
-                    .font(.system(size: size * 0.4, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(.system(size: size * 0.43, weight: .semibold))
+                    .foregroundStyle(tone.letter)
             }
         }
         .frame(width: size, height: size)

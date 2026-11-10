@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// "By currency" card: one row per currency the household holds, valued in
-/// the home currency, with the native balance as a caption for foreign
-/// currencies. Mirrors the By member card's layout.
+/// "By currency" section: one progress row per currency the household holds,
+/// valued in the home currency, with the native balance as an inline caption
+/// for foreign currencies. Shares the By member section's columns.
 struct AssetsCurrencyCard: View {
     let totals: [NetWorthCalculator.CurrencyTotal]
     /// Household total in `homeCurrency`; denominator for share bars.
@@ -14,7 +14,7 @@ struct AssetsCurrencyCard: View {
 
     var body: some View {
         AssetsBreakdownCard(titleKey: "assets.byCurrency") {
-            ForEach(Array(totals.enumerated()), id: \.element.id) { index, entry in
+            ForEach(totals) { entry in
                 AssetsCurrencyRow(
                     total: entry,
                     share: share(of: entry),
@@ -22,9 +22,6 @@ struct AssetsCurrencyCard: View {
                     homeCurrency: homeCurrency,
                     locale: locale
                 )
-                if index < totals.count - 1 {
-                    Divider().opacity(0.35)
-                }
             }
         }
     }
@@ -46,7 +43,7 @@ private struct AssetsCurrencyRow: View {
 
     var body: some View {
         AssetsBreakdownRow(
-            leading: { CurrencyCodeBadge(code: total.currency) },
+            leading: { CurrencyCodeTag(code: total.currency) },
             title: CurrencyCatalog.displayName(total.currency, in: locale),
             caption: nativeCaption,
             trailing: { trailing },
@@ -69,7 +66,7 @@ private struct AssetsCurrencyRow: View {
                 Image(systemName: "exclamationmark.triangle.fill")
             }
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.orange)
+            .foregroundStyle(Color.red)
         }
     }
 
@@ -82,47 +79,5 @@ private struct AssetsCurrencyRow: View {
                 .locale(locale)
                 .precision(.fractionLength(0))
         )
-    }
-}
-
-/// 32pt circular mark that fills the avatar slot of breakdown rows: the
-/// issuing region's flag, or the currency code when no flag applies.
-private struct CurrencyCodeBadge: View {
-    let code: String
-
-    var body: some View {
-        Group {
-            if let flag = CurrencyCatalog.flagEmoji(for: code) {
-                // Oversized glyph, kept at its natural size and centered, then
-                // clipped to the circle so the flag fills it edge to edge; the
-                // hairline keeps pale flags defined.
-                Text(verbatim: flag)
-                    .font(.system(size: 56))
-                    .fixedSize()
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-                    .overlay(Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
-            } else {
-                codeMark
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private var codeMark: some View {
-        Text(verbatim: code)
-            .font(.system(size: 10, weight: .bold, design: .monospaced))
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .foregroundStyle(.white)
-            .frame(width: 32, height: 32)
-            .background(
-                LinearGradient(
-                    colors: [Color.accentColor.opacity(0.85), Color.accentColor.opacity(0.6)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: Circle()
-            )
     }
 }

@@ -133,13 +133,18 @@ struct PossessionsView: View {
         } else if possessions.isEmpty {
             emptyState
         } else {
-            VStack(spacing: 20) {
-                // The total rides on the showcase as its nameplate; the full
-                // hero card only remains when nothing active is on display.
-                if derivation.active.isEmpty {
-                    heroSummary(derivation: derivation, compact: false).glassCard()
-                } else {
-                    showcase(derivation: derivation)
+            VStack(alignment: .leading, spacing: 0) {
+                heroSummary(derivation: derivation)
+                if !derivation.active.isEmpty {
+                    LedgerSection(Text("possession.showcase.title")) {
+                        Text(verbatim: itemCountFootnote(count: derivation.active.count))
+                            .font(.footnote)
+                            .monospacedDigit()
+                            .foregroundStyle(Color.ink3)
+                    } content: {
+                        showcase(derivation: derivation)
+                            .padding(.bottom, 14)
+                    }
                 }
                 listCards(derivation: derivation)
             }
@@ -148,42 +153,54 @@ struct PossessionsView: View {
 
     // MARK: - Cards
 
-    /// Mirrors the Financial tab's hero: eyebrow, headline total, footnotes,
-    /// and (on macOS) the primary action trailing the text. `compact` is the
-    /// showcase nameplate: a smaller total with the item count beside it.
-    private func heroSummary(derivation: Derivation, compact: Bool) -> some View {
-        #if os(macOS)
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 16) {
-                heroTextBlock(derivation: derivation, compact: compact)
-                Spacer()
-                addPossessionButton(compact: compact)
-            }
-            VStack(alignment: .leading, spacing: compact ? 10 : 16) {
-                heroTextBlock(derivation: derivation, compact: compact)
-                addPossessionButton(compact: compact)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+    /// Purchase-cost hero (§5.2): total, then active / sold counts and any
+    /// missing-rate warning. On macOS the "New possession" action follows.
+    @ViewBuilder
+    private func heroSummary(derivation: Derivation) -> some View {
+        LedgerHero(
+            eyebrow: Text("possession.total.title"),
+            amount: derivation.purchaseCostTotal,
+            code: homeCurrency,
+            locale: locale,
+            showsDelta: false
+        ) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(verbatim: countsLine(derivation: derivation))
+                if !derivation.missingCurrencies.isEmpty {
+                    Label {
+                        Text(missingRatesMessage(derivation.missingCurrencies))
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                    }
+                    .foregroundStyle(Color.red)
+                }
             }
         }
-        #else
-        // iOS exposes "New possession" through the navigation bar "+".
-        heroTextBlock(derivation: derivation, compact: compact)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        #if os(macOS)
+        addPossessionButton()
+            .padding(.bottom, 20)
         #endif
     }
 
-    private func heroTextBlock(derivation: Derivation, compact: Bool) -> some View {
-        PossessionsTotalSummary(
-            total: derivation.purchaseCostTotal,
-            homeCurrency: homeCurrency,
-            activeCount: derivation.active.count,
-            missingCurrencies: derivation.missingCurrencies,
-            compact: compact
-        )
+    /// "9 active · 1 sold".
+    private func countsLine(derivation: Derivation) -> String {
+        var parts = [String(localized: "possession.count.active")
+            .replacingOccurrences(of: "{count}", with: String(derivation.active.count))]
+        if !derivation.sold.isEmpty {
+            parts.append(String(localized: "possession.count.sold")
+                .replacingOccurrences(of: "{count}", with: String(derivation.sold.count)))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func missingRatesMessage(_ currencies: [String]) -> String {
+        let list = currencies.joined(separator: ", ")
+        let template = String(localized: "assets.missingRates")
+        return template.replacingOccurrences(of: "{currencies}", with: list)
     }
 
     #if os(macOS)
-    private func addPossessionButton(compact: Bool) -> some View {
+    private func addPossessionButton() -> some View {
         Button {
             presentNewPossession()
         } label: {
@@ -193,7 +210,7 @@ struct PossessionsView: View {
                 Image(systemName: "plus")
             }
         }
-        .controlSize(compact ? .regular : .large)
+        .controlSize(.large)
         .cairnProminentButtonStyle()
         // Hidden while a showcase item is open; Liquid Glass would otherwise
         // shine through the dimmed page. Opacity keeps the header layout.
@@ -240,7 +257,7 @@ struct PossessionsView: View {
         if cards.count > 1 {
             let columns = PossessionListCard.balancedColumns(cards)
             ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 20) {
+                HStack(alignment: .top, spacing: 40) {
                     cardColumn(columns.0, homeEquivalents: derivation.homeEquivalents)
                         .frame(minWidth: 380, maxWidth: .infinity)
                     cardColumn(columns.1, homeEquivalents: derivation.homeEquivalents)
@@ -257,7 +274,7 @@ struct PossessionsView: View {
     }
 
     private func cardColumn(_ cards: [PossessionListCard], homeEquivalents: [UUID: Decimal]) -> some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 0) {
             ForEach(cards) { card in
                 AssetsBreakdownCard(titleKey: card.titleKey, accessory: card.accessory) {
                     possessionRows(card.possessions, homeEquivalents: homeEquivalents, dimmed: card.dimmed)
@@ -271,12 +288,9 @@ struct PossessionsView: View {
         homeEquivalents: [UUID: Decimal],
         dimmed: Bool
     ) -> some View {
-        ForEach(Array(possessions.enumerated()), id: \.element.id) { index, possession in
+        LedgerRows(data: possessions, inset: LedgerMetrics.leadingColumn + LedgerMetrics.columnSpacing) { possession in
             possessionRow(possession, homeEquivalent: homeEquivalents[possession.id])
                 .opacity(dimmed ? 0.7 : 1)
-            if index < possessions.count - 1 {
-                Divider().opacity(0.35)
-            }
         }
     }
 
@@ -339,15 +353,12 @@ struct PossessionsView: View {
                     )
                     .font(.caption)
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.ink3)
                 }
             }
             // Amounts never wrap mid-number; the name column wraps instead.
             .fixedSize(horizontal: true, vertical: false)
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
+            LedgerChevron()
         }
     }
 
@@ -419,7 +430,6 @@ struct PossessionsView: View {
 extension PossessionsView {
     private func showcase(derivation: Derivation) -> some View {
         PossessionShowcaseView(
-            header: { heroSummary(derivation: derivation, compact: true) },
             shelves: PossessionShowcaseLayout.shelves(byCategory: derivation.byCategory) { possession in
                 possession.purchaseCurrency == homeCurrency
                     ? possession.purchasePrice

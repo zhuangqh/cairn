@@ -48,3 +48,28 @@ enum TrendRange: CaseIterable, Hashable {
         }
     }
 }
+
+/// Y domain rounded up to two significant figures, with gridlines at zero,
+/// the midpoint, and the maximum (§5.8).
+struct TrendScale {
+    let lower: Double
+    let upper: Double
+
+    init(points: [TrendPoint]) {
+        let values = points.map(\.amountDouble)
+        let maxValue = values.max() ?? 0
+        let minValue = values.min() ?? 0
+        upper = Self.niceCeiling(max(maxValue, 0))
+        lower = minValue < 0 ? -Self.niceCeiling(-minValue) : 0
+    }
+
+    var gridValues: [Double] {
+        lower < 0 ? [0, lower, upper] : [0, upper / 2, upper]
+    }
+
+    private static func niceCeiling(_ value: Double) -> Double {
+        guard value > 0 else { return 1 }
+        let magnitude = pow(10, floor(log10(value)))
+        return (value / magnitude * 10).rounded(.up) / 10 * magnitude
+    }
+}

@@ -12,33 +12,27 @@ extension BatchEntryView {
     var ratesSection: some View {
         let quotes = neededQuoteCurrencies
         if !quotes.isEmpty {
-            Divider().opacity(0.4)
-
-            VStack(alignment: .leading, spacing: 8) {
-                ratesHeader
+            LedgerSection(Text("batch.rates.title")) {
+                ratesMeta
+            } content: {
                 ratesBody(quotes: quotes)
             }
         }
     }
 
     @ViewBuilder
-    private var ratesHeader: some View {
-        HStack(spacing: 8) {
-            Text("batch.rates.title")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .tracking(0.4)
+    private var ratesMeta: some View {
+        HStack(spacing: 6) {
             if isLoadingRates {
                 ProgressView().controlSize(.mini)
             }
-            Spacer()
             if let asOf = historicalRatesAsOf {
                 Text(asOf, format: .dateTime.year().month().day().locale(locale))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
             }
         }
+        .font(.footnote)
+        .foregroundStyle(Color.ink3)
     }
 
     @ViewBuilder
@@ -50,58 +44,46 @@ extension BatchEntryView {
                 Image(systemName: "exclamationmark.triangle.fill")
             }
             .font(.caption)
-            .foregroundStyle(.orange)
+            .foregroundStyle(Color.red)
+            .padding(.bottom, 10)
         } else if historicalRates.isEmpty && !isLoadingRates {
             Text("batch.rates.empty")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.ink2)
+                .padding(.bottom, 10)
         } else {
-            rateChips(for: quotes)
-        }
-    }
-
-    @ViewBuilder
-    private func rateChips(for quotes: [String]) -> some View {
-        let columns = [GridItem(.adaptive(minimum: 140), spacing: 8)]
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(quotes, id: \.self) { quote in
-                rateChip(for: quote)
+            VStack(spacing: 0) {
+                ForEach(Array(quotes.enumerated()), id: \.element) { index, quote in
+                    if index > 0 { LedgerHairline() }
+                    rateRow(for: quote)
+                }
             }
         }
     }
 
-    @ViewBuilder
-    private func rateChip(for quote: String) -> some View {
-        HStack(spacing: 6) {
-            // Show quote -> home ("1 USD = ? CNY") — the direction users
-            // actually think in when valuing foreign holdings.
+    /// `1 CNY → USD    0.1400` — quote → home, the direction users value
+    /// foreign holdings in.
+    private func rateRow(for quote: String) -> some View {
+        HStack(spacing: 8) {
             Text(verbatim: "1 \(quote) → \(homeCurrency)")
-                .font(.caption.monospaced().weight(.semibold))
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 4)
+                .font(.callout)
+                .foregroundStyle(Color.ink2)
+            Spacer(minLength: 8)
             if let inverted = inverseRate(for: quote) {
                 Text(
                     inverted,
-                    format: .number.precision(.fractionLength(2...4)).locale(locale)
+                    format: .number.precision(.fractionLength(4)).locale(locale)
                 )
-                .font(.caption.monospacedDigit().weight(.semibold))
-                .foregroundStyle(Color.notionInk)
+                .font(.system(.callout, design: .monospaced).weight(.medium))
+                .foregroundStyle(Color.ink)
             } else {
                 Text(verbatim: "—")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(.callout)
+                    .foregroundStyle(Color.ink3)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.notionSurfaceAlt)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.notionBorder, lineWidth: 1)
-        )
+        .frame(minHeight: LedgerMetrics.rowHeight)
+        .accessibilityElement(children: .combine)
     }
 
     /// Frankfurter returns `1 home == rate × quote`, so
@@ -114,26 +96,15 @@ extension BatchEntryView {
     // MARK: - Notes
 
     var notesCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                GlyphBadge(systemName: "note.text", tint: .accentColor, size: 32)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("batch.notes.title")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                        .tracking(0.3)
-                    Text("batch.notes.hint")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
+        LedgerSection(Text("batch.notes.title")) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("batch.notes.hint")
+                    .font(.footnote)
+                    .foregroundStyle(Color.ink3)
+                notesEditor
             }
-
-            notesEditor
+            .padding(.bottom, 10)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 14, padding: 16)
     }
 
     private var notesEditor: some View {
@@ -144,17 +115,17 @@ extension BatchEntryView {
             .padding(10)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.notionSurfaceAlt)
+                    .fill(Color.field)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color.notionBorder, lineWidth: 1)
+                    .strokeBorder(Color.line, lineWidth: 1)
             )
             .overlay(alignment: .topLeading) {
                 if note.isEmpty {
                     Text("batch.notes.placeholder")
                         .font(.body)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.placeholder)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 18)
                         .allowsHitTesting(false)

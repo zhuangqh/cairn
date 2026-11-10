@@ -87,17 +87,17 @@ struct SnapshotFormView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: holding.account?.name.isEmpty == false ? holding.account!.name : holding.currency)
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                     .lineLimit(1)
                 if let label = holding.label, !label.isEmpty {
                     Text(verbatim: "\(CurrencyCatalog.displayName(holding.currency)) · \(label)")
                         .font(.caption)
-                        .foregroundStyle(Color.notionInkSecondary)
+                        .foregroundStyle(Color.ink2)
                         .lineLimit(1)
                 } else {
                     Text(verbatim: CurrencyCatalog.displayName(holding.currency))
                         .font(.caption)
-                        .foregroundStyle(Color.notionInkSecondary)
+                        .foregroundStyle(Color.ink2)
                 }
             }
             Spacer(minLength: 0)
@@ -129,7 +129,7 @@ struct SnapshotFormView: View {
             HStack(spacing: 10) {
                 Text(verbatim: holding.currency)
                     .font(.callout.weight(.semibold).monospaced())
-                    .foregroundStyle(Color.notionInkMuted)
+                    .foregroundStyle(Color.ink3)
 
                 Divider()
                     .frame(height: 22)
@@ -139,7 +139,7 @@ struct SnapshotFormView: View {
                     .textFieldStyle(.plain)
                     .multilineTextAlignment(.trailing)
                     .font(.title2.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(Color.notionInk)
+                    .foregroundStyle(Color.ink)
                     #if !os(macOS)
                     .keyboardType(.numberPad)
                     #endif
@@ -158,24 +158,24 @@ struct SnapshotFormView: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .strokeBorder(amountFieldBorder, lineWidth: isAmountFocused ? 1.5 : 0.75)
+                    .strokeBorder(amountFieldBorder, lineWidth: isAmountFocused ? 1.5 : 1)
             )
             .animation(.easeInOut(duration: 0.15), value: isAmountFocused)
 
             Text("snapshot.form.amount.hint")
                 .font(.footnote)
-                .foregroundStyle(Color.notionInkSecondary)
+                .foregroundStyle(Color.ink2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(cornerRadius: 16, padding: 20)
     }
 
     private var amountFieldBackground: Color {
-        isAmountFocused ? Color.notionBlue.opacity(0.055) : Color.notionSurfaceAlt.opacity(0.72)
+        Color.field
     }
 
     private var amountFieldBorder: Color {
-        isAmountFocused ? Color.notionBlue.opacity(0.65) : Color.notionBorder
+        isAmountFocused ? Color.accent : Color.line
     }
 
     // MARK: - Validation

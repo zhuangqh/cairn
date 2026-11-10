@@ -149,7 +149,7 @@ struct PossessionFormView: View {
                 LabeledContent {
                     Text(verbatim: possession.purchaseCurrency)
                         .font(.body.monospaced().weight(.semibold))
-                        .foregroundStyle(Color.notionInkSecondary)
+                        .foregroundStyle(Color.ink2)
                 } label: {
                     Text("currency.picker.title")
                 }
@@ -332,7 +332,7 @@ private struct DecimalField: View {
                 #endif
                 Text(verbatim: currencyCode)
                     .font(.callout.monospaced().weight(.semibold))
-                    .foregroundStyle(Color.notionInkMuted)
+                    .foregroundStyle(Color.ink3)
             }
         } label: {
             Text(labelKey)

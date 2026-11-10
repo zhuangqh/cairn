@@ -56,57 +56,19 @@ struct TrendChartView: View {
         self.onSelectionChange = onSelectionChange
     }
 
-    /// Title + hover month + range picker on a single row. The picker
-    /// is pinned to the trailing edge; the hover-month text truncates
-    /// rather than wrapping the picker to a new line.
-    @ViewBuilder
-    private func header() -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(LocalizedStringKey(showPossessionOverlay ? "dashboard.trend" : "assets.trend"))
-                .font(showPossessionOverlay ? .notionCardTitle : .headline)
-                .tracking(showPossessionOverlay ? -0.25 : 0)
-                .foregroundStyle(showPossessionOverlay ? Color.notionInk : Color.primary)
-                .fixedSize()
-                .layoutPriority(2)
-
-            Text(hoverSelection.map {
-                $0.period.formatted(.dateTime.year().month(.wide).locale(locale))
-            } ?? " ")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .monospacedDigit()
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .layoutPriority(0)
-            .animation(.easeOut(duration: 0.12), value: hoverSelection)
-
-            Picker(selection: $range) {
-                ForEach(TrendRange.allCases, id: \.self) { option in
-                    Text(LocalizedStringKey(option.localizationKey)).tag(option)
-                }
-            } label: {
-                Text("assets.trend.range")
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            .layoutPriority(1)
-        }
-    }
-
     var body: some View {
         let fingerprint = currentFingerprint()
-        return VStack(alignment: .leading, spacing: 12) {
-            header()
-
-            let points = cachedPoints
-            let markers = cachedMarkers
-            let possessionByPeriod = cachedPossessionSeries
+        return LedgerSection(Text(LocalizedStringKey(showPossessionOverlay ? "dashboard.trend" : "assets.trend"))) {
+            LedgerTextPicker(options: TrendRange.allCases, selection: $range) { option in
+                Text(LocalizedStringKey(option.localizationKey))
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(Text("assets.trend.range"))
+        } content: {
+            let points = displayPoints
             if hasComputed
-                && points.filter({ $0.amount > 0 }).isEmpty
-                && markers.isEmpty
-                && possessionByPeriod.values.allSatisfy({ $0 == 0 }) {
+                && points.allSatisfy({ $0.amount == 0 })
+                && cachedMarkers.isEmpty {
                 ContentUnavailableView(
                     "assets.trend.empty.title",
                     systemImage: "chart.xyaxis.line",
@@ -114,7 +76,11 @@ struct TrendChartView: View {
                 )
                 .frame(minHeight: 220)
             } else {
-                chart(for: points, markers: markers, possessionByPeriod: possessionByPeriod)
+                let scale = TrendScale(points: points)
+                VStack(alignment: .leading, spacing: 6) {
+                    axisHeader(scale: scale)
+                    chart(for: points, scale: scale)
+                }
             }
         }
         .onAppear { refreshCacheIfNeeded(fingerprint) }
@@ -122,6 +88,38 @@ struct TrendChartView: View {
         .onChange(of: hoverSelection) { _, newValue in
             onSelectionChange?(newValue)
         }
+    }
+
+    /// Plotted series: on the Dashboard the financial trend plus cumulative
+    /// physical purchases (one combined household curve); elsewhere the
+    /// financial trend alone.
+    private var displayPoints: [TrendPoint] {
+        guard showPossessionOverlay else { return cachedPoints }
+        return cachedPoints.map { point in
+            TrendPoint(period: point.period, amount: point.amount + (cachedPossessionSeries[point.period] ?? 0))
+        }
+    }
+
+    /// Max-value label at top-left; hovered month (or "month-end") at right.
+    private func axisHeader(scale: TrendScale) -> some View {
+        HStack {
+            Text(verbatim: compactAxisLabel(scale.upper))
+            Spacer(minLength: 8)
+            if let selection = hoverSelection {
+                Text(selection.period, format: .dateTime.year().month(.wide).locale(locale))
+            } else {
+                Text("dashboard.trend.monthEnd")
+            }
+        }
+        .font(.caption)
+        .monospacedDigit()
+        .foregroundStyle(Color.ink3)
+        .accessibilityHidden(true)
+    }
+
+    private func compactAxisLabel(_ value: Double) -> String {
+        let symbol = CurrencyAmountParts(0, code: homeCurrency, locale: locale).symbol
+        return symbol + value.formatted(.number.notation(.compactName).locale(locale))
     }
 
     /// Hash of every input that affects the chart's data series. Excluding
@@ -186,36 +184,30 @@ struct TrendChartView: View {
         hasComputed = true
     }
 
-    @ViewBuilder
-    private func chart(
-        for points: [TrendPoint],
-        markers: [SnapshotMarker],
-        possessionByPeriod: [Date: Decimal]
-    ) -> some View {
-        Chart {
+    private func chart(for points: [TrendPoint], scale: TrendScale) -> some View {
+        let markers = cachedMarkers
+        let ticks = xTicks(points)
+        return Chart {
             trendMarks(points)
-            possessionOverlayMarks(points: points, possessionByPeriod: possessionByPeriod)
-            snapshotMarks(markers)
-            hoverMarks(possessionByPeriod: possessionByPeriod)
+            endMark(points)
+            hoverMarks(possessionByPeriod: cachedPossessionSeries)
         }
+        .chartYScale(domain: scale.lower...scale.upper)
         .chartYAxis {
-            AxisMarks(position: .leading) { value in
-                AxisGridLine()
-                AxisValueLabel {
-                    if let amount = value.as(Double.self) {
-                        Text(CompactCurrencyFormatter.string(
-                            amount: Decimal(amount),
-                            code: homeCurrency,
-                            locale: locale
-                        ))
-                    }
-                }
+            AxisMarks(values: scale.gridValues) { value in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: value.index == 0 ? 1 : 0.7))
+                    .foregroundStyle(Color.line)
             }
         }
         .chartXAxis {
-            AxisMarks(values: .stride(by: .month, count: max(1, points.count / 6))) { _ in
-                AxisGridLine()
-                AxisValueLabel(format: .dateTime.year(.twoDigits).month(.abbreviated).locale(locale))
+            AxisMarks(values: ticks) { value in
+                AxisValueLabel(anchor: tickAnchor(index: value.index, count: value.count)) {
+                    if let date = value.as(Date.self) {
+                        Text(verbatim: tickLabel(date, ticks: ticks))
+                            .font(.caption)
+                            .foregroundStyle(Color.ink3)
+                    }
+                }
             }
         }
         .chartOverlay { proxy in
@@ -224,7 +216,8 @@ struct TrendChartView: View {
             }
         }
         .chartLegend(.hidden)
-        .frame(minHeight: 220)
+        .frame(height: 196)
+        .accessibilityLabel(Text(LocalizedStringKey(showPossessionOverlay ? "dashboard.trend" : "assets.trend")))
     }
 
     @ViewBuilder
@@ -275,7 +268,7 @@ struct TrendChartView: View {
         if let selection = hoverSelection {
             let possessionAmount = showPossessionOverlay ? possessionByPeriod[selection.period] : nil
             RuleMark(x: .value("assets.trend.axis.month", selection.period))
-                .foregroundStyle(Color.secondary.opacity(0.35))
+                .foregroundStyle(Color.ink3.opacity(0.6))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 .annotation(
                     position: .top,
@@ -287,10 +280,13 @@ struct TrendChartView: View {
                 }
             PointMark(
                 x: .value("assets.trend.axis.month", selection.period),
-                y: .value("assets.trend.axis.amount", selection.amountDouble)
+                y: .value(
+                    "assets.trend.axis.amount",
+                    selection.amountDouble + NSDecimalNumber(decimal: possessionAmount ?? 0).doubleValue
+                )
             )
-            .symbolSize(60)
-            .foregroundStyle(Color.accentColor)
+            .symbolSize(50)
+            .foregroundStyle(Color.accent)
         }
     }
 
@@ -299,15 +295,15 @@ struct TrendChartView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(selection.period, format: .dateTime.year().month(.wide).locale(locale))
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.ink3)
             calloutRow(
-                color: .accentColor,
+                color: .accent,
                 labelKey: "dashboard.balance.financial",
                 amount: selection.amount
             )
             if let possessionAmount {
                 calloutRow(
-                    color: .green,
+                    color: .accent2,
                     labelKey: "dashboard.balance.physical",
                     amount: possessionAmount
                 )
@@ -318,9 +314,8 @@ struct TrendChartView: View {
         .background(Color.notionSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 0.5)
+                .strokeBorder(Color.line, lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
     }
 
     @ViewBuilder
@@ -331,10 +326,11 @@ struct TrendChartView: View {
                 .frame(width: 6, height: 6)
             Text(labelKey)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(amount.formatted(.currency(code: homeCurrency).locale(locale)))
+                .foregroundStyle(Color.ink2)
+            Text(amount.formatted(.currency(code: homeCurrency).precision(.fractionLength(0)).locale(locale)))
                 .font(.callout.weight(.semibold))
                 .monospacedDigit()
+                .foregroundStyle(Color.ink)
         }
     }
 
@@ -356,82 +352,39 @@ struct TrendChartView: View {
         return TrendSelection(period: nearest.periodMonth, amount: nearest.amount)
     }
 
+    /// Monotone line (2.2pt accent) over a flat 5% accent fill.
     @ChartContentBuilder
     private func trendMarks(_ points: [TrendPoint]) -> some ChartContent {
         ForEach(points) { point in
-            LineMark(
-                x: .value("assets.trend.axis.month", point.period),
-                y: .value("assets.trend.axis.amount", point.amountDouble)
-            )
-            .interpolationMethod(.monotone)
             AreaMark(
                 x: .value("assets.trend.axis.month", point.period),
                 y: .value("assets.trend.axis.amount", point.amountDouble)
             )
-            .foregroundStyle(
-                .linearGradient(
-                    colors: [.accentColor.opacity(0.3), .accentColor.opacity(0.02)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+            .foregroundStyle(Color.accent.opacity(0.05))
+            .interpolationMethod(.monotone)
+            LineMark(
+                x: .value("assets.trend.axis.month", point.period),
+                y: .value("assets.trend.axis.amount", point.amountDouble)
             )
+            .foregroundStyle(Color.accent)
+            .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
             .interpolationMethod(.monotone)
         }
     }
 
-    /// Green cumulative-possession overlay. Rendered behind the snapshot markers
-    /// but above the financial area so the two curves read as siblings.
-    /// Points carry no hover target — only the financial snapshots are
-    /// hoverable; the possession value at the selected month surfaces through
-    /// the shared callout.
+    /// Solid end dot ringed with the page ground.
     @ChartContentBuilder
-    private func possessionOverlayMarks(
-        points: [TrendPoint],
-        possessionByPeriod: [Date: Decimal]
-    ) -> some ChartContent {
-        if showPossessionOverlay, !possessionByPeriod.isEmpty {
-            ForEach(points) { point in
-                let amount = possessionByPeriod[point.period] ?? 0
-                let possessionAmountDouble = NSDecimalNumber(decimal: amount).doubleValue
-                LineMark(
-                    x: .value("assets.trend.axis.month", point.period),
-                    y: .value("assets.trend.axis.amount", possessionAmountDouble),
-                    series: .value("series", "possession")
-                )
-                .foregroundStyle(Color.green)
-                .interpolationMethod(.monotone)
-
-                AreaMark(
-                    x: .value("assets.trend.axis.month", point.period),
-                    y: .value("assets.trend.axis.amount", possessionAmountDouble),
-                    series: .value("series", "possession")
-                )
-                .foregroundStyle(
-                    .linearGradient(
-                        colors: [Color.green.opacity(0.22), Color.green.opacity(0.02)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .interpolationMethod(.monotone)
-            }
-        }
-    }
-
-    @ChartContentBuilder
-    private func snapshotMarks(_ markers: [SnapshotMarker]) -> some ChartContent {
-        ForEach(markers) { marker in
+    private func endMark(_ points: [TrendPoint]) -> some ChartContent {
+        if let last = points.last {
             PointMark(
-                x: .value("assets.trend.axis.month", marker.periodMonth),
-                y: .value("assets.trend.axis.amount", marker.amountDouble)
+                x: .value("assets.trend.axis.month", last.period),
+                y: .value("assets.trend.axis.amount", last.amountDouble)
             )
-            .symbol(.circle)
-            .symbolSize(36)
-            .foregroundStyle(Color.accentColor)
-            .annotation(position: .top, alignment: .center, spacing: 2) {
-                Image(systemName: "flag.fill")
-                    .font(.caption2)
-                    .foregroundStyle(Color.accentColor)
+            .symbol {
+                Circle()
+                    .fill(Color.accent)
+                    .frame(width: 8, height: 8)
+                    .overlay(Circle().stroke(Color.pageBackground, lineWidth: 2))
             }
         }
     }
@@ -499,6 +452,36 @@ struct TrendChartView: View {
             result[point.period] = sum
         }
         return result
+    }
+}
+
+// MARK: - Axis ticks
+
+extension TrendChartView {
+    /// First, middle, and last periods — at most three ticks so labels never
+    /// collide; first/last hug the plot edges.
+    private func xTicks(_ points: [TrendPoint]) -> [Date] {
+        guard let first = points.first?.period, let last = points.last?.period else { return [] }
+        if points.count < 3 { return first == last ? [first] : [first, last] }
+        return [first, points[points.count / 2].period, last]
+    }
+
+    private func tickAnchor(index: Int, count: Int) -> UnitPoint {
+        if count > 1, index == 0 { return .topLeading }
+        if count > 1, index == count - 1 { return .topTrailing }
+        return .top
+    }
+
+    /// Year + month for the first tick and whenever the year changes from
+    /// the previous tick; month alone otherwise.
+    private func tickLabel(_ date: Date, ticks: [Date]) -> String {
+        let calendar = Calendar.current
+        let index = ticks.firstIndex(of: date) ?? 0
+        let showYear = index == 0
+            || calendar.component(.year, from: ticks[index - 1]) != calendar.component(.year, from: date)
+        return showYear
+            ? date.formatted(.dateTime.year().month(.abbreviated).locale(locale))
+            : date.formatted(.dateTime.month(.abbreviated).locale(locale))
     }
 }
 

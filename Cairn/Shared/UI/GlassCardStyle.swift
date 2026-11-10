@@ -2,64 +2,76 @@ import SwiftUI
 
 // MARK: - Cairn palette
 //
-// A quiet alpine palette for the app's Liquid Glass visual system.  The old
-// `notion…` names are retained because they are used throughout the feature
-// views, but the values now form a cool, coherent family rather than a flat
-// paper-card theme.
+// 「私人银行」 palette (docs/design.md §2): warm ivory ground, ink-green
+// accent, hairline separators. Light values follow the spec exactly. Dark
+// mode has not been designed yet; the dark variants below are a provisional
+// counterpart (warm near-black ground, lifted ink-green so the accent keeps
+// its identity and contrast) pending a dedicated dark design (§9).
 
 public extension Color {
-    /// Near-black primary text (`rgba(0,0,0,0.95)` in light mode).
-    static let notionInk = Color(
-        light: Color(hex: 0x102B2A),
-        dark: Color(hex: 0xF2FBF9)
+    /// Page ground — warm ivory.
+    static let pageBackground = Color(light: Color(hex: 0xF7F6F2), dark: Color(hex: 0x131614))
+    /// Primary text, amounts, titles.
+    static let ink = Color(light: Color(hex: 0x1E2A24), dark: Color(hex: 0xECEDE8))
+    /// Secondary text, labels, unselected controls.
+    static let ink2 = Color(light: Color(hex: 0x5F6862), dark: Color(hex: 0xA6ADA8))
+    /// Tertiary captions, shares, axis labels, chevrons.
+    static let ink3 = Color(light: Color(hex: 0x8D948F), dark: Color(hex: 0x7C847F))
+    /// Hairline separators and outlines.
+    static let line = Color(
+        light: Color(hex: 0x1E2A24, opacity: 0.12),
+        dark: Color(hex: 0xECEDE8, opacity: 0.12)
     )
-
-    /// Secondary warm gray for descriptions, subtitles.
-    static let notionInkSecondary = Color(
-        light: Color(hex: 0x526A68),
-        dark: Color(hex: 0xA7BFBB)
+    /// Ink-green accent: interactive elements, selection, positive change.
+    static let accent = Color(light: Color(hex: 0x2D5A47), dark: Color(hex: 0x7FB59A))
+    /// Pressed state for accent-filled buttons.
+    static let accentActive = Color(light: Color(hex: 0x234737), dark: Color(hex: 0x6A9C83))
+    /// Second segment of two-part composition bars.
+    static let accent2 = Color(light: Color(hex: 0xC9D6CC), dark: Color(hex: 0x3B5146))
+    /// Selected fills, icon tiles, selected tab capsule.
+    static let accentSoft = Color(
+        light: Color(hex: 0x2D5A47, opacity: 0.08),
+        dark: Color(hex: 0x7FB59A, opacity: 0.14)
     )
-
-    /// Muted warm gray for captions, placeholders.
-    static let notionInkMuted = Color(
-        light: Color(hex: 0x7D9491),
-        dark: Color(hex: 0x7F9995)
+    /// Empty track behind meters and share bars.
+    static let track = Color(
+        light: Color(hex: 0x1E2A24, opacity: 0.07),
+        dark: Color(hex: 0xECEDE8, opacity: 0.08)
     )
+    /// Input field fill.
+    static let field = Color(light: .white, dark: Color(hex: 0x1C201D))
+    /// Photo / thumbnail tile ground.
+    static let thumb = Color(light: Color(hex: 0xEEEBE3), dark: Color(hex: 0x222723))
+    /// Blank-input placeholder text (§5.12).
+    static let placeholder = Color(light: Color(hex: 0xB7BBB6), dark: Color(hex: 0x5E6560))
 
-    /// Card / page surface.
-    static let notionSurface = Color(
-        light: Color.white.opacity(0.72),
-        dark: Color(hex: 0x172725).opacity(0.78)
-    )
+    /// Quiet raised surface for the few remaining contained groups (forms,
+    /// sheets). Data sections sit directly on `pageBackground` instead.
+    static let notionSurface = Color(light: Color(hex: 0xFDFCF9), dark: Color(hex: 0x1A1E1B))
+    /// Recessed surface — same as the page ground.
+    static let notionSurfaceAlt = Color(light: Color(hex: 0xF0EEE8), dark: Color(hex: 0x0F1210))
 
-    /// Warm white alt surface for section alternation + window chrome.
-    static let notionSurfaceAlt = Color(
-        light: Color(hex: 0xEEF5F3),
-        dark: Color(hex: 0x0B1716)
-    )
+    /// Legacy badge pair, now mapped onto the accent family.
+    static let notionBadgeBlueBg = accentSoft
+    static let notionBadgeBlueText = accent
 
-    /// Whisper border — the signature "1px solid rgba(0,0,0,0.1)".
-    static let notionBorder = Color(
-        light: Color(.sRGB, red: 0.12, green: 0.28, blue: 0.26, opacity: 0.13),
-        dark: Color(.sRGB, red: 0.80, green: 0.95, blue: 0.92, opacity: 0.13)
-    )
+    // Legacy semantic accents, desaturated into the ink-green family. Kept so
+    // screens not yet restyled stay within the palette (§2 forbids candy hues).
+    static let notionTeal = Color(light: Color(hex: 0x6F927F), dark: Color(hex: 0x8FB09E))
+    static let notionGreen = accent
+    static let notionOrange = ink2
+    static let notionPink = Color(hex: 0xA9BEB0)
+    static let notionPurple = Color(hex: 0x6B604B)
+    static let notionBrown = Color(hex: 0x6B604B)
 
-    /// Alpine teal — the single saturated accent used by controls and charts.
-    static let notionBlue = Color(hex: 0x0A8178)
-    /// Pressed / active state for primary buttons.
-    static let notionBlueActive = Color(hex: 0x075F59)
-    /// Tinted pill background for status badges.
-    static let notionBadgeBlueBg = Color(hex: 0xE7F5F2)
-    /// Pill text color for status badges.
-    static let notionBadgeBlueText = Color(hex: 0x08736B)
-
-    // Semantic accents
-    static let notionTeal = Color(hex: 0x4B9C91)
-    static let notionGreen = Color(hex: 0x21865B)
-    static let notionOrange = Color(hex: 0xC76936)
-    static let notionPink = Color(hex: 0xFF64C8)
-    static let notionPurple = Color(hex: 0x391C57)
-    static let notionBrown = Color(hex: 0x523410)
+    /// Category palette for composition breakdowns, assigned by rank
+    /// (largest share first). Beyond four, merge into "Other".
+    static let categoryPalette: [Color] = [
+        accent,
+        Color(light: Color(hex: 0x6F927F), dark: Color(hex: 0x5E8471)),
+        Color(light: Color(hex: 0xA9BEB0), dark: Color(hex: 0x445C50)),
+        Color(light: Color(hex: 0xD3CDBE), dark: Color(hex: 0x5C574C))
+    ]
 }
 
 // MARK: - Card modifier
@@ -84,8 +96,7 @@ public struct NotionCardStyle: ViewModifier {
         content
             .padding(padding)
             .background(surface, in: shape)
-            .overlay(shape.strokeBorder(Color.notionBorder.opacity(0.72), lineWidth: 0.7))
-            .shadow(color: Color(hex: 0x0B3D38).opacity(0.055), radius: 10, x: 0, y: 4)
+            .overlay(shape.strokeBorder(Color.line, lineWidth: 0.5))
     }
 }
 
@@ -122,38 +133,15 @@ public extension View {
     }
 }
 
-// MARK: - Ambient background
+// MARK: - Page background
 
-/// A low-contrast atmospheric field. It gives the translucent surfaces
-/// something to refract while keeping charts and monetary values calm.
+/// Solid warm-ivory page ground. Data surfaces carry no gradient or glow;
+/// hierarchy comes from type, whitespace, and hairlines (design.md §1).
 public struct AppBackground: View {
     public init() {}
 
     public var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(light: Color(hex: 0xF7FAF8), dark: Color(hex: 0x081311)),
-                    Color.notionSurfaceAlt,
-                    Color(light: Color(hex: 0xE8F1F0), dark: Color(hex: 0x102321))
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            Circle()
-                .fill(Color.notionBlue.opacity(0.08))
-                .frame(width: 380, height: 380)
-                .blur(radius: 90)
-                .offset(x: -170, y: -280)
-
-            Circle()
-                .fill(Color(hex: 0xD4A96A).opacity(0.05))
-                .frame(width: 320, height: 320)
-                .blur(radius: 100)
-                .offset(x: 190, y: 360)
-        }
-        .ignoresSafeArea()
+        Color.pageBackground.ignoresSafeArea()
     }
 }
 
@@ -170,11 +158,11 @@ public extension View {
             .background(AppBackground())
     }
 
-    /// Standard page horizontal padding. Tighter on iOS so cards have more
-    /// breathing room on small screens; roomier on macOS.
+    /// Standard page horizontal padding: the 22pt leading guide every title,
+    /// row, and hairline starts from on iPhone (design.md §4); roomier on macOS.
     func pageHorizontalPadding() -> some View {
         #if os(iOS)
-        padding(.horizontal, 18)
+        padding(.horizontal, 22)
         #else
         padding(.horizontal, 24)
         #endif
@@ -296,7 +284,7 @@ public struct NotionPrimaryButtonStyle: ButtonStyle {
             .padding(.horizontal, hPad)
             .background(
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(configuration.isPressed ? Color.notionBlueActive : Color.notionBlue)
+                    .fill(configuration.isPressed ? Color.accentActive : Color.accent)
             )
             .opacity(configuration.isPressed ? 0.95 : 1.0)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
@@ -310,7 +298,7 @@ public struct NotionSecondaryButtonStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(Color.notionInk)
+            .foregroundStyle(Color.ink)
             .padding(.vertical, 8)
             .padding(.horizontal, 14)
             .background(
@@ -330,7 +318,7 @@ public struct NotionSectionHeader: View {
     public let systemImage: String?
     public let tint: Color
 
-    public init(_ titleKey: LocalizedStringKey, systemImage: String? = nil, tint: Color = .notionInkSecondary) {
+    public init(_ titleKey: LocalizedStringKey, systemImage: String? = nil, tint: Color = .ink2) {
         self.titleKey = titleKey
         self.systemImage = systemImage
         self.tint = tint
@@ -346,7 +334,7 @@ public struct NotionSectionHeader: View {
             Text(titleKey)
                 .font(.system(size: 12, weight: .semibold))
                 .tracking(0.125)
-                .foregroundStyle(Color.notionInkSecondary)
+                .foregroundStyle(Color.ink2)
                 .textCase(.uppercase)
             Spacer(minLength: 0)
         }

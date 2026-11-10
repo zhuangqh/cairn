@@ -13,7 +13,7 @@ struct HoldingEditView: View {
                     LabeledContent {
                         Text(verbatim: holding.currency)
                             .font(.body.monospaced().weight(.semibold))
-                            .foregroundStyle(Color.notionInkSecondary)
+                            .foregroundStyle(Color.ink2)
                     } label: {
                         Text("currency.picker.title")
                     }

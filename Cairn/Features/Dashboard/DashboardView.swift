@@ -1,23 +1,16 @@
 import SwiftUI
 import SwiftData
 
-/// Home screen of the app. A redesigned, typography-driven layout that
-/// answers three questions in order: *how much are we worth*, *what is
-/// driving that number*, and *where is it allocated*.
+/// Home screen of the app, laid out as a 「私人银行」 statement
+/// (docs/design.md): sections on the ivory ground separated by hairlines.
 ///
 /// Sections (top → bottom):
-///   1. **Hero** — headline total + signed monthly delta + composition hint.
-///   2. **Composition** — financial vs physical split with a stacked bar
-///      and per-segment value / share / delta.
-///   3. **Trend** — monthly net-worth chart (financial line + physical
-///      overlay), drives time-travel via hover.
-///   4. **Allocation** — donut + detailed per-category list with value,
-///      share, and signed change.
-///
-/// Hovering a point on the trend chart time-travels every other section
-/// to that month. Cards use the Notion-style flat surface (`glassCard`)
-/// to keep the visual rhythm minimal — depth comes from typography and
-/// hierarchy, not borders.
+///   1. **Hero** — household total, month-over-month change, month.
+///   2. **Trend** — combined net-worth curve with its range picker; hovering
+///      or dragging time-travels the other sections to that month.
+///   3. **Composition** — financial / physical bar plus per-category rows.
+///   4. **Members** — one-line row of member shortcuts.
+///   5. **Journal** — latest achievement entry.
 struct DashboardView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
@@ -64,8 +57,6 @@ struct DashboardView: View {
         var combinedPrev: Decimal
 
         var allocation: [NetWorthCalculator.KindTotal]
-        var allocationByKind: [AccountKind: Decimal]
-        var allocationByKindPrev: [AccountKind: Decimal]
 
         var missingCurrencies: [String]
 
@@ -123,7 +114,6 @@ struct DashboardView: View {
             .sorted()
 
         let byKind = mergeByKind(financial: financial.byKind, physical: physical.byCategory)
-        let byKindPrev = mergeByKind(financial: financialPrev.byKind, physical: physicalPrev.byCategory)
 
         let allocation = byKind
             .filter { $0.value != 0 }
@@ -138,8 +128,6 @@ struct DashboardView: View {
             physicalPrev: physicalPrev.totals.amount,
             combinedPrev: financialPrev.totals.amount + physicalPrev.totals.amount,
             allocation: allocation,
-            allocationByKind: byKind,
-            allocationByKindPrev: byKindPrev,
             missingCurrencies: mergedMissing
         )
     }
@@ -202,26 +190,26 @@ struct DashboardView: View {
             #endif
 
             ScrollView {
-                VStack(spacing: isCompact ? 18 : 24) {
-                    heroCard(isCompact: isCompact, derivation: derivation)
-                    achievementCard(isCompact: isCompact, financialTotal: derivation.financial)
-                    if !members.isEmpty {
-                        membersCard(isCompact: isCompact)
-                    }
+                VStack(alignment: .leading, spacing: 0) {
+                    heroSection(derivation: derivation)
                     if isWide {
-                        HStack(alignment: .top, spacing: 24) {
-                            trendCard
+                        HStack(alignment: .top, spacing: 40) {
+                            trendSection
                                 .frame(maxWidth: .infinity)
-                            allocationCard(derivation: derivation)
+                            compositionSection(derivation: derivation)
                                 .frame(maxWidth: .infinity)
                         }
                     } else {
-                        trendCard
-                        allocationCard(derivation: derivation)
+                        trendSection
+                        compositionSection(derivation: derivation)
                     }
+                    if !members.isEmpty {
+                        membersRow
+                    }
+                    achievementRow(isCompact: isCompact, financialTotal: derivation.financial)
                 }
                 .pageHorizontalPadding()
-                .padding(.vertical, 20)
+                .padding(.bottom, 24)
                 .frame(maxWidth: 1100)
                 .frame(maxWidth: .infinity)
             }
@@ -239,6 +227,7 @@ struct DashboardView: View {
                     } label: {
                         Label("assets.updateThisMonth", systemImage: "calendar.badge.plus")
                     }
+                    .foregroundStyle(Color.accent)
                 }
             }
         }
@@ -258,222 +247,98 @@ struct DashboardView: View {
         }
     }
 
-    // MARK: - Achievements
-
-    private func achievementCard(isCompact: Bool, financialTotal: Decimal) -> some View {
-        let latest = orderedAchievementEvents.first.map(AchievementPresentation.init)
-        let latestWealthIndex = orderedAchievementEvents
-            .filter { $0.family == .wealthMilestone }
-            .compactMap { AchievementService.wealthStageIndex(from: $0.stageKey) }
-            .max()
-        let nextThreshold = AchievementService.wealthThreshold(at: (latestWealthIndex ?? -1) + 1)
-        let previousThreshold = latestWealthIndex.map { AchievementService.wealthThreshold(at: $0) } ?? 0
-        let progressRange = max(nextThreshold - previousThreshold, 1)
-        let progressValue = min(max((financialTotal - previousThreshold) / progressRange, 0), 1)
-
-        return NavigationLink {
-            AchievementJournalView()
-        } label: {
-            HStack(spacing: isCompact ? 12 : 18) {
-                AchievementBadgeView(
-                    family: latest?.family ?? .prologue,
-                    stageKey: latest?.stageKey ?? "first-stone",
-                    size: isCompact ? 48 : 58
-                )
-                .saturation(latest == nil ? 0.14 : 1)
-                .opacity(latest == nil ? 0.58 : 1)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("achievement.dashboard.eyebrow", bundle: localization.bundle)
-                        .font(.caption2.weight(.bold))
-                        .tracking(0.55)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Color.notionBlue)
-
-                    Text(
-                        latest.map { LocalizedStringKey($0.titleKey) }
-                            ?? LocalizedStringKey("achievement.firstStone.title"),
-                        bundle: localization.bundle
-                    )
-                    .font(.headline)
-                    .foregroundStyle(Color.notionInk)
-
-                    if let latest {
-                        Text(verbatim: AchievementFormatting.month(latest.logicalMonth, locale: locale))
-                            .font(.caption)
-                            .foregroundStyle(Color.notionInkSecondary)
-                    } else {
-                        Text("achievement.dashboard.empty", bundle: localization.bundle)
-                            .font(.caption)
-                            .foregroundStyle(Color.notionInkSecondary)
-                    }
-                }
-
-                Spacer(minLength: 8)
-
-                if !isCompact {
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text("achievement.dashboard.next", bundle: localization.bundle)
-                            .font(.caption2)
-                            .foregroundStyle(Color.notionInkMuted)
-                        Text(
-                            nextThreshold,
-                            format: .currency(code: homeCurrency)
-                                .precision(.fractionLength(0))
-                                .locale(locale)
-                        )
-                        .font(.subheadline.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(Color.notionInk)
-                        Text("achievement.dashboard.financialOnly", bundle: localization.bundle)
-                            .font(.caption2)
-                            .foregroundStyle(Color.notionInkMuted)
-                        ProgressView(value: NSDecimalNumber(decimal: progressValue).doubleValue)
-                            .progressViewStyle(.linear)
-                            .tint(Color.notionBlue)
-                            .frame(width: 118)
-                    }
-                }
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.notionInkMuted)
-            }
-            .padding(isCompact ? 14 : 18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .glassCard(cornerRadius: 16, padding: 0)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint(Text("achievement.dashboard.open", bundle: localization.bundle))
-    }
-
     // MARK: - Hero
 
-    @ViewBuilder
-    private func heroCard(isCompact: Bool, derivation: Derivation) -> some View {
-        let combinedDeltaPct = Derivation.deltaPercent(
+    private func heroSection(derivation: Derivation) -> some View {
+        let deltaPercent = Derivation.deltaPercent(
             current: derivation.combined,
             previous: derivation.combinedPrev
         )
-        let combinedDeltaAbs = derivation.combined - derivation.combinedPrev
-
-        let amountFont: Font = isCompact
-            ? .system(size: 36, weight: .bold)
-            : .system(size: 52, weight: .bold)
-
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .center, spacing: 12) {
-                GlyphBadge(
-                    systemName: "mountain.2.fill",
-                    tint: .notionBlue,
-                    size: 38,
-                    isCircle: true
-                )
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("dashboard.totalWealth")
-                        .font(.system(size: 12, weight: .semibold))
-                        .tracking(0.45)
-                        .textCase(.uppercase)
-                        .foregroundStyle(Color.notionInkSecondary)
-
-                    Text(effectiveAsOf, format: .dateTime.month(.wide).year().locale(locale))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color.notionInkMuted)
-                }
-
-                Spacer(minLength: 8)
-
-                NotionPillRaw(
-                    homeCurrency,
-                    textColor: .notionBadgeBlueText,
-                    background: .notionBadgeBlueBg.opacity(0.82)
-                )
-            }
-
-            Text(
-                derivation.combined,
-                format: .currency(code: homeCurrency)
-                    .locale(locale)
-                    .precision(.fractionLength(0))
-            )
-            .font(amountFont)
-            .tracking(isCompact ? -0.5 : -1.5)
-            .foregroundStyle(Color.notionInk)
-            .monospacedDigit()
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .contentTransition(.numericText())
-            .animation(.easeOut(duration: 0.2), value: derivation.combined)
-
-            if combinedDeltaPct != nil {
-                heroDeltaRow(absolute: combinedDeltaAbs, percent: combinedDeltaPct)
-            }
-
-            compositionHint(derivation: derivation)
+        return LedgerHero(
+            eyebrow: Text("dashboard.totalWealth"),
+            amount: derivation.combined,
+            code: homeCurrency,
+            locale: locale,
+            deltaAmount: deltaPercent == nil ? nil : derivation.combined - derivation.combinedPrev,
+            deltaPercent: deltaPercent
+        ) {
+            Text(effectiveAsOf, format: .dateTime.year().month(.wide).locale(locale))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 16, padding: isCompact ? 20 : 28)
+        .animation(.easeOut(duration: 0.2), value: derivation.combined)
+    }
+
+    // MARK: - Trend
+
+    private var trendSection: some View {
+        TrendChartView(
+            showPossessionOverlay: true,
+            onSelectionChange: { selection in
+                withAnimation(.easeOut(duration: 0.15)) {
+                    hoverSelection = selection
+                }
+            }
+        )
+    }
+
+    // MARK: - Composition
+
+    private func compositionSection(derivation: Derivation) -> some View {
+        LedgerSection(Text("dashboard.composition")) {
+            CompositionBreakdownView(
+                financial: derivation.financial,
+                physical: derivation.physical,
+                entries: derivation.allocation,
+                homeCurrency: homeCurrency
+            )
+        }
     }
 
     // MARK: - Members
 
-    /// Standalone card listing every family member as an avatar + given
-    /// name chip. Horizontally scrollable so it adapts to both narrow
-    /// iPhone widths (overflow scrolls) and wider macOS surfaces (all
-    /// chips fit on a single row).
-    @ViewBuilder
-    private func membersCard(isCompact: Bool) -> some View {
+    /// One-line row: label, then each member as avatar + given name. Each
+    /// member opens its detail; overflow scrolls horizontally.
+    private var membersRow: some View {
         let sorted = members.sorted { $0.createdAt < $1.createdAt }
-        VStack(alignment: .leading, spacing: 12) {
+        return HStack(spacing: 16) {
             Text("dashboard.members")
-                .font(.system(size: 12, weight: .semibold))
-                .tracking(0.6)
-                .textCase(.uppercase)
-                .foregroundStyle(Color.notionInkSecondary)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(sorted) { member in
-                        memberChip(for: member)
-                    }
+                .font(.callout)
+                .foregroundStyle(Color.ink2)
+                .fixedSize()
+            Spacer(minLength: 8)
+            ViewThatFits(in: .horizontal) {
+                memberChips(sorted)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    memberChips(sorted)
                 }
-                .padding(.vertical, 2)
             }
-            .scrollClipDisabled()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 16, padding: isCompact ? 16 : 20)
+        .frame(minHeight: 56)
+        .padding(.vertical, 6)
+        .overlay(alignment: .top) { LedgerHairline() }
     }
 
-    @ViewBuilder
-    private func memberChip(for member: Member) -> some View {
-        NavigationLink(value: member) {
-            HStack(spacing: 8) {
-                MemberAvatarView(
-                    name: member.name,
-                    avatarData: member.avatarData,
-                    seed: member.id,
-                    size: 28
-                )
-                Text(givenName(of: member.name))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.notionInk)
-                    .lineLimit(1)
+    private func memberChips(_ sorted: [Member]) -> some View {
+        HStack(spacing: 16) {
+            ForEach(sorted) { member in
+                NavigationLink(value: member) {
+                    HStack(spacing: 8) {
+                        MemberAvatarView(
+                            name: member.name,
+                            avatarData: member.avatarData,
+                            seed: member.id,
+                            size: 28
+                        )
+                        Text(verbatim: givenName(of: member.name))
+                            .font(.callout)
+                            .foregroundStyle(Color.ink)
+                            .lineLimit(1)
+                        LedgerChevron()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
-            .padding(.leading, 4)
-            .padding(.trailing, 12)
-            .padding(.vertical, 4)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(Color.notionSurface)
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(Color.notionBorder, lineWidth: 0.5)
-            )
         }
-        .buttonStyle(.plain)
     }
 
     /// Display the first whitespace-separated component as the
@@ -487,133 +352,95 @@ struct DashboardView: View {
         return trimmed
     }
 
-    @ViewBuilder
-    private func heroDeltaRow(absolute: Decimal, percent: Double?) -> some View {
-        let positive = absolute >= 0
-        let color: Color = positive ? .notionGreen : .notionOrange
-        let arrow = positive ? "arrow.up" : "arrow.down"
-        HStack(spacing: 8) {
-            Text(CompactCurrencyFormatter.string(
-                amount: absolute,
-                code: homeCurrency,
-                locale: locale,
-                alwaysSigned: true
-            ))
-            .font(.system(size: 15, weight: .semibold).monospacedDigit())
-            .foregroundStyle(color)
+    // MARK: - Achievements
 
-            if let percent {
-                HStack(spacing: 3) {
-                    Image(systemName: arrow)
-                        .font(.system(size: 11, weight: .bold))
-                    Text(percent, format: .percent.precision(.fractionLength(1)))
-                        .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                }
-                .foregroundStyle(color)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(color.opacity(0.12), in: Capsule())
-            }
+    /// Journal entry row (§5.9): 44pt badge, eyebrow line, then the latest
+    /// achievement name with its month. Wider layouts add progress toward the
+    /// next wealth milestone.
+    private func achievementRow(isCompact: Bool, financialTotal: Decimal) -> some View {
+        let latest = orderedAchievementEvents.first.map(AchievementPresentation.init)
+        let latestWealthIndex = orderedAchievementEvents
+            .filter { $0.family == .wealthMilestone }
+            .compactMap { AchievementService.wealthStageIndex(from: $0.stageKey) }
+            .max()
+        let nextThreshold = AchievementService.wealthThreshold(at: (latestWealthIndex ?? -1) + 1)
+        let previousThreshold = latestWealthIndex.map { AchievementService.wealthThreshold(at: $0) } ?? 0
+        let progressRange = max(nextThreshold - previousThreshold, 1)
+        let progressValue = min(max((financialTotal - previousThreshold) / progressRange, 0), 1)
 
-            Text("dashboard.vsLastMonth")
-                .font(.system(size: 13))
-                .foregroundStyle(Color.notionInkSecondary)
-        }
-    }
+        return NavigationLink {
+            AchievementJournalView()
+        } label: {
+            HStack(spacing: LedgerMetrics.columnSpacing) {
+                AchievementBadgeView(
+                    family: latest?.family ?? .prologue,
+                    stageKey: latest?.stageKey ?? "first-stone",
+                    size: 44
+                )
+                .saturation(latest == nil ? 0 : 1)
+                .opacity(latest == nil ? 0.55 : 1)
 
-    @ViewBuilder
-    private func compositionHint(derivation: Derivation) -> some View {
-        let total = derivation.combined
-        let financialPct = total > 0
-            ? NSDecimalNumber(decimal: derivation.financial / total).doubleValue
-            : 0
-        let physicalPct = max(0, 1 - financialPct)
-        if total > 0 {
-            VStack(alignment: .leading, spacing: 10) {
-                GeometryReader { proxy in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.notionTeal.opacity(0.42))
-                        Capsule()
-                            .fill(Color.notionBlue)
-                            .frame(width: max(8, proxy.size.width * CGFloat(financialPct)))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(latest == nil ? "achievement.dashboard.eyebrow" : "achievement.dashboard.latest",
+                         bundle: localization.bundle)
+                        .font(.caption)
+                        .foregroundStyle(Color.ink2)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(
+                            latest.map { LocalizedStringKey($0.titleKey) }
+                                ?? LocalizedStringKey("achievement.firstStone.title"),
+                            bundle: localization.bundle
+                        )
+                        .font(.headline)
+                        .foregroundStyle(Color.ink)
+
+                        if let latest {
+                            Text(verbatim: AchievementFormatting.month(latest.logicalMonth, locale: locale))
+                                .font(.footnote)
+                                .foregroundStyle(Color.ink3)
+                        }
+                    }
+                    if latest == nil {
+                        Text("achievement.dashboard.empty", bundle: localization.bundle)
+                            .font(.footnote)
+                            .foregroundStyle(Color.ink3)
                     }
                 }
-                .frame(height: 7)
-                .accessibilityHidden(true)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack(spacing: 14) {
-                    compositionLabel(
-                        "dashboard.balance.financial",
-                        percent: financialPct,
-                        color: .notionBlue
-                    )
-                    compositionLabel(
-                        "dashboard.balance.physical",
-                        percent: physicalPct,
-                        color: .notionTeal
-                    )
+                if !isCompact {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Text("achievement.dashboard.next", bundle: localization.bundle)
+                                .foregroundStyle(Color.ink3)
+                            Text(
+                                nextThreshold,
+                                format: .currency(code: homeCurrency)
+                                    .precision(.fractionLength(0))
+                                    .locale(locale)
+                            )
+                            .monospacedDigit()
+                            .foregroundStyle(Color.ink)
+                        }
+                        .font(.footnote)
+                        LedgerMeter(progress: NSDecimalNumber(decimal: progressValue).doubleValue)
+                            .frame(width: 140)
+                        Text("achievement.dashboard.financialOnly", bundle: localization.bundle)
+                            .font(.caption2)
+                            .foregroundStyle(Color.ink3)
+                    }
                 }
+
+                LedgerChevron()
             }
+            .frame(minHeight: 60)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
         }
-    }
-
-    private func compositionLabel(
-        _ title: LocalizedStringKey,
-        percent: Double,
-        color: Color
-    ) -> some View {
-        HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 7, height: 7)
-            Text(title)
-                .font(.system(size: 12))
-                .foregroundStyle(Color.notionInkSecondary)
-            Text(percent, format: .percent.precision(.fractionLength(0)))
-                .font(.system(size: 12, weight: .semibold).monospacedDigit())
-                .foregroundStyle(Color.notionInk)
-        }
-    }
-
-    // MARK: - Trend
-
-    private var trendCard: some View {
-        TrendChartView(
-            showPossessionOverlay: true,
-            onSelectionChange: { selection in
-                withAnimation(.easeOut(duration: 0.15)) {
-                    hoverSelection = selection
-                }
-            }
-        )
-        .glassCard()
-    }
-
-    // MARK: - Allocation (donut + categories merged)
-
-    private func allocationCard(derivation: Derivation) -> some View {
-        // Build per-kind month-over-month deltas. Skip kinds with no
-        // baseline so the badge layer stays semantically meaningful.
-        var deltas: [AccountKind: Double] = [:]
-        for kind in AccountKind.allCases {
-            let curr = derivation.allocationByKind[kind] ?? 0
-            let prev = derivation.allocationByKindPrev[kind] ?? 0
-            if let pct = Derivation.deltaPercent(current: curr, previous: prev) {
-                deltas[kind] = pct
-            }
-        }
-        return VStack(alignment: .leading, spacing: 16) {
-            Text("dashboard.allocation")
-                .font(.notionCardTitle)
-                .tracking(-0.25)
-                .foregroundStyle(Color.notionInk)
-            AllocationDonutView(
-                entries: derivation.allocation,
-                homeCurrency: homeCurrency,
-                deltas: deltas
-            )
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard()
+        .buttonStyle(.plain)
+        .overlay(alignment: .top) { LedgerHairline() }
+        .accessibilityHint(Text("achievement.dashboard.open", bundle: localization.bundle))
     }
 }
 
