@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Generate a Cairn mock backup file (JSON) that can be imported via
 Settings → Import. Produces multi-member, multi-currency, multi-month data
-plus several physical assets.
+plus several physical possessions with photos, in backup format version 5.
+
+Possession photos live in `example/photos/` (CC0 / public domain; see
+`example/photos/CREDITS.md`). Achievements are omitted: import recomputes
+them from the portfolio snapshots.
 
 Run:
     python3 example/generate_mock.py
@@ -9,20 +13,32 @@ Run:
 from __future__ import annotations
 
 import base64
+import calendar
 import json
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 
 OUT_PATH = Path(__file__).parent / "cairn-mock-data.json"
 AVATAR_DIR = Path(__file__).resolve().parents[1] / "docs" / "assets"
+PHOTO_DIR = Path(__file__).parent / "photos"
+BACKUP_VERSION = 5
 
 
-def avatar_b64(filename: str) -> str | None:
-    path = AVATAR_DIR / filename
+def _b64(path: Path) -> str | None:
     if not path.is_file():
         return None
     return base64.b64encode(path.read_bytes()).decode("ascii")
+
+
+def avatar_b64(filename: str) -> str | None:
+    return _b64(AVATAR_DIR / filename)
+
+
+def photo_b64(filename: str) -> str:
+    data = _b64(PHOTO_DIR / filename)
+    assert data is not None, f"missing photo {filename}"
+    return data
 
 UTC = timezone.utc
 HOME = "USD"
@@ -97,44 +113,36 @@ HOLDINGS = [
 
     # Lily
     ("lily.jpy",           "lily.mufg",      "JPY", "普通"),
-    ("lily.device.mbp",    "lily.devices",   "JPY", "MacBook Pro 16”"),
+    ("lily.device.mbp",    "lily.devices",   "JPY", "MacBook Air 13”"),
     ("lily.device.iphone", "lily.devices",   "JPY", "iPhone 17 Pro"),
 ]
 
 # ---------------------------------------------------------------------------
-# Snapshot trajectory: 6 months Nov 2025 .. Apr 2026.
-# Each holding grows >=5% per month so net-worth charts trend up clearly.
+# Snapshot trajectory: 12 months Nov 2025 .. Oct 2026.
 # ---------------------------------------------------------------------------
-MONTHS = [
-    (2025, 11),
-    (2025, 12),
-    (2026,  1),
-    (2026,  2),
-    (2026,  3),
-    (2026,  4),
-]
+MONTHS = [(2025, 11), (2025, 12)] + [(2026, m) for m in range(1, 11)]
 
 # (key, starting amount, per-month growth rates [len == len(MONTHS)-1])
-# Mix of winners and losers per holding so charts look organic; the net
-# worth still trends up >=5% per month overall (verified by the script).
+# Mix of winners and losers per holding so charts look organic while net
+# worth still trends up overall.
 _BASES: list[tuple[str, float, list[float]]] = [
     # Alice — cash drifts, EUR depreciates a bit, US stocks fly, HK pulls back
-    ("alice.cash.usd",     12500.0,  [ 0.020, -0.015,  0.030,  0.012, -0.008]),
-    ("alice.cash.eur",      8200.0,  [-0.025,  0.010, -0.030, -0.012,  0.018]),
-    ("alice.stock.voo",    48200.0,  [ 0.105,  0.128,  0.092,  0.118,  0.098]),
-    ("alice.stock.cash",    1800.0,  [ 0.250, -0.120,  0.180,  0.090, -0.050]),
-    ("alice.hk.tencent",   62000.0,  [-0.040,  0.085, -0.060,  0.135,  0.070]),
+    ("alice.cash.usd",     12500.0,  [ 0.020, -0.015,  0.030,  0.012, -0.008,  0.025, -0.010,  0.018,  0.006, -0.012,  0.022]),
+    ("alice.cash.eur",      8200.0,  [-0.025,  0.010, -0.030, -0.012,  0.018,  0.004, -0.008,  0.015, -0.020,  0.010,  0.006]),
+    ("alice.stock.voo",    48200.0,  [ 0.105,  0.128,  0.092,  0.118,  0.098, -0.045,  0.062,  0.038, -0.022,  0.071,  0.044]),
+    ("alice.stock.cash",    1800.0,  [ 0.250, -0.120,  0.180,  0.090, -0.050,  0.120, -0.080,  0.060,  0.030, -0.040,  0.100]),
+    ("alice.hk.tencent",   62000.0,  [-0.040,  0.085, -0.060,  0.135,  0.070, -0.055,  0.042,  0.090, -0.030,  0.064,  0.018]),
     # Bob — salary cash up, fixed deposit flat, US stocks great, HK shaky,
-    # property rising in a hot tier-1 market
-    ("bob.cnycash",        38000.0,  [ 0.045, -0.020,  0.060,  0.030,  0.018]),
-    ("bob.cnyfd",         120000.0,  [ 0.004,  0.004,  0.004,  0.004,  0.004]),
-    ("bob.futu.usd",        9800.0,  [ 0.135,  0.092, -0.040,  0.158,  0.110]),
-    ("bob.futu.hkd",       54000.0,  [ 0.020, -0.085,  0.045, -0.030,  0.065]),
-    ("bob.house.cny",    3200000.0,  [ 0.030,  0.038,  0.025,  0.042,  0.034]),
+    # property rising in a hot tier-1 market, then cooling
+    ("bob.cnycash",        38000.0,  [ 0.045, -0.020,  0.060,  0.030,  0.018,  0.040, -0.015,  0.035,  0.020,  0.050, -0.010]),
+    ("bob.cnyfd",         120000.0,  [ 0.004] * 11),
+    ("bob.futu.usd",        9800.0,  [ 0.135,  0.092, -0.040,  0.158,  0.110, -0.070,  0.085,  0.046, -0.035,  0.098,  0.052]),
+    ("bob.futu.hkd",       54000.0,  [ 0.020, -0.085,  0.045, -0.030,  0.065,  0.012, -0.040,  0.075,  0.028, -0.018,  0.040]),
+    ("bob.house.cny",    3200000.0,  [ 0.030,  0.038,  0.025,  0.042,  0.034,  0.012,  0.008, -0.006,  0.004, -0.010,  0.006]),
     # Lily — yen savings up, devices depreciate steadily
-    ("lily.jpy",         1850000.0,  [ 0.085,  0.062,  0.094,  0.078,  0.105]),
-    ("lily.device.mbp",   320000.0,  [-0.025, -0.025, -0.030, -0.025, -0.030]),
-    ("lily.device.iphone",180000.0,  [-0.030, -0.030, -0.040, -0.030, -0.035]),
+    ("lily.jpy",         1850000.0,  [ 0.085,  0.062,  0.094,  0.078,  0.105,  0.040,  0.072, -0.020,  0.088,  0.056,  0.064]),
+    ("lily.device.mbp",   180000.0,  [-0.025, -0.025, -0.030, -0.025, -0.030, -0.020, -0.025, -0.020, -0.025, -0.020, -0.020]),
+    ("lily.device.iphone",180000.0,  [-0.030, -0.030, -0.040, -0.030, -0.035, -0.025, -0.030, -0.025, -0.030, -0.025, -0.030]),
 ]
 
 
@@ -145,8 +153,8 @@ def _build_trajectory() -> dict[str, list[str]]:
         series = [start]
         for r in rates:
             series.append(series[-1] * (1.0 + r))
-        # JPY holdings are usually whole-yen; others keep 2 decimals.
-        is_jpy_or_huge = start >= 100000 and float(start).is_integer() and key.startswith(("lily.", "bob.house", "bob.cnyfd"))
+        # JPY holdings, the house, and the fixed deposit are whole units;
+        # others keep 2 decimals.
         if key.startswith("lily.") or key == "bob.house.cny" or key == "bob.cnyfd":
             out[key] = [f"{v:.0f}" for v in series]
         else:
@@ -168,10 +176,10 @@ TRAJECTORY: dict[str, list[str]] = _build_trajectory()
 
 # foreign-per-USD (i.e. base=USD, quote=FOREIGN, rate=foreign per 1 USD)
 USD_PER_FOREIGN = {
-    "EUR": ["0.92", "0.93", "0.94", "0.92", "0.91", "0.90"],   # 1 USD = 0.92 EUR
-    "HKD": ["7.80", "7.81", "7.82", "7.79", "7.78", "7.77"],
-    "CNY": ["7.18", "7.20", "7.22", "7.15", "7.10", "7.05"],
-    "JPY": ["152.0","154.0","156.0","153.5","151.0","149.5"],
+    "EUR": ["0.92", "0.93", "0.94", "0.92", "0.91", "0.90", "0.89", "0.90", "0.88", "0.87", "0.88", "0.87"],
+    "HKD": ["7.80", "7.81", "7.82", "7.79", "7.78", "7.77", "7.78", "7.80", "7.81", "7.79", "7.78", "7.79"],
+    "CNY": ["7.18", "7.20", "7.22", "7.15", "7.10", "7.05", "7.08", "7.12", "7.09", "7.04", "7.02", "7.06"],
+    "JPY": ["152.0","154.0","156.0","153.5","151.0","149.5","147.0","148.5","145.0","146.5","148.0","150.5"],
 }
 
 
@@ -236,13 +244,9 @@ for key, acct_key, currency, label in HOLDINGS:
 # Holding snapshots (day-granular, captured on the last day of the month)
 snapshots_out = []
 last_day_for_month = {
-    (2025, 11): day(2025, 11, 30, 21),
-    (2025, 12): day(2025, 12, 31, 21),
-    (2026,  1): day(2026,  1, 31, 21),
-    (2026,  2): day(2026,  2, 28, 21),
-    (2026,  3): day(2026,  3, 31, 21),
-    (2026,  4): day(2026,  4, 30, 21),
+    (y, m): day(y, m, calendar.monthrange(y, m)[1], 21) for y, m in MONTHS
 }
+LATEST = last_day_for_month[MONTHS[-1]]
 for key, amounts in TRAJECTORY.items():
     for idx, ym in enumerate(MONTHS):
         captured = last_day_for_month[ym]
@@ -309,109 +313,73 @@ for idx, ym in enumerate(MONTHS):
         "rates": rates,
     })
 
-# Physical assets — at least 4 across categories, mixed currencies & owners.
+# Physical possessions — mixed categories, currencies, and owners. Photos are
+# stored the way the app does: a transparent PNG cutout, or the original JPEG
+# when the cutout isn't clean (the bike). One sold item has no photo so the
+# placeholder figure and sale fields are covered too.
+def possession(
+    key: str,
+    name: str,
+    category: str,
+    price: float,
+    currency: str,
+    purchased: datetime,
+    current: float | None,
+    owner: str,
+    created: datetime,
+    *,
+    icon: str | None = None,
+    photo: str | None = None,
+    note: str | None = None,
+    sold: tuple[datetime, float] | None = None,
+) -> dict:
+    return {
+        "id": uid(f"possession.{key}"),
+        "name": name,
+        "categoryRawValue": category,
+        "purchasePrice": price,
+        "purchaseCurrency": currency,
+        "purchaseDate": iso(purchased),
+        "currentValue": current,
+        "currentValueUpdatedAt": iso(LATEST) if current is not None else None,
+        "saleDate": iso(sold[0]) if sold else None,
+        "salePrice": sold[1] if sold else None,
+        "iconName": icon,
+        "photoData": photo_b64(photo) if photo else None,
+        "note": note,
+        "createdAt": iso(created),
+        "memberId": member_id_by_key[owner],
+    }
+
+
 possessions_out = [
-    {
-        "id": uid("possession.house"),
-        "name": "Pudong Apartment",
-        "categoryRawValue": "realEstate",
-        "purchasePrice": 2800000.00,
-        "purchaseCurrency": "CNY",
-        "purchaseDate": iso(day(2019, 6, 15)),
-        "currentValue": 3245000.00,
-        "currentValueUpdatedAt": iso(last_day_for_month[(2026, 4)]),
-        "saleDate": None,
-        "salePrice": None,
-        "iconName": "house.fill",
-        "note": "Primary residence",
-        "createdAt": iso(day(2024, 2, 10)),
-        "memberId": member_id_by_key["member.bob"],
-    },
-    {
-        "id": uid("possession.tesla"),
-        "name": "Tesla Model 3",
-        "categoryRawValue": "vehicle",
-        "purchasePrice": 42000.00,
-        "purchaseCurrency": "USD",
-        "purchaseDate": iso(day(2023, 4, 20)),
-        "currentValue": 31500.00,
-        "currentValueUpdatedAt": iso(last_day_for_month[(2026, 4)]),
-        "saleDate": None,
-        "salePrice": None,
-        "iconName": "car.fill",
-        "note": "Daily driver",
-        "createdAt": iso(day(2024, 2, 12)),
-        "memberId": member_id_by_key["member.alice"],
-    },
-    {
-        "id": uid("possession.mbp"),
-        "name": "MacBook Pro 16”",
-        "categoryRawValue": "electronics",
-        "purchasePrice": 398000.00,
-        "purchaseCurrency": "JPY",
-        "purchaseDate": iso(day(2024, 11, 2)),
-        "currentValue": 270000.00,
-        "currentValueUpdatedAt": iso(last_day_for_month[(2026, 4)]),
-        "saleDate": None,
-        "salePrice": None,
-        "iconName": "laptopcomputer",
-        "note": "M4 Max, 64GB",
-        "createdAt": iso(day(2024, 11, 3)),
-        "memberId": member_id_by_key["member.lily"],
-    },
-    {
-        "id": uid("possession.iphone"),
-        "name": "iPhone 17 Pro",
-        "categoryRawValue": "electronics",
-        "purchasePrice": 189000.00,
-        "purchaseCurrency": "JPY",
-        "purchaseDate": iso(day(2025, 9, 25)),
-        "currentValue": 160000.00,
-        "currentValueUpdatedAt": iso(last_day_for_month[(2026, 4)]),
-        "saleDate": None,
-        "salePrice": None,
-        "iconName": "iphone",
-        "note": None,
-        "createdAt": iso(day(2025, 9, 26)),
-        "memberId": member_id_by_key["member.lily"],
-    },
-    {
-        "id": uid("possession.bike"),
-        "name": "Trek Domane SLR",
-        "categoryRawValue": "other",
-        "purchasePrice": 6500.00,
-        "purchaseCurrency": "USD",
-        "purchaseDate": iso(day(2022, 5, 14)),
-        "currentValue": 4200.00,
-        "currentValueUpdatedAt": iso(last_day_for_month[(2026, 4)]),
-        "saleDate": None,
-        "salePrice": None,
-        "iconName": "bicycle",
-        "note": "Road bike",
-        "createdAt": iso(day(2024, 2, 14)),
-        "memberId": member_id_by_key["member.alice"],
-    },
-    {
-        "id": uid("possession.watch"),
-        "name": "Rolex Submariner",
-        "categoryRawValue": "other",
-        "purchasePrice": 62000.00,
-        "purchaseCurrency": "HKD",
-        "purchaseDate": iso(day(2021, 8, 10)),
-        "currentValue": 78000.00,
-        "currentValueUpdatedAt": iso(last_day_for_month[(2026, 4)]),
-        "saleDate": None,
-        "salePrice": None,
-        "iconName": "applewatch",
-        "note": "Appreciating asset",
-        "createdAt": iso(day(2024, 2, 15)),
-        "memberId": member_id_by_key["member.alice"],
-    },
+    possession("house", "Pudong Apartment", "realEstate", 2800000.00, "CNY", day(2019, 6, 15),
+               3290000.00, "member.bob", day(2024, 2, 10),
+               icon="house.fill", photo="apartment.png", note="Primary residence"),
+    possession("tesla", "Tesla Model 3", "vehicle", 42000.00, "USD", day(2023, 4, 20),
+               28900.00, "member.alice", day(2024, 2, 12),
+               icon="car.fill", photo="tesla.png", note="Daily driver"),
+    possession("mbp", "MacBook Air 13”", "electronics", 198800.00, "JPY", day(2024, 11, 2),
+               128000.00, "member.lily", day(2024, 11, 3),
+               icon="laptopcomputer", photo="macbook.png", note="M3, 16GB"),
+    possession("iphone", "iPhone 17 Pro", "electronics", 179800.00, "JPY", day(2025, 9, 25),
+               132000.00, "member.lily", day(2025, 9, 26),
+               icon="iphone", photo="iphone.png"),
+    possession("bike", "Steel road bike", "other", 2400.00, "USD", day(2022, 5, 14),
+               1500.00, "member.alice", day(2024, 2, 14),
+               icon="bicycle", photo="bike.jpg", note="Weekend rides"),
+    possession("watch", "Steel dive watch", "other", 62000.00, "HKD", day(2021, 8, 10),
+               78000.00, "member.alice", day(2024, 2, 15),
+               icon="applewatch", photo="watch.png", note="Appreciating asset"),
+    possession("switch", "Nintendo Switch", "electronics", 2099.00, "CNY", day(2020, 3, 8),
+               None, "member.bob", day(2024, 2, 16),
+               icon="gamecontroller.fill", sold=(day(2025, 6, 18), 900.00)),
 ]
 
 payload = {
-    "version": 3,
-    "exportedAt": iso(day(2026, 4, 30, 22)),
+    "version": BACKUP_VERSION,
+    "exportedAt": iso(LATEST.replace(hour=22)),
+    "homeCurrency": HOME,
     "members": MEMBERS,
     "accounts": accounts_out,
     "holdings": holdings_out,
@@ -421,8 +389,8 @@ payload = {
     "possessions": possessions_out,
 }
 
-OUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+OUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 print(f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes)")
 print(f"  members: {len(MEMBERS)}  accounts: {len(accounts_out)}  holdings: {len(holdings_out)}")
 print(f"  snapshots: {len(snapshots_out)}  portfolioSnapshots: {len(portfolio_out)}")
-print(f"  fxRates: {len(fx_out)}  assets: {len(possessions_out)}")
+print(f"  fxRates: {len(fx_out)}  possessions: {len(possessions_out)}")
