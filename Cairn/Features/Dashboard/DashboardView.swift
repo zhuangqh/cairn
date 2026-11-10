@@ -4,13 +4,16 @@ import SwiftData
 /// Home screen of the app, laid out as a 「私人银行」 statement
 /// (docs/design.md): sections on the ivory ground separated by hairlines.
 ///
-/// Sections (top → bottom):
+/// Sections (stacked layout, top → bottom):
 ///   1. **Hero** — household total, month-over-month change, month.
 ///   2. **Trend** — combined net-worth curve with its range picker; hovering
 ///      or dragging time-travels the other sections to that month.
-///   3. **Composition** — financial / physical bar plus per-category rows.
-///   4. **Members** — one-line row of member shortcuts.
-///   5. **Journal** — latest achievement entry.
+///   3. **Journal** — latest achievement entry.
+///   4. **Composition** — financial / physical bar plus per-category rows.
+///   5. **Members** — one-line row of member shortcuts.
+///
+/// Wide macOS windows use two equal columns: hero | journal panel, then
+/// trend | composition, then the members line across both.
 struct DashboardView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
@@ -170,12 +173,13 @@ struct DashboardView: View {
 
     // MARK: - Body
 
-    /// Breakpoints for the adaptive layout. Single-column below `compact`,
-    /// at `wide` and up the trend + allocation cards share a single row
-    /// (macOS only — iPhone keeps everything stacked for readability).
+    /// Breakpoints for the adaptive layout. Below `compact` the journal row
+    /// drops its milestone meter; at `wide` and up the page switches to two
+    /// columns (macOS only — iPhone keeps everything stacked for readability).
     private enum Layout {
         static let compact: CGFloat = 560
         static let wide: CGFloat = 930
+        static let columnGap: CGFloat = 40
     }
 
     var body: some View {
@@ -191,22 +195,36 @@ struct DashboardView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    heroSection(derivation: derivation)
                     if isWide {
-                        HStack(alignment: .top, spacing: 40) {
+                        // Two equal columns sharing one guide: hero | journal,
+                        // then trend | composition, then the members line.
+                        HStack(alignment: .top, spacing: Layout.columnGap) {
+                            heroSection(derivation: derivation)
+                                .frame(maxWidth: .infinity)
+                            DashboardJournalPanel(summary: journalSummary(financialTotal: derivation.financial))
+                                .frame(maxWidth: .infinity)
+                        }
+                        HStack(alignment: .top, spacing: Layout.columnGap) {
                             trendSection
                                 .frame(maxWidth: .infinity)
                             compositionSection(derivation: derivation)
                                 .frame(maxWidth: .infinity)
                         }
+                        if !members.isEmpty {
+                            membersRow(chipsLeading: true)
+                        }
                     } else {
+                        heroSection(derivation: derivation)
                         trendSection
+                        DashboardJournalRow(
+                            summary: journalSummary(financialTotal: derivation.financial),
+                            showsMilestone: !isCompact
+                        )
                         compositionSection(derivation: derivation)
+                        if !members.isEmpty {
+                            membersRow(chipsLeading: false)
+                        }
                     }
-                    if !members.isEmpty {
-                        membersRow
-                    }
-                    achievementRow(isCompact: isCompact, financialTotal: derivation.financial)
                 }
                 .pageHorizontalPadding()
                 .padding(.bottom, 24)
@@ -297,14 +315,16 @@ struct DashboardView: View {
 
     /// One-line row: label, then each member as avatar + given name. Each
     /// member opens its detail; overflow scrolls horizontally.
-    private var membersRow: some View {
+    private func membersRow(chipsLeading: Bool) -> some View {
         let sorted = members.sorted { $0.createdAt < $1.createdAt }
         return HStack(spacing: 16) {
             Text("dashboard.members")
                 .font(.callout)
                 .foregroundStyle(Color.ink2)
                 .fixedSize()
-            Spacer(minLength: 8)
+            if !chipsLeading {
+                Spacer(minLength: 8)
+            }
             ViewThatFits(in: .horizontal) {
                 memberChips(sorted)
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -314,6 +334,7 @@ struct DashboardView: View {
         }
         .frame(minHeight: 56)
         .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .top) { LedgerHairline() }
     }
 
@@ -354,11 +375,7 @@ struct DashboardView: View {
 
     // MARK: - Achievements
 
-    /// Journal entry row (§5.9): 44pt badge, eyebrow line, then the latest
-    /// achievement name with its month. Wider layouts add progress toward the
-    /// next wealth milestone.
-    private func achievementRow(isCompact: Bool, financialTotal: Decimal) -> some View {
-        let latest = orderedAchievementEvents.first.map(AchievementPresentation.init)
+    private func journalSummary(financialTotal: Decimal) -> DashboardJournalSummary {
         let latestWealthIndex = orderedAchievementEvents
             .filter { $0.family == .wealthMilestone }
             .compactMap { AchievementService.wealthStageIndex(from: $0.stageKey) }
@@ -367,80 +384,12 @@ struct DashboardView: View {
         let previousThreshold = latestWealthIndex.map { AchievementService.wealthThreshold(at: $0) } ?? 0
         let progressRange = max(nextThreshold - previousThreshold, 1)
         let progressValue = min(max((financialTotal - previousThreshold) / progressRange, 0), 1)
-
-        return NavigationLink {
-            AchievementJournalView()
-        } label: {
-            HStack(spacing: LedgerMetrics.columnSpacing) {
-                AchievementBadgeView(
-                    family: latest?.family ?? .prologue,
-                    stageKey: latest?.stageKey ?? "first-stone",
-                    size: 44
-                )
-                .saturation(latest == nil ? 0 : 1)
-                .opacity(latest == nil ? 0.55 : 1)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(latest == nil ? "achievement.dashboard.eyebrow" : "achievement.dashboard.latest",
-                         bundle: localization.bundle)
-                        .font(.caption)
-                        .foregroundStyle(Color.ink2)
-
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(
-                            latest.map { LocalizedStringKey($0.titleKey) }
-                                ?? LocalizedStringKey("achievement.firstStone.title"),
-                            bundle: localization.bundle
-                        )
-                        .font(.headline)
-                        .foregroundStyle(Color.ink)
-
-                        if let latest {
-                            Text(verbatim: AchievementFormatting.month(latest.logicalMonth, locale: locale))
-                                .font(.footnote)
-                                .foregroundStyle(Color.ink3)
-                        }
-                    }
-                    if latest == nil {
-                        Text("achievement.dashboard.empty", bundle: localization.bundle)
-                            .font(.footnote)
-                            .foregroundStyle(Color.ink3)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                if !isCompact {
-                    VStack(alignment: .trailing, spacing: 4) {
-                        HStack(spacing: 6) {
-                            Text("achievement.dashboard.next", bundle: localization.bundle)
-                                .foregroundStyle(Color.ink3)
-                            Text(
-                                nextThreshold,
-                                format: .currency(code: homeCurrency)
-                                    .precision(.fractionLength(0))
-                                    .locale(locale)
-                            )
-                            .monospacedDigit()
-                            .foregroundStyle(Color.ink)
-                        }
-                        .font(.footnote)
-                        LedgerMeter(progress: NSDecimalNumber(decimal: progressValue).doubleValue)
-                            .frame(width: 140)
-                        Text("achievement.dashboard.financialOnly", bundle: localization.bundle)
-                            .font(.caption2)
-                            .foregroundStyle(Color.ink3)
-                    }
-                }
-
-                LedgerChevron()
-            }
-            .frame(minHeight: 60)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .overlay(alignment: .top) { LedgerHairline() }
-        .accessibilityHint(Text("achievement.dashboard.open", bundle: localization.bundle))
+        return DashboardJournalSummary(
+            latest: orderedAchievementEvents.first.map(AchievementPresentation.init),
+            nextThreshold: nextThreshold,
+            homeCurrency: homeCurrency,
+            progress: NSDecimalNumber(decimal: progressValue).doubleValue
+        )
     }
 }
 

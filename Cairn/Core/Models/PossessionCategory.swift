@@ -31,7 +31,13 @@ public enum PossessionCategory: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    /// Display tint for badges / chips. Every category shares the ink-green
-    /// accent; the glyph, not a hue, tells categories apart (design.md §2).
-    public var tint: Color { .accent }
+    /// Category hue for badges and icon tiles, from `Color.categoryPalette`.
+    public var tint: Color {
+        switch self {
+        case .realEstate: return .accent
+        case .vehicle: return .mist
+        case .electronics: return .terracotta
+        case .other: return .brass
+        }
+    }
 }

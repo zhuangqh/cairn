@@ -193,17 +193,19 @@ struct LedgerSwatch: View {
     }
 }
 
-/// Rounded glyph tile on `accentSoft` (account / category icons).
+/// Rounded glyph tile tinted with its category hue (account / category icons).
 struct LedgerGlyphTile: View {
     let systemName: String
     var size: CGFloat = 38
+    /// Category hue; the tile ground is the same hue at low opacity.
+    var tint: Color = .accent
 
     var body: some View {
         Image(systemName: systemName)
             .font(.system(size: size * 0.45, weight: .medium))
-            .foregroundStyle(Color.accent)
+            .foregroundStyle(tint)
             .frame(width: size, height: size)
-            .background(Color.accentSoft, in: RoundedRectangle(cornerRadius: size * 0.26, style: .continuous))
+            .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: size * 0.26, style: .continuous))
             .accessibilityHidden(true)
     }
 }

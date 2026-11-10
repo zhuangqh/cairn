@@ -139,7 +139,7 @@ struct AccountDetailView: View {
         let previous = sorted.dropFirst().first
         return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: LedgerMetrics.columnSpacing) {
-                LedgerGlyphTile(systemName: account.kind.iconName)
+                LedgerGlyphTile(systemName: account.kind.iconName, tint: account.kind.tint)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(LocalizedStringKey(account.kind.localizationKey))
                         .font(.subheadline.weight(.semibold))
@@ -325,7 +325,7 @@ struct AccountDetailView: View {
                 if let delta {
                     Text(verbatim: LedgerAmountFormat.signed(delta, digits: digits, locale: locale))
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(delta > 0 ? Color.accent : Color.ink2)
+                        .foregroundStyle(ChangeTone.color(for: delta, locale: locale))
                 } else {
                     Text("account.detail.firstRecord")
                         .font(.caption)

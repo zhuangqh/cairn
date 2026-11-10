@@ -74,7 +74,7 @@ struct LedgerHeroAmount: View {
 }
 
 /// Month-over-month line: `↗ US$3,300  0.3%  较上月`. Direction is carried by
-/// the arrow; positive in `accent`, negative in `ink2`, flat without arrow.
+/// the arrow and by `ChangeTone` (locale-aware red/green); flat has no arrow.
 struct LedgerDeltaLine: View {
     let amount: Decimal?
     let percent: Double?
@@ -84,7 +84,7 @@ struct LedgerDeltaLine: View {
 
     var body: some View {
         let direction = sign
-        let tint: Color = direction > 0 ? .accent : .ink2
+        let tint = ChangeTone.color(sign: direction, locale: locale)
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 if direction != 0 {

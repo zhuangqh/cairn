@@ -64,14 +64,44 @@ public extension Color {
     static let notionPurple = Color(hex: 0x6B604B)
     static let notionBrown = Color(hex: 0x6B604B)
 
-    /// Category palette for composition breakdowns, assigned by rank
-    /// (largest share first). Beyond four, merge into "Other".
-    static let categoryPalette: [Color] = [
-        accent,
-        Color(light: Color(hex: 0x6F927F), dark: Color(hex: 0x5E8471)),
-        Color(light: Color(hex: 0xA9BEB0), dark: Color(hex: 0x445C50)),
-        Color(light: Color(hex: 0xD3CDBE), dark: Color(hex: 0x5C574C))
-    ]
+    /// Brass — second accent for achievements, milestones, and "now"
+    /// markers. Never used for interaction or for gain/loss.
+    static let brass = Color(light: Color(hex: 0xA8834A), dark: Color(hex: 0xCDAA6E))
+    /// Tinted ground behind brass marks.
+    static let brassSoft = Color(
+        light: Color(hex: 0xA8834A, opacity: 0.14),
+        dark: Color(hex: 0xCDAA6E, opacity: 0.16)
+    )
+    /// Muted terracotta and mist blue complete the category palette.
+    static let terracotta = Color(light: Color(hex: 0xB4775A), dark: Color(hex: 0xD49A7E))
+    static let mist = Color(light: Color(hex: 0x6F8796), dark: Color(hex: 0x9AB0BE))
+    /// Brick red for market moves (see `ChangeTone`); ≥4.5:1 on `pageBackground`.
+    /// Validation errors keep the system red.
+    static let brick = Color(light: Color(hex: 0xB5523B), dark: Color(hex: 0xE08A72))
+
+    /// Category palette: equal lightness and saturation, distinct hues.
+    static let categoryPalette: [Color] = [accent, mist, brass, terracotta]
+}
+
+// MARK: - Gain / loss colour
+
+/// Colour for a month-over-month move. Chinese readers expect red for a
+/// rise and green for a fall (红涨绿跌); other locales get green up, red down.
+/// Direction is always also carried by the ↗ / ↘ arrow.
+enum ChangeTone {
+    static func color(sign: Int, locale: Locale) -> Color {
+        guard sign != 0 else { return .ink2 }
+        let redMeansRise = locale.language.languageCode == .chinese
+        return (sign > 0) == redMeansRise ? .brick : .accent
+    }
+
+    static func color(for value: Decimal, locale: Locale) -> Color {
+        color(sign: value > 0 ? 1 : (value < 0 ? -1 : 0), locale: locale)
+    }
+
+    static func color(for value: Double, locale: Locale) -> Color {
+        color(sign: value > 0 ? 1 : (value < 0 ? -1 : 0), locale: locale)
+    }
 }
 
 // MARK: - Card modifier

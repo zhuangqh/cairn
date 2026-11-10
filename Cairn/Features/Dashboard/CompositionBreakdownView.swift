@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Dashboard 「资产构成」 body (design.md §5.3): a two-segment financial /
 /// physical bar with its legend, then one row per category — swatch, name,
-/// share, and whole-unit amount. Category colours come from the ranked
-/// `Color.categoryPalette`, never from per-kind hues.
+/// share, and whole-unit amount. Each category keeps its own hue
+/// (`AccountKind.tint`) so the swatch matches its account icons everywhere.
 struct CompositionBreakdownView: View {
     let financial: Decimal
     let physical: Decimal
@@ -40,18 +40,17 @@ struct CompositionBreakdownView: View {
                             LedgerHairline()
                                 .padding(.leading, 9 + LedgerMetrics.columnSpacing)
                         }
-                        row(for: entry, rank: rank)
+                        row(for: entry)
                     }
                 }
             }
         }
     }
 
-    private func row(for entry: NetWorthCalculator.KindTotal, rank: Int) -> some View {
-        let palette = Color.categoryPalette
+    private func row(for entry: NetWorthCalculator.KindTotal) -> some View {
         let pct = share(of: entry.amount)
         return GridRow {
-            LedgerSwatch(color: palette[min(rank, palette.count - 1)])
+            LedgerSwatch(color: entry.kind.tint)
             Text(LocalizedStringKey(entry.kind.localizationKey))
                 .font(.callout)
                 .foregroundStyle(Color.ink)
@@ -79,9 +78,16 @@ struct CompositionBreakdownView: View {
 }
 
 extension AccountKind {
-    /// Icon tint for account glyphs. All kinds share the ink-green accent —
-    /// the glyph distinguishes them, not a hue (design.md §2).
-    var tint: Color { .accent }
+    /// Category hue from `Color.categoryPalette`, shared by account icons and
+    /// the composition swatches.
+    var tint: Color {
+        switch self {
+        case .realEstate: return .accent
+        case .stock: return .mist
+        case .cash: return .brass
+        case .device: return .terracotta
+        }
+    }
 
     var iconName: String {
         switch self {

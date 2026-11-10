@@ -89,11 +89,28 @@ failures, or concrete risks. Report unrelated, non-blocking findings without
 fixing them. Stop when acceptance criteria are met and summarize changed files,
 validation results, and checks not performed.
 
+### Sample data
+
+Use the mock dataset [`example/cairn-mock-data.json`](../example/cairn-mock-data.json)
+as the sample data for manual testing, visual review, and screenshots, so every
+check sees the same members, accounts, currencies, history, and possession
+photos. It is a complete backup: import it with **Settings → Import Backup** only
+into a disposable store, such as a simulator or a separate build instance, because
+importing replaces all existing data. Never import it into the user's store.
+Regenerate it with `python3 example/generate_mock.py` (see
+[`example/README.md`](../example/README.md)) rather than editing the JSON by hand.
+
+The screenshot scripts load it automatically (see
+[Sample-data screenshots](#sample-data-screenshots)). Unit tests keep focused
+in-memory fixtures that construct only the data each case needs, and SwiftUI
+previews keep `PreviewSampleData`.
+
 ## UI layout and visual review
 
-Use the existing palette, card and button styles in
-[`GlassCardStyle.swift`](../Cairn/Shared/UI/GlassCardStyle.swift). The legacy
-`notion…` names now represent Cairn's alpine palette. Match neighboring screens
+Follow [design.md](design.md) for the 「私人银行」 visual system. Use the palette
+tokens in [`GlassCardStyle.swift`](../Cairn/Shared/UI/GlassCardStyle.swift) and the
+shared section, row, and hero components in `Cairn/Shared/UI/Ledger*.swift`; take
+gain/loss colors from `ChangeTone` rather than hard-coding red or green. Match neighboring screens
 and reuse shared spacing or sizing values for related components; introduce a
 shared layout constant when repeated values need to stay synchronized.
 
@@ -106,7 +123,7 @@ Keep numeric columns trailing-aligned with monospaced digits. Do not insert spac
 or repeatedly nudge individual rows to simulate alignment.
 
 For UI implementation, inspect affected screens in a preview, simulator, or
-running app. Use `PreviewSampleData` for model data and isolate settings as
+running app. Use the mock dataset described in [Sample data](#sample-data) and isolate settings as
 described above. Choose the cases that exercise the change; this is not a full
 device/locale matrix for every UI edit:
 
@@ -127,11 +144,14 @@ cases were inspected and any unavailable checks.
 
 ### Sample-data screenshots
 
-Debug builds accept `-CairnSampleData`, which replaces the persistent store with
-`PreviewSampleData` in memory, and `-CairnScreen dashboard|assets|accounts|settings`
-to choose the initial screen. The screenshot scripts also pass onboarding, home
-currency (USD), language, and appearance settings as launch arguments, which are
-read for that launch only, so the user's store and saved settings are not used.
+Debug builds accept `-CairnMockData <path>`, which restores that backup file into
+an in-memory store instead of opening the persistent store, and
+`-CairnScreen dashboard|assets|accounts|settings` to choose the initial screen.
+(`-CairnSampleData` still seeds the smaller `PreviewSampleData` graph.) The
+screenshot scripts load `example/cairn-mock-data.json` this way (override with
+`MOCK_DATA=<path>`) and also pass onboarding, home currency (USD), language, and
+appearance settings as launch arguments, which are read for that launch only, so
+the user's store and saved settings are not used.
 
 ```sh
 make screenshot-ios SCREEN=assets LANG_CODE=zh-Hans APPEARANCE=dark
@@ -141,8 +161,11 @@ This builds for the iOS Simulator, installs over the booted simulator's Cairn
 (set `DEVICE=<udid>` for another), and writes
 `build/screenshots/ios-<screen>-<lang>-<appearance>.png`. Its data container is
 left untouched. `make screenshot` is the macOS equivalent and writes
-`build/screenshots/<screen>-<lang>-<appearance>.png`. It needs Screen Recording
-permission for the terminal, launches a separate instance from `build/`, and exits
+`build/screenshots/<screen>-<lang>-<appearance>.png`. Because the sandboxed app can
+only read inside its container, it stages the mock file in
+`~/Library/Containers/com.zhuangqh.cairn/Data/tmp` for the run and deletes it
+afterwards. It needs Screen Recording permission for the terminal, launches a
+separate instance from `build/`, and exits
 if one from that build is already running. Instances from Xcode or `/Applications`
 are left alone. The scripts cover launch state only; use the running app for
 interaction, resizing, and larger text.

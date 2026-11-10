@@ -236,7 +236,7 @@ private struct SnapshotCard: View {
                         )
                     }
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(positive ? Color.green : Color.red)
+                    .foregroundStyle(ChangeTone.color(for: delta, locale: locale))
                 }
             }
         }

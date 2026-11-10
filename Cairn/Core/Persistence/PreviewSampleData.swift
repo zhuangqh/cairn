@@ -36,6 +36,23 @@ public enum PreviewSampleData {
         PersistenceController.previewContainer()
     }
 
+    #if DEBUG
+    /// In-memory container restored from a Cairn backup file, used by the
+    /// `-CairnMockData <path>` visual-review launch with the shared mock
+    /// dataset (`example/cairn-mock-data.json`). The user's store is never
+    /// opened; a missing or invalid file stops the debug launch.
+    public static func mockContainer(contentsOf url: URL) -> ModelContainer {
+        let container = PersistenceController.previewContainer()
+        do {
+            let data = try Data(contentsOf: url)
+            try BackupService.restoreReplacing(from: data, context: container.mainContext)
+        } catch {
+            fatalError("Could not load mock data from \(url.path): \(error)")
+        }
+        return container
+    }
+    #endif
+
     // MARK: - Seeded references
 
     public struct Seeded {

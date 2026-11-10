@@ -173,7 +173,7 @@ struct PortfolioSnapshotDetailView: View {
     @ViewBuilder
     private func headerDeltaLine(_ delta: TotalDelta) -> some View {
         let isPositive = delta.amount >= 0
-        let tint: Color = isPositive ? .notionGreen : .notionOrange
+        let tint = ChangeTone.color(for: delta.amount, locale: locale)
         HStack(spacing: 8) {
             Image(systemName: isPositive ? "arrow.up" : "arrow.down")
                 .font(.subheadline.weight(.bold))
@@ -614,7 +614,7 @@ struct PortfolioSnapshotDetailView: View {
     @ViewBuilder
     private func inlineDelta(_ amount: Decimal, currency: String) -> some View {
         let isPositive = amount >= 0
-        let tint: Color = isPositive ? .notionGreen : .notionOrange
+        let tint = ChangeTone.color(for: amount, locale: locale)
         HStack(spacing: 3) {
             Image(systemName: isPositive ? "arrow.up" : "arrow.down")
                 .font(.caption2.weight(.bold))
@@ -711,8 +711,7 @@ struct PortfolioSnapshotDetailView: View {
     }
 
     private func amountTint(_ value: Decimal) -> Color {
-        if value == 0 { return .secondary }
-        return value > 0 ? .notionGreen : .notionOrange
+        ChangeTone.color(for: value, locale: locale)
     }
 
     private func vsPreviousLabel(_ previousMonth: Date) -> String {

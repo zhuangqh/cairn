@@ -14,8 +14,14 @@ struct CairnApp: App {
 
     private let container: ModelContainer = {
         #if DEBUG
-        // Visual-review launches (scripts/screenshot-macos.sh) use seeded
-        // in-memory data so they never open or modify the user's store.
+        // Visual-review launches (scripts/screenshot-*.sh) use in-memory data
+        // so they never open or modify the user's store: the mock backup
+        // passed with `-CairnMockData <path>`, or the built-in preview graph.
+        if let path = UserDefaults.standard.string(forKey: "CairnMockData") {
+            return MainActor.assumeIsolated {
+                PreviewSampleData.mockContainer(contentsOf: URL(fileURLWithPath: path))
+            }
+        }
         if ProcessInfo.processInfo.arguments.contains("-CairnSampleData") {
             return MainActor.assumeIsolated { PreviewSampleData.container() }
         }

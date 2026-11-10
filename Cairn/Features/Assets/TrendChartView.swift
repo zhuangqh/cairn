@@ -108,7 +108,15 @@ struct TrendChartView: View {
             if let selection = hoverSelection {
                 Text(selection.period, format: .dateTime.year().month(.wide).locale(locale))
             } else {
-                Text("dashboard.trend.monthEnd")
+                HStack(spacing: 10) {
+                    if !cachedMarkers.isEmpty {
+                        HStack(spacing: 4) {
+                            SnapshotDot()
+                            Text("dashboard.trend.snapshot")
+                        }
+                    }
+                    Text("dashboard.trend.monthEnd")
+                }
             }
         }
         .font(.caption)
@@ -189,6 +197,12 @@ struct TrendChartView: View {
         let ticks = xTicks(points)
         return Chart {
             trendMarks(points)
+            snapshotMarks(
+                snapshotPoints(points: points, markers: markers),
+                dense: points.count > 24,
+                locale: locale,
+                currencyCode: homeCurrency
+            )
             endMark(points)
             hoverMarks(possessionByPeriod: cachedPossessionSeries)
         }
@@ -203,7 +217,7 @@ struct TrendChartView: View {
             AxisMarks(values: ticks) { value in
                 AxisValueLabel(anchor: tickAnchor(index: value.index, count: value.count)) {
                     if let date = value.as(Date.self) {
-                        Text(verbatim: tickLabel(date, ticks: ticks))
+                        Text(verbatim: tickLabel(date, ticks: ticks, locale: locale))
                             .font(.caption)
                             .foregroundStyle(Color.ink3)
                     }
@@ -352,7 +366,7 @@ struct TrendChartView: View {
         return TrendSelection(period: nearest.periodMonth, amount: nearest.amount)
     }
 
-    /// Monotone line (2.2pt accent) over a flat 5% accent fill.
+    /// Monotone line (2.2pt accent) over a flat 10% accent fill.
     @ChartContentBuilder
     private func trendMarks(_ points: [TrendPoint]) -> some ChartContent {
         ForEach(points) { point in
@@ -360,7 +374,7 @@ struct TrendChartView: View {
                 x: .value("assets.trend.axis.month", point.period),
                 y: .value("assets.trend.axis.amount", point.amountDouble)
             )
-            .foregroundStyle(Color.accent.opacity(0.05))
+            .foregroundStyle(Color.accent.opacity(0.10))
             .interpolationMethod(.monotone)
             LineMark(
                 x: .value("assets.trend.axis.month", point.period),
@@ -369,23 +383,6 @@ struct TrendChartView: View {
             .foregroundStyle(Color.accent)
             .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
             .interpolationMethod(.monotone)
-        }
-    }
-
-    /// Solid end dot ringed with the page ground.
-    @ChartContentBuilder
-    private func endMark(_ points: [TrendPoint]) -> some ChartContent {
-        if let last = points.last {
-            PointMark(
-                x: .value("assets.trend.axis.month", last.period),
-                y: .value("assets.trend.axis.amount", last.amountDouble)
-            )
-            .symbol {
-                Circle()
-                    .fill(Color.accent)
-                    .frame(width: 8, height: 8)
-                    .overlay(Circle().stroke(Color.pageBackground, lineWidth: 2))
-            }
         }
     }
 
@@ -452,36 +449,6 @@ struct TrendChartView: View {
             result[point.period] = sum
         }
         return result
-    }
-}
-
-// MARK: - Axis ticks
-
-extension TrendChartView {
-    /// First, middle, and last periods — at most three ticks so labels never
-    /// collide; first/last hug the plot edges.
-    private func xTicks(_ points: [TrendPoint]) -> [Date] {
-        guard let first = points.first?.period, let last = points.last?.period else { return [] }
-        if points.count < 3 { return first == last ? [first] : [first, last] }
-        return [first, points[points.count / 2].period, last]
-    }
-
-    private func tickAnchor(index: Int, count: Int) -> UnitPoint {
-        if count > 1, index == 0 { return .topLeading }
-        if count > 1, index == count - 1 { return .topTrailing }
-        return .top
-    }
-
-    /// Year + month for the first tick and whenever the year changes from
-    /// the previous tick; month alone otherwise.
-    private func tickLabel(_ date: Date, ticks: [Date]) -> String {
-        let calendar = Calendar.current
-        let index = ticks.firstIndex(of: date) ?? 0
-        let showYear = index == 0
-            || calendar.component(.year, from: ticks[index - 1]) != calendar.component(.year, from: date)
-        return showYear
-            ? date.formatted(.dateTime.year().month(.abbreviated).locale(locale))
-            : date.formatted(.dateTime.month(.abbreviated).locale(locale))
     }
 }
 

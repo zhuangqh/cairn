@@ -78,16 +78,20 @@ struct RootView: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .fill(Color.accent)
-
-                    Image(systemName: "mountain.2.fill")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .offset(y: 1)
-                }
-                .frame(width: 38, height: 38)
+                // App icon artwork (a copy of AppIcon's 256px image; keep the
+                // two in sync). `applicationIconImage` is not used because
+                // macOS 26 returns it inset on a system plate. The artwork is
+                // full-bleed, so clip it to a continuous corner.
+                Image("AppIconArtwork")
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 38, height: 38)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .strokeBorder(Color.line, lineWidth: 0.5)
+                    )
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("app.name", bundle: localization.bundle)

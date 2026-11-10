@@ -212,7 +212,7 @@ struct MemberAccountRow: View {
     /// balance of the primary holding / chevron.
     var body: some View {
         HStack(spacing: LedgerMetrics.columnSpacing) {
-            LedgerGlyphTile(systemName: account.kind.iconName, size: 30)
+            LedgerGlyphTile(systemName: account.kind.iconName, size: 30, tint: tint)
                 .frame(width: LedgerMetrics.leadingColumn, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {

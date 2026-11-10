@@ -2867,6 +2867,23 @@
         }
       }
     },
+    "dashboard.trend.snapshot" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snapshot"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快照"
+          }
+        }
+      }
+    },
     "dashboard.vsLastMonth" : {
       "extractionState" : "manual",
       "localizations" : {

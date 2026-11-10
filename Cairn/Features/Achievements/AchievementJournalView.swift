@@ -122,10 +122,12 @@ struct AchievementJournalView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 0) {
                 Text("achievement.journal.featured", bundle: localization.bundle)
+                    .foregroundStyle(Color.brass)
+                    .fontWeight(.semibold)
                 Text(verbatim: " · " + AchievementFormatting.month(presentation.logicalMonth, locale: locale))
+                    .foregroundStyle(Color.ink3)
             }
             .font(.caption)
-            .foregroundStyle(Color.ink3)
 
             Text(LocalizedStringKey(presentation.titleKey), bundle: localization.bundle)
                 .font(.title.bold())
@@ -227,7 +229,7 @@ struct AchievementJournalView: View {
                         Text(verbatim: next)
                             .font(.caption2)
                             .monospacedDigit()
-                            .foregroundStyle(Color.ink3)
+                            .foregroundStyle(Color.brass)
                     }
                 }
 
@@ -246,7 +248,7 @@ struct AchievementJournalView: View {
                 ForEach(Array(presentations.enumerated()), id: \.element.id) { index, presentation in
                     HStack(spacing: 13) {
                         Circle()
-                            .fill(Color.accent)
+                            .fill(Color.brass)
                             .frame(width: 7, height: 7)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 3) {

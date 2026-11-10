@@ -190,7 +190,7 @@ struct BatchEntryRowView: View {
             absoluteText: absText,
             percentText: percentText,
             iconName: isUp ? "arrow.up.right" : "arrow.down.right",
-            color: isUp ? .accent : .ink2
+            color: ChangeTone.color(sign: isUp ? 1 : -1, locale: locale)
         )
     }
 
