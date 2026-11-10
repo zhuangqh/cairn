@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Dashboard 「资产构成」 body (design.md §5.3): a two-segment financial /
+/// Dashboard 「资产构成」 body (DESIGN.md §5.3): a two-segment financial /
 /// physical bar with its legend, then one row per category — swatch, name,
 /// share, and whole-unit amount. Each category keeps its own hue
 /// (`AccountKind.tint`) so the swatch matches its account icons everywhere.

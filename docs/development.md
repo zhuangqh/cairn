@@ -107,7 +107,7 @@ previews keep `PreviewSampleData`.
 
 ## UI layout and visual review
 
-Follow [design.md](design.md) for the 「私人银行」 visual system. Use the palette
+Follow [DESIGN.md](../DESIGN.md) for the 「私人银行」 visual system. Use the palette
 tokens in [`GlassCardStyle.swift`](../Cairn/Shared/UI/GlassCardStyle.swift) and the
 shared section, row, and hero components in `Cairn/Shared/UI/Ledger*.swift`; take
 gain/loss colors from `ChangeTone` rather than hard-coding red or green. Match neighboring screens

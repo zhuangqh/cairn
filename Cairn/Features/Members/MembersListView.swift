@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// Lists every `Member` with their accounts beneath (design.md §4). The
+/// Lists every `Member` with their accounts beneath (DESIGN.md §4). The
 /// member header opens `MemberDetailView`; each account opens its detail.
 struct MembersListView: View {
     @Environment(\.modelContext) private var context

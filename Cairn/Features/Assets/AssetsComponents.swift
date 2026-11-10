@@ -4,7 +4,7 @@ import SwiftData
 // MARK: - Delta badge
 
 /// Compact direction-arrow change, e.g. `↗ 2.9%` (accent) or `↘ 1.4%` (ink2).
-/// Direction is carried by the arrow, so no `+` sign (design.md §6).
+/// Direction is carried by the arrow, so no `+` sign (DESIGN.md §6).
 /// Hidden when `percent` is `nil` (no baseline available).
 struct DeltaBadge: View {
     /// Fractional change, e.g. `0.029` → `2.9%`. `nil` renders nothing.

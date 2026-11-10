@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Hero summary pieces for the 「私人银行」 layout (docs/design.md §5.2, §6):
+// Hero summary pieces for the 「私人银行」 layout (DESIGN.md §5.2, §6):
 // baseline-aligned amount, direction-arrow delta line, and number helpers.
 
 // MARK: - Hero

@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Cairn palette
 //
-// 「私人银行」 palette (docs/design.md §2): warm ivory ground, ink-green
+// 「私人银行」 palette (DESIGN.md §2): warm ivory ground, ink-green
 // accent, hairline separators. Light values follow the spec exactly. Dark
 // mode has not been designed yet; the dark variants below are a provisional
 // counterpart (warm near-black ground, lifted ink-green so the accent keeps
@@ -166,7 +166,7 @@ public extension View {
 // MARK: - Page background
 
 /// Solid warm-ivory page ground. Data surfaces carry no gradient or glow;
-/// hierarchy comes from type, whitespace, and hairlines (design.md §1).
+/// hierarchy comes from type, whitespace, and hairlines (DESIGN.md §1).
 public struct AppBackground: View {
     public init() {}
 
@@ -189,7 +189,7 @@ public extension View {
     }
 
     /// Standard page horizontal padding: the 22pt leading guide every title,
-    /// row, and hairline starts from on iPhone (design.md §4); roomier on macOS.
+    /// row, and hairline starts from on iPhone (DESIGN.md §4); roomier on macOS.
     func pageHorizontalPadding() -> some View {
         #if os(iOS)
         padding(.horizontal, 22)

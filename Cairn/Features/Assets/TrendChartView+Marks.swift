@@ -1,7 +1,7 @@
 import SwiftUI
 import Charts
 
-// Chart marks and axis ticks for `TrendChartView` (design.md §5.8), split out
+// Chart marks and axis ticks for `TrendChartView` (DESIGN.md §5.8), split out
 // to keep the view within lint limits.
 
 extension TrendChartView {

@@ -9,7 +9,7 @@ import UniformTypeIdentifiers
 
 /// Circular avatar for a `Member`. Shows the uploaded photo when present,
 /// otherwise falls back to a low-saturation tinted disc with the member's
-/// initials in a deeper shade of the same hue (design.md §2).
+/// initials in a deeper shade of the same hue (DESIGN.md §2).
 struct MemberAvatarView: View {
     let name: String
     let avatarData: Data?

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Page-level segmented control (design.md §5.7), e.g. Financial / Physical.
+/// Page-level segmented control (DESIGN.md §5.7), e.g. Financial / Physical.
 /// A 6% ink track with a raised ivory thumb under the selected option.
 /// Animates with a critically damped spring, or a fade under Reduce Motion.
 struct LedgerSegmentedControl<Option: Hashable>: View {

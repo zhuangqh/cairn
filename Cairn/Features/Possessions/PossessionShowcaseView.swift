@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 「陈列柜」 (design.md §5.10): one horizontally scrolling shelf of tiles —
+/// 「陈列柜」 (DESIGN.md §5.10): one horizontally scrolling shelf of tiles —
 /// 140pt wide, a 104pt image well on the `thumb` ground with the photo
 /// multiplied into it, then the name and purchase price. Items run in
 /// category order, most valuable first within each category.

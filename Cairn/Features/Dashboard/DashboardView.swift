@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 /// Home screen of the app, laid out as a 「私人银行」 statement
-/// (docs/design.md): sections on the ivory ground separated by hairlines.
+/// (DESIGN.md): sections on the ivory ground separated by hairlines.
 ///
 /// Sections (stacked layout, top → bottom):
 ///   1. **Hero** — household total, month-over-month change, month.

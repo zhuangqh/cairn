@@ -347,7 +347,7 @@ struct AssetsView: View {
     }
     #endif
 
-    /// Page-level segmented control (design.md §5.7).
+    /// Page-level segmented control (DESIGN.md §5.7).
     private var tabPicker: some View {
         LedgerSegmentedControl(selection: $selectedTab, options: Tab.allCases) { tab in
             Text(tab.titleKey)

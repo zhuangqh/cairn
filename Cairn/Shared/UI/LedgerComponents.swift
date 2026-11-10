@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Shared building blocks for the 「私人银行」 layout (docs/design.md §4–§5):
+// Shared building blocks for the 「私人银行」 layout (DESIGN.md §4–§5):
 // hairline-ruled sections with 20pt bold titles, 48pt rows on shared column
 // widths, currency-code tags, progress rows, and two-segment composition bars.
 
