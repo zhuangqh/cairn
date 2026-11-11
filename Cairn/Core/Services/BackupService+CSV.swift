@@ -8,15 +8,15 @@ extension BackupService {
     /// `PortfolioSnapshot`; holding columns are ordered by member, account,
     /// label, then currency, and values remain in each holding's native
     /// currency instead of using `convertedAmount`.
-    static func makeSnapshotCSV(in context: ModelContext) throws -> Data {
-        let snapshots = ((try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? [])
+    static func makeSnapshotCSV(in context: ModelContext, fetching: (any ModelFetching)? = nil) throws -> Data {
+        let snapshots = try (fetching ?? context).fetch(FetchDescriptor<PortfolioSnapshot>())
             .sorted { lhs, rhs in
                 if lhs.periodMonth == rhs.periodMonth {
                     return lhs.recordedAt < rhs.recordedAt
                 }
                 return lhs.periodMonth < rhs.periodMonth
             }
-        let holdingSnapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
+        let holdingSnapshots = try (fetching ?? context).fetch(FetchDescriptor<Snapshot>())
         // Decode each snapshot's JSON blobs once; both passes below read them.
         let decoded = snapshots.map { (snapshot: $0, entries: $0.entries, rates: $0.rates) }
 
@@ -111,13 +111,16 @@ extension BackupService {
         NSDecimalNumber(decimal: value).stringValue
     }
 
+    // At least 2 decimals keeps familiar rates unchanged ("1.52"); up to 10
+    // keeps small-unit currencies meaningful (JPY->USD is 0.0063601094,
+    // not 0.01).
     private static let csvRateFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.numberStyle = .decimal
         formatter.usesGroupingSeparator = false
         formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
+        formatter.maximumFractionDigits = 10
         return formatter
     }()
 

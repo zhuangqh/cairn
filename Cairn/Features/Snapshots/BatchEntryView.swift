@@ -348,36 +348,29 @@ struct BatchEntryView: View {
         // `PortfolioSnapshot` is still keyed by month so month-over-month
         // trend points stay stable.
         let day = Snapshot.normalizeDay(periodMonth)
-        let rows: [BatchUpsertService.Row] = edits.compactMap { key, value in
-            guard let value else { return nil }
-            return BatchUpsertService.Row(holdingId: key, amount: value)
-        }
         let isReplacingCapturedSnapshot = lockedBaseline != nil
-        do {
-            if isReplacingCapturedSnapshot {
-                let replacementRows = groupedRows
-                    .flatMap(\.rows)
-                    .map { row in
-                        BatchUpsertService.Row(
-                            holdingId: row.holding.id,
-                            amount: currentAmount(for: row)
-                        )
-                    }
-                try BatchUpsertService.replaceMonth(replacementRows, periodMonth: day, context: context)
-            } else {
-                try BatchUpsertService.apply(rows, periodMonth: day, context: context)
+        let rows: [BatchUpsertService.Row]
+        if isReplacingCapturedSnapshot {
+            rows = groupedRows
+                .flatMap(\.rows)
+                .map { row in
+                    BatchUpsertService.Row(holdingId: row.holding.id, amount: currentAmount(for: row))
+                }
+        } else {
+            rows = edits.compactMap { key, value in
+                guard let value else { return nil }
+                return BatchUpsertService.Row(holdingId: key, amount: value)
             }
-        } catch {
-            errorMessage = error.localizedDescription
-            return
         }
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
         isSaving = true
         Task {
             defer { isSaving = false }
             do {
-                let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
-                try await PortfolioSnapshotService.captureForMonth(
-                    day,
+                try await BatchUpsertService.saveBatch(
+                    rows,
+                    replacingMonth: isReplacingCapturedSnapshot,
+                    periodMonth: day,
                     homeCurrency: homeCurrency,
                     note: trimmed.isEmpty ? nil : trimmed,
                     context: context

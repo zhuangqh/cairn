@@ -381,4 +381,43 @@ final class BackupServiceTests: InMemoryStoreTestCase {
         XCTAssertEqual(members.count, 1)
         XCTAssertEqual(members.first?.id, firstMemberId)
     }
+
+    func testRestoreRollsBackWhenWipeFetchFails() throws {
+        let sourceContext = container.mainContext
+        let holding = insertHolding(memberName: "Alice", in: sourceContext)
+        _ = SnapshotService.upsert(amount: 500, periodMonth: .now, for: holding, context: sourceContext)
+        try sourceContext.save()
+        let backup = try BackupService.makeBackup(in: sourceContext, homeCurrency: "USD")
+
+        let other = try PersistenceController.makeContainer(.inMemory)
+        let targetContext = other.mainContext
+        let bobHolding = insertHolding(accountName: "Secondary", memberName: "Bob", in: targetContext)
+        _ = SnapshotService.upsert(amount: 42, periodMonth: .now, for: bobHolding, context: targetContext)
+        try targetContext.save()
+
+        // Members are wiped after snapshots, holdings, and accounts, so the
+        // failure lands mid-wipe and must undo those earlier deletes too.
+        let fetcher = FailingModelFetcher(context: targetContext, failingType: Member.self)
+        XCTAssertThrowsError(
+            try BackupService.restoreReplacing(from: backup, context: targetContext, fetching: fetcher)
+        ) { error in
+            XCTAssertEqual(error as? DomainError, .backupWriteFailed)
+        }
+
+        let members = try targetContext.fetch(FetchDescriptor<Member>())
+        XCTAssertEqual(members.map(\.name), ["Bob"])
+        let accounts = try targetContext.fetch(FetchDescriptor<Account>())
+        XCTAssertEqual(accounts.map(\.name), ["Secondary"])
+        let snapshots = try targetContext.fetch(FetchDescriptor<Snapshot>())
+        XCTAssertEqual(snapshots.map(\.amount), [42])
+    }
+
+    func testBackupExportPropagatesFetchFailure() throws {
+        let context = container.mainContext
+        insertHolding(memberName: "Alice", in: context)
+        try context.save()
+
+        let fetcher = FailingModelFetcher(context: context, failingType: AchievementEvent.self)
+        XCTAssertThrowsError(try BackupService.makeBackup(in: context, homeCurrency: "USD", fetching: fetcher))
+    }
 }

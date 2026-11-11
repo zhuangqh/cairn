@@ -53,8 +53,8 @@ final class BackupServiceCSVTests: InMemoryStoreTestCase {
             csv,
             """
             date,period,recordedAt,homeCurrency,totalAmount,note,rateDate,rate CNY->AUD,rate USD->AUD,Alice / Cash / Everyday (CNY),"Bob / Broker, AU (USD)"
-            2026-02-15,2026-02-01,2026-02-02T03:04:05Z,AUD,999,"first, batch",2026-02-15,0.21,1.52,500,12.34
-            2026-03-20,2026-03-01,2026-03-02T03:04:05Z,AUD,1500,,2026-03-20,0.20,,750,
+            2026-02-15,2026-02-01,2026-02-02T03:04:05Z,AUD,999,"first, batch",2026-02-15,0.2105263158,1.5151515152,500,12.34
+            2026-03-20,2026-03-01,2026-03-02T03:04:05Z,AUD,1500,,2026-03-20,0.2040816327,,750,
 
             """
         )
@@ -87,6 +87,52 @@ final class BackupServiceCSVTests: InMemoryStoreTestCase {
 
             """
         )
+    }
+
+    func testSnapshotCSVKeepsSmallUnitRatePrecision() throws {
+        let context = container.mainContext
+        context.insert(
+            PortfolioSnapshot(
+                periodMonth: try date("2026-02-01T00:00:00Z"),
+                homeCurrency: "USD",
+                totalAmount: 100,
+                entries: [],
+                rates: [
+                    PortfolioSnapshot.Rate(base: "USD", quote: "JPY", rate: try XCTUnwrap(Decimal(string: "157.23")))
+                ],
+                recordedAt: try date("2026-02-02T03:04:05Z")
+            )
+        )
+        try context.save()
+
+        let csv = try XCTUnwrap(String(bytes: try BackupService.makeSnapshotCSV(in: context), encoding: .utf8))
+
+        XCTAssertEqual(
+            csv,
+            """
+            date,period,recordedAt,homeCurrency,totalAmount,note,rateDate,rate JPY->USD
+            2026-02-01,2026-02-01,2026-02-02T03:04:05Z,USD,100,,2026-02-01,0.0063601094
+
+            """
+        )
+    }
+
+    func testSnapshotCSVPropagatesFetchFailure() throws {
+        let context = container.mainContext
+        context.insert(
+            PortfolioSnapshot(
+                periodMonth: try date("2026-02-01T00:00:00Z"),
+                homeCurrency: "AUD",
+                totalAmount: 100,
+                entries: [],
+                rates: [],
+                recordedAt: try date("2026-02-02T03:04:05Z")
+            )
+        )
+        try context.save()
+
+        let fetcher = FailingModelFetcher(context: context, failingType: Snapshot.self)
+        XCTAssertThrowsError(try BackupService.makeSnapshotCSV(in: context, fetching: fetcher))
     }
 
     /// February batch capturing both holdings, with converted amounts and

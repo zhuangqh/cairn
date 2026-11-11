@@ -84,4 +84,21 @@ final class FXServiceTests: InMemoryStoreTestCase {
             )
         }
     }
+
+    /// Rates must match the published literals exactly, not the nearest
+    /// binary double (`Decimal(0.1)` is 0.1000000000000000512).
+    func testFrankfurterDecodingKeepsPublishedRatesExact() throws {
+        let json = """
+        {"amount":1.0,"base":"USD","date":"2026-02-13",
+         "rates":{"EUR":0.1,"JPY":157.23,"IDR":16234.5,"BTC":0.00001234,"KRW":1450}}
+        """
+        let response = try FrankfurterFetcher.decodeResponse(Data(json.utf8))
+
+        XCTAssertEqual(response.base, "USD")
+        XCTAssertEqual(response.date, try date("2026-02-13T00:00:00Z"))
+        let expected = ["EUR": "0.1", "JPY": "157.23", "IDR": "16234.5", "BTC": "0.00001234", "KRW": "1450"]
+        for (quote, literal) in expected {
+            XCTAssertEqual(response.rates[quote], Decimal(string: literal), quote)
+        }
+    }
 }

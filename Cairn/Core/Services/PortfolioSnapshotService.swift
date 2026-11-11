@@ -21,7 +21,8 @@ enum PortfolioSnapshotService {
     /// failure we fall back to the local FX cache so the snapshot is
     /// still saved.
     ///
-    /// Intended to be called right after `BatchUpsertService.apply(...)`.
+    /// Batch entry uses `BatchUpsertService.saveBatch(...)` instead, which
+    /// saves the per-holding rows and this capture together.
     @discardableResult
     static func captureForMonth(
         _ periodMonth: Date,
@@ -31,38 +32,99 @@ enum PortfolioSnapshotService {
         context: ModelContext,
         now: Date = .now
     ) async throws -> PortfolioSnapshot {
-        let day = Snapshot.normalizeDay(periodMonth)
-        let normalized = Snapshot.normalize(day)
-        let referenceDate = referenceDate(for: day, now: now)
-        let data = try await buildSnapshotData(
-            periodMonth: day,
-            referenceDate: referenceDate,
+        let rates = try await captureRates(
+            for: periodMonth,
             homeCurrency: homeCurrency,
+            fetcher: fetcher,
+            context: context,
+            now: now
+        )
+        let snapshot = try stageCapture(
+            periodMonth,
+            homeCurrency: homeCurrency,
+            note: note,
+            historicalRates: rates,
+            context: context,
+            now: now
+        )
+        try context.save()
+        return snapshot
+    }
+
+    /// Rates for capturing `periodMonth`, keyed by foreign currency with
+    /// `base = homeCurrency`: the provider's rates for the picked day
+    /// (capped at `now`), else the local FX cache.
+    static func captureRates(
+        for periodMonth: Date,
+        homeCurrency: String,
+        fetcher: any FXRateFetching,
+        context: ModelContext,
+        fetching store: (any ModelFetching)? = nil,
+        now: Date = .now
+    ) async throws -> [String: Decimal] {
+        let day = Snapshot.normalizeDay(periodMonth)
+        let quotes = try activeHoldings(in: store ?? context)
+            .map(\.currency)
+            .reduce(into: Set<String>()) { $0.insert($1) }
+            .filter { $0 != homeCurrency }
+            .sorted()
+        return await fetchHistoricalRates(
+            base: homeCurrency,
+            quotes: quotes,
+            on: referenceDate(for: day, now: now),
             fetcher: fetcher,
             context: context
         )
+    }
 
-        if let existing = find(periodMonth: normalized, homeCurrency: homeCurrency, context: context) {
-            existing.totalAmount = data.total
-            existing.entries = data.entries
-            existing.rates = data.rates
+    /// Inserts or updates the `PortfolioSnapshot` for `periodMonth` from the
+    /// holding amounts currently in `context`, including unsaved ones,
+    /// without saving. Synchronous so callers can stage it together with
+    /// the per-holding rows and commit both in one save.
+    @discardableResult
+    static func stageCapture(
+        _ periodMonth: Date,
+        homeCurrency: String,
+        note: String?,
+        historicalRates: [String: Decimal],
+        context: ModelContext,
+        fetching: (any ModelFetching)? = nil,
+        now: Date = .now
+    ) throws -> PortfolioSnapshot {
+        let store = fetching ?? context
+        let day = Snapshot.normalizeDay(periodMonth)
+        let normalized = Snapshot.normalize(day)
+        let (entries, total) = makeEntries(
+            holdings: try activeHoldings(in: store),
+            periodMonth: day,
+            homeCurrency: homeCurrency,
+            historicalRates: historicalRates,
+            context: context
+        )
+        let rates = historicalRates
+            .filter { $0.key != homeCurrency }
+            .map { PortfolioSnapshot.Rate(base: homeCurrency, quote: $0.key, rate: $0.value) }
+            .sorted { $0.quote < $1.quote }
+
+        if let existing = try find(periodMonth: normalized, homeCurrency: homeCurrency, in: store) {
+            existing.totalAmount = total
+            existing.entries = entries
+            existing.rates = rates
             existing.recordedAt = now
             existing.note = note
-            try context.save()
             return existing
         }
 
         let snapshot = PortfolioSnapshot(
             periodMonth: normalized,
             homeCurrency: homeCurrency,
-            totalAmount: data.total,
-            entries: data.entries,
-            rates: data.rates,
+            totalAmount: total,
+            entries: entries,
+            rates: rates,
             note: note,
             recordedAt: now
         )
         context.insert(snapshot)
-        try context.save()
         return snapshot
     }
 
@@ -140,60 +202,20 @@ enum PortfolioSnapshotService {
     private static func find(
         periodMonth: Date,
         homeCurrency: String,
-        context: ModelContext
-    ) -> PortfolioSnapshot? {
+        in store: any ModelFetching
+    ) throws -> PortfolioSnapshot? {
         let month = periodMonth
         let currency = homeCurrency
         var descriptor = FetchDescriptor<PortfolioSnapshot>(
             predicate: #Predicate { $0.periodMonth == month && $0.homeCurrency == currency }
         )
         descriptor.fetchLimit = 1
-        return (try? context.fetch(descriptor))?.first
+        return try store.fetch(descriptor).first
     }
 
-    private struct SnapshotData {
-        var entries: [PortfolioSnapshot.Entry]
-        var rates: [PortfolioSnapshot.Rate]
-        var total: Decimal
-    }
-
-    private static func buildSnapshotData(
-        periodMonth: Date,
-        referenceDate: Date,
-        homeCurrency: String,
-        fetcher: any FXRateFetching,
-        context: ModelContext
-    ) async throws -> SnapshotData {
-        let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
-        let activeHoldings = holdings.filter { $0.isArchived == false && $0.account?.isArchived == false }
-        let quotes = activeHoldings
-            .map(\.currency)
-            .reduce(into: Set<String>()) { $0.insert($1) }
-            .filter { $0 != homeCurrency }
-            .sorted()
-
-        let historicalRates = await fetchHistoricalRates(
-            base: homeCurrency,
-            quotes: quotes,
-            on: referenceDate,
-            fetcher: fetcher,
-            context: context
-        )
-
-        let (entries, total) = makeEntries(
-            holdings: activeHoldings,
-            periodMonth: periodMonth,
-            homeCurrency: homeCurrency,
-            historicalRates: historicalRates,
-            context: context
-        )
-
-        let rates = historicalRates
-            .filter { $0.key != homeCurrency }
-            .map { PortfolioSnapshot.Rate(base: homeCurrency, quote: $0.key, rate: $0.value) }
-            .sorted { $0.quote < $1.quote }
-
-        return SnapshotData(entries: entries, rates: rates, total: total)
+    private static func activeHoldings(in store: any ModelFetching) throws -> [Holding] {
+        try store.fetch(FetchDescriptor<Holding>())
+            .filter { $0.isArchived == false && $0.account?.isArchived == false }
     }
 
     private static func makeEntries(
@@ -283,8 +305,10 @@ enum PortfolioSnapshotService {
         // Expand the cutoff to the last instant of its containing month so
         // day-granular snapshots recorded within that month are included.
         let effective = Snapshot.endOfMonth(containing: cutoff) ?? cutoff
+        // Skip rows deleted but not yet saved: a staged month replacement
+        // still lists them in the relationship until the save.
         let snapshots = (holding.snapshots ?? [])
-            .filter { $0.periodMonth <= effective }
+            .filter { !$0.isDeleted && $0.periodMonth <= effective }
             .sorted { $0.periodMonth > $1.periodMonth }
         return snapshots.first?.amount
     }

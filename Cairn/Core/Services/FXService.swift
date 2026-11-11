@@ -41,7 +41,7 @@ struct FrankfurterFetcher: FXRateFetching {
     }
 
     /// `yyyy-MM-dd` in UTC, the provider's date format for paths and payloads.
-    private static func makeDayFormatter() -> DateFormatter {
+    static func makeDayFormatter() -> DateFormatter {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .iso8601)
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -87,12 +87,35 @@ struct FrankfurterFetcher: FXRateFetching {
             throw URLError(.badServerResponse)
         }
 
+        return try Self.decodeResponse(data, dayFormatter: formatter)
+    }
+
+    /// Decodes a Frankfurter payload with rates converted to `Decimal`
+    /// exactly as published.
+    static func decodeResponse(
+        _ data: Data,
+        dayFormatter formatter: DateFormatter = makeDayFormatter()
+    ) throws -> FXRateResponse {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .formatted(formatter)
 
         let payload = try decoder.decode(FrankfurterPayload.self, from: data)
-        let rates = payload.rates.mapValues { Decimal($0) }
+        var rates: [String: Decimal] = [:]
+        for (quote, value) in payload.rates {
+            guard let rate = exactDecimal(value) else { throw URLError(.cannotParseResponse) }
+            rates[quote] = rate
+        }
         return FXRateResponse(base: payload.base, date: payload.date, rates: rates)
+    }
+
+    /// `Decimal(Double)` keeps the binary approximation (0.1 becomes
+    /// 0.1000000000000000512). Swift's shortest round-trip description of
+    /// a parsed JSON number reproduces its literal for up to 15
+    /// significant digits — well beyond the provider's published
+    /// precision — so parse that text instead.
+    static func exactDecimal(_ value: Double) -> Decimal? {
+        guard value.isFinite else { return nil }
+        return Decimal(string: value.description, locale: Locale(identifier: "en_US_POSIX"))
     }
 
     private struct FrankfurterPayload: Decodable {

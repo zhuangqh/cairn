@@ -77,3 +77,19 @@ struct ExactDateFetcher: FXRateFetching {
         return response
     }
 }
+
+// MARK: - Model fetch stubs
+
+/// Forwards fetches to `context` but throws for one model type, simulating a
+/// store read failure partway through a multi-model operation.
+struct FailingModelFetcher: ModelFetching {
+    let context: ModelContext
+    let failingType: any PersistentModel.Type
+
+    func fetch<T: PersistentModel>(_ descriptor: FetchDescriptor<T>) throws -> [T] {
+        if ObjectIdentifier(T.self) == ObjectIdentifier(failingType) {
+            throw NSError(domain: "FailingModelFetcher", code: 1)
+        }
+        return try context.fetch(descriptor)
+    }
+}

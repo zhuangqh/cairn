@@ -1,6 +1,14 @@
 import Foundation
 import SwiftData
 
+/// The fetch half of `ModelContext`, so tests can inject fetch failures
+/// into backup export and restore. Production passes the context itself.
+protocol ModelFetching {
+    func fetch<T: PersistentModel>(_ descriptor: FetchDescriptor<T>) throws -> [T]
+}
+
+extension ModelContext: ModelFetching {}
+
 /// JSON-based backup & restore. Exports the entire model graph to a single
 /// `.cairn` document and rebuilds it on import. This is Cairn's manual
 /// sync / transfer mechanism (drop the file in iCloud Drive, Dropbox,
@@ -27,15 +35,20 @@ enum BackupService {
 
     /// Serializes everything currently in `context`, plus the user's home
     /// currency setting, to a JSON backup payload.
-    static func makeBackup(in context: ModelContext, homeCurrency: String) throws -> Data {
-        let members = (try? context.fetch(FetchDescriptor<Member>())) ?? []
-        let accounts = (try? context.fetch(FetchDescriptor<Account>())) ?? []
-        let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
-        let snapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
-        let rates = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
-        let portfolioSnapshots = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
-        let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
-        let achievements = (try? context.fetch(FetchDescriptor<AchievementEvent>())) ?? []
+    static func makeBackup(
+        in context: ModelContext,
+        homeCurrency: String,
+        fetching: (any ModelFetching)? = nil
+    ) throws -> Data {
+        let store = fetching ?? context
+        let members = try store.fetch(FetchDescriptor<Member>())
+        let accounts = try store.fetch(FetchDescriptor<Account>())
+        let holdings = try store.fetch(FetchDescriptor<Holding>())
+        let snapshots = try store.fetch(FetchDescriptor<Snapshot>())
+        let rates = try store.fetch(FetchDescriptor<FXRate>())
+        let portfolioSnapshots = try store.fetch(FetchDescriptor<PortfolioSnapshot>())
+        let possessions = try store.fetch(FetchDescriptor<Possession>())
+        let achievements = try store.fetch(FetchDescriptor<AchievementEvent>())
 
         let payload = BackupPayload(
             version: currentVersion,
@@ -91,11 +104,15 @@ enum BackupService {
     /// transaction so a failure mid-import rolls back to the prior state
     /// instead of leaving the user with an empty store.
     @discardableResult
-    static func restoreReplacing(from data: Data, context: ModelContext) throws -> BackupPayload {
+    static func restoreReplacing(
+        from data: Data,
+        context: ModelContext,
+        fetching: (any ModelFetching)? = nil
+    ) throws -> BackupPayload {
         let payload = try parse(data)
         do {
             try context.transaction {
-                wipe(context: context)
+                try wipe(context: context, fetching: fetching ?? context)
                 let memberById = insertMembers(payload.members, context: context)
                 let accountById = insertAccounts(payload.accounts, memberById: memberById, context: context)
                 let holdingById = insertHoldings(payload.holdings, accountById: accountById, context: context)
@@ -112,6 +129,9 @@ enum BackupService {
                 insertAchievements(payload.achievements ?? [], context: context)
             }
         } catch {
+            // `transaction` does not discard the staged changes when its
+            // block throws, so roll back explicitly to the last saved state.
+            context.rollback()
             throw DomainError.backupWriteFailed
         }
         return payload
@@ -129,23 +149,25 @@ enum BackupService {
     // Bottom-up delete to avoid dangling references. Iterates fetched
     // objects so the deletes participate in the surrounding transaction
     // (the `delete(model:)` batch variant bypasses the context cache and
-    // is committed eagerly, defeating rollback).
-    private static func wipe(context: ModelContext) {
-        let achievements = (try? context.fetch(FetchDescriptor<AchievementEvent>())) ?? []
+    // is committed eagerly, defeating rollback). A failed fetch throws so
+    // the transaction rolls back instead of restoring on top of rows it
+    // could not see.
+    private static func wipe(context: ModelContext, fetching store: any ModelFetching) throws {
+        let achievements = try store.fetch(FetchDescriptor<AchievementEvent>())
         achievements.forEach(context.delete)
-        let portfolio = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
+        let portfolio = try store.fetch(FetchDescriptor<PortfolioSnapshot>())
         portfolio.forEach(context.delete)
-        let snapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
+        let snapshots = try store.fetch(FetchDescriptor<Snapshot>())
         snapshots.forEach(context.delete)
-        let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
+        let holdings = try store.fetch(FetchDescriptor<Holding>())
         holdings.forEach(context.delete)
-        let accounts = (try? context.fetch(FetchDescriptor<Account>())) ?? []
+        let accounts = try store.fetch(FetchDescriptor<Account>())
         accounts.forEach(context.delete)
-        let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
+        let possessions = try store.fetch(FetchDescriptor<Possession>())
         possessions.forEach(context.delete)
-        let members = (try? context.fetch(FetchDescriptor<Member>())) ?? []
+        let members = try store.fetch(FetchDescriptor<Member>())
         members.forEach(context.delete)
-        let rates = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
+        let rates = try store.fetch(FetchDescriptor<FXRate>())
         rates.forEach(context.delete)
     }
 
