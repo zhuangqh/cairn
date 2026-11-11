@@ -82,10 +82,6 @@ enum CompactCurrencyFormatter {
     }
 
     private static func currencySymbol(code: String, locale: Locale) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = code
-        formatter.locale = locale
-        return formatter.currencySymbol ?? code
+        CurrencyFormatterCache.formatter(code: code, locale: locale).currencySymbol ?? code
     }
 }

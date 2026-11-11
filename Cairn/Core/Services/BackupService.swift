@@ -71,15 +71,17 @@ enum BackupService {
                 return lhs.periodMonth < rhs.periodMonth
             }
         let holdingSnapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
+        // Decode each snapshot's JSON blobs once; both passes below read them.
+        let decoded = snapshots.map { (snapshot: $0, entries: $0.entries, rates: $0.rates) }
 
         var columnsByKey: [CSVColumn.Key: CSVColumn] = [:]
         var rateColumnsByKey: [CSVRateColumn.Key: CSVRateColumn] = [:]
-        for snapshot in snapshots {
-            for entry in snapshot.entries {
+        for (snapshot, entries, rates) in decoded {
+            for entry in entries {
                 let key = CSVColumn.Key(entry: entry)
                 columnsByKey[key] = columnsByKey[key]?.merged(with: entry) ?? CSVColumn(key: key, entry: entry)
             }
-            for rate in snapshot.rates {
+            for rate in rates {
                 guard let key = CSVRateColumn.Key(rate: rate, homeCurrency: snapshot.homeCurrency) else { continue }
                 rateColumnsByKey[key] = CSVRateColumn(key: key)
             }
@@ -92,10 +94,10 @@ enum BackupService {
             + columns.map(\.header)
         var rows: [[String]] = [header]
 
-        for snapshot in snapshots {
+        for (snapshot, entries, rates) in decoded {
             let date = PortfolioSnapshotService.capturedDate(for: snapshot, holdingSnapshots: holdingSnapshots)
             let rateByKey = Dictionary(
-                snapshot.rates.compactMap { rate -> (CSVRateColumn.Key, String)? in
+                rates.compactMap { rate -> (CSVRateColumn.Key, String)? in
                     guard let key = CSVRateColumn.Key(rate: rate, homeCurrency: snapshot.homeCurrency),
                           let exportRate = foreignToHomeRate(rate, homeCurrency: snapshot.homeCurrency)
                     else { return nil }
@@ -104,7 +106,7 @@ enum BackupService {
                 uniquingKeysWith: { first, _ in first }
             )
             let amountByKey = Dictionary(
-                snapshot.entries.map { (CSVColumn.Key(entry: $0), decimalString($0.amount)) },
+                entries.map { (CSVColumn.Key(entry: $0), decimalString($0.amount)) },
                 uniquingKeysWith: { first, _ in first }
             )
             rows.append(
@@ -597,36 +599,42 @@ enum BackupService {
         return nil
     }
 
-    private static var csvDateFormatter: DateFormatter {
+    // Built once and reused: export formats every snapshot's dates and
+    // rates, and the configuration never changes.
+    private static let csvDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .iso8601)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
-    }
+    }()
 
-    private static var csvDateTimeFormatter: DateFormatter {
+    private static let csvDateTimeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .iso8601)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
         return formatter
-    }
+    }()
 
     private static func decimalString(_ value: Decimal) -> String {
         NSDecimalNumber(decimal: value).stringValue
     }
 
-    private static func rateDecimalString(_ value: Decimal) -> String {
+    private static let csvRateFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.numberStyle = .decimal
         formatter.usesGroupingSeparator = false
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSDecimalNumber(decimal: value)) ?? decimalString(value)
+        return formatter
+    }()
+
+    private static func rateDecimalString(_ value: Decimal) -> String {
+        csvRateFormatter.string(from: NSDecimalNumber(decimal: value)) ?? decimalString(value)
     }
 
     private static func escapeCSVField(_ value: String) -> String {

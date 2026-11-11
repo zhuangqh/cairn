@@ -12,8 +12,12 @@ extension BatchEntryView {
     /// holdings, sorted for stable display. Empty when everything is
     /// already denominated in `homeCurrency`.
     var neededQuoteCurrencies: [String] {
+        neededQuoteCurrencies(rows: groupedRows.flatMap(\.rows))
+    }
+
+    func neededQuoteCurrencies(rows: [HoldingRow]) -> [String] {
         var seen: Set<String> = []
-        for row in groupedRows.flatMap(\.rows) where row.holding.currency != homeCurrency {
+        for row in rows where row.holding.currency != homeCurrency {
             seen.insert(row.holding.currency)
         }
         return seen.sorted()

@@ -5,19 +5,24 @@ import SwiftUI
 /// `PortfolioSnapshotDetailView`.
 extension PortfolioSnapshotDetailView {
     /// Pairs each current entry with its prior counterpart (matched by
-    /// `holdingId`), grouped and sorted for stable display.
-    var memberGroups: [MemberGroup] {
+    /// `holdingId`), grouped and sorted for stable display. `entries` and
+    /// `priorEntries` are `snapshot.entries` / `previous?.entries`, decoded
+    /// once per render by the caller.
+    func memberGroups(
+        entries currentEntries: [PortfolioSnapshot.Entry],
+        priorEntries: [PortfolioSnapshot.Entry]?
+    ) -> [MemberGroup] {
         let priorByHolding: [UUID: PortfolioSnapshot.Entry] = {
-            guard let previous else { return [:] }
+            guard let priorEntries else { return [:] }
             var map: [UUID: PortfolioSnapshot.Entry] = [:]
-            for entry in previous.entries {
+            for entry in priorEntries {
                 if let id = entry.holdingId { map[id] = entry }
             }
             return map
         }()
-        let kindByHolding = accountKindByHolding
+        let kindByHolding = accountKindByHolding(for: currentEntries)
 
-        let grouped = Dictionary(grouping: snapshot.entries, by: { $0.memberName })
+        let grouped = Dictionary(grouping: currentEntries, by: { $0.memberName })
         return grouped.keys.sorted().map { member in
             let entries = (grouped[member] ?? [])
                 .sorted { lhs, rhs in
@@ -56,7 +61,7 @@ extension PortfolioSnapshotDetailView {
                 .compactMap { $0.current.convertedAmount }
                 .reduce(Decimal(0), +)
             let memberDelta: Decimal? = {
-                guard previous != nil else { return nil }
+                guard priorEntries != nil else { return nil }
                 let now = entries.compactMap { $0.current.convertedAmount }.reduce(Decimal(0), +)
                 let was = entries.compactMap { $0.prior?.convertedAmount }.reduce(Decimal(0), +)
                 // Only meaningful when at least one entry resolves both sides.
@@ -105,6 +110,16 @@ extension PortfolioSnapshotDetailView {
 
     // MARK: - Change decomposition
 
+    /// `snapshot.entries` / `previous?.entries`, decoded once per render.
+    struct DecodedEntries {
+        let current: [PortfolioSnapshot.Entry]
+        /// `nil` when there is no previous snapshot.
+        let prior: [PortfolioSnapshot.Entry]?
+        let homeCurrency: String
+    }
+}
+
+extension PortfolioSnapshotDetailView.DecodedEntries {
     /// Splits `totalNew - totalOld` into market movement, FX impact, and
     /// manual updates (added / removed holdings).
     ///
@@ -120,32 +135,32 @@ extension PortfolioSnapshotDetailView {
     /// Holdings present only in one side count as "manual updates"
     /// (added or removed). When `convertedAmount` is missing we fall
     /// back to attributing the whole delta to market movement.
-    var breakdown: ChangeBreakdown? {
-        guard let previous else { return nil }
+    var breakdown: PortfolioSnapshotDetailView.ChangeBreakdown? {
+        guard let priorEntries = prior else { return nil }
         var market: Decimal = 0
         var fx: Decimal = 0
         var manualAdded: Decimal = 0
         var manualRemoved: Decimal = 0
-        var fxRateChanges: [FXRateChange] = []
+        var fxRateChanges: [PortfolioSnapshotDetailView.FXRateChange] = []
         var seenFX: Set<String> = []
 
         let priorByHolding: [UUID: PortfolioSnapshot.Entry] = {
             var map: [UUID: PortfolioSnapshot.Entry] = [:]
-            for entry in previous.entries {
+            for entry in priorEntries {
                 if let id = entry.holdingId { map[id] = entry }
             }
             return map
         }()
         var priorRemaining = priorByHolding
 
-        for entry in snapshot.entries {
+        for entry in current {
             let prior = entry.holdingId.flatMap { priorByHolding[$0] }
             if let prior, prior.currency == entry.currency {
                 if let id = entry.holdingId { priorRemaining.removeValue(forKey: id) }
                 let homeNow = entry.convertedAmount
                 let homeWas = prior.convertedAmount
 
-                if entry.currency == snapshot.homeCurrency {
+                if entry.currency == homeCurrency {
                     // Home currency: 100% market.
                     if let homeNow, let homeWas {
                         market += (homeNow - homeWas)
@@ -162,7 +177,7 @@ extension PortfolioSnapshotDetailView {
                     fx += fxComponent
                     if !seenFX.contains(entry.currency), rateNew != rateOld {
                         seenFX.insert(entry.currency)
-                        fxRateChanges.append(FXRateChange(
+                        fxRateChanges.append(PortfolioSnapshotDetailView.FXRateChange(
                             currency: entry.currency,
                             oldRate: rateOld == 0 ? 0 : 1 / rateOld,
                             newRate: rateNew == 0 ? 0 : 1 / rateNew
@@ -192,7 +207,7 @@ extension PortfolioSnapshotDetailView {
             }
         }
 
-        return ChangeBreakdown(
+        return PortfolioSnapshotDetailView.ChangeBreakdown(
             market: market,
             fx: fx,
             manualAdded: manualAdded,
@@ -200,6 +215,9 @@ extension PortfolioSnapshotDetailView {
             fxRateChanges: fxRateChanges.sorted { $0.currency < $1.currency }
         )
     }
+}
+
+extension PortfolioSnapshotDetailView {
 
     struct FXRateChange: Identifiable {
         var id: String { currency }

@@ -93,14 +93,17 @@ enum PossessionService {
 
     /// Single-pass bundle. Useful when a view needs both the headline total
     /// and the per-category breakdown in the same render — avoids fetching
-    /// `Possession` rows + the FX cache twice.
+    /// `Possession` rows + the FX cache twice. Pass `possessions` (from a
+    /// plain `FetchDescriptor<Possession>` fetch) to reuse one fetch across
+    /// several bundles.
     static func bundle(
         homeCurrency: String,
         asOf: Date? = nil,
+        possessions preloaded: [Possession]? = nil,
         rateCache: FXService.RateCache? = nil,
         context: ModelContext
     ) -> Bundle {
-        let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
+        let possessions = preloaded ?? (try? context.fetch(FetchDescriptor<Possession>())) ?? []
         let cache = rateCache ?? FXService.RateCache.load(in: context)
         var total: Decimal = 0
         var missing: Set<String> = []

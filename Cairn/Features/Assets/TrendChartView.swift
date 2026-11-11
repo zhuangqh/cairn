@@ -4,9 +4,14 @@ import Charts
 
 /// Monthly net-worth trend line. Drives off `NetWorthCalculator.trend(...)`
 /// and updates whenever any upstream model changes.
-struct TrendChartView: View {
+///
+/// Hover state lives in `TrendChartPlot`, so moving the cursor over the
+/// chart never re-runs this view's `body` (and its data fingerprint).
+/// `Equatable` compares only `showPossessionOverlay`: `onSelectionChange`
+/// is excluded so a host re-rendering on hover (the Dashboard) with a new
+/// closure of the same behavior does not invalidate the chart either.
+struct TrendChartView: View, Equatable {
     @Environment(\.modelContext) private var context
-    @Environment(\.locale) private var locale
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
@@ -22,14 +27,11 @@ struct TrendChartView: View {
     private var portfolioSnapshots: [PortfolioSnapshot]
 
     @State private var range: TrendRange = .year
-    @State private var hoverSelection: TrendSelection?
 
-    /// Cache of the heavy data series. The cache key intentionally excludes
-    /// `hoverSelection` so hovering — which fires many state updates per
-    /// second and re-runs `body` — never re-derives the trend, snapshot
-    /// markers, or possession overlay. The cache refreshes on `onAppear` and
-    /// whenever `cacheFingerprint` changes (range, currency, or any
-    /// upstream model count).
+    /// Cache of the heavy data series. The cache refreshes on `onAppear`
+    /// and whenever `currentFingerprint()` changes (range, currency, or any
+    /// upstream model value); hover selection lives in `TrendChartPlot` and
+    /// never re-derives the trend, snapshot markers, or possession overlay.
     @State private var cachedFingerprint: Int = 0
     @State private var cachedPoints: [TrendPoint] = []
     @State private var cachedMarkers: [SnapshotMarker] = []
@@ -56,6 +58,10 @@ struct TrendChartView: View {
         self.onSelectionChange = onSelectionChange
     }
 
+    nonisolated static func == (lhs: TrendChartView, rhs: TrendChartView) -> Bool {
+        lhs.showPossessionOverlay == rhs.showPossessionOverlay
+    }
+
     var body: some View {
         let fingerprint = currentFingerprint()
         return LedgerSection(Text(LocalizedStringKey(showPossessionOverlay ? "dashboard.trend" : "assets.trend"))) {
@@ -76,18 +82,19 @@ struct TrendChartView: View {
                 )
                 .frame(minHeight: 220)
             } else {
-                let scale = TrendScale(points: points)
-                VStack(alignment: .leading, spacing: 6) {
-                    axisHeader(scale: scale)
-                    chart(for: points, scale: scale)
-                }
+                TrendChartPlot(
+                    points: points,
+                    scale: TrendScale(points: points),
+                    markers: cachedMarkers,
+                    possessionByPeriod: cachedPossessionSeries,
+                    homeCurrency: homeCurrency,
+                    showPossessionOverlay: showPossessionOverlay,
+                    onSelectionChange: onSelectionChange
+                )
             }
         }
         .onAppear { refreshCacheIfNeeded(fingerprint) }
         .onChange(of: fingerprint) { _, new in refreshCacheIfNeeded(new) }
-        .onChange(of: hoverSelection) { _, newValue in
-            onSelectionChange?(newValue)
-        }
     }
 
     /// Plotted series: on the Dashboard the financial trend plus cumulative
@@ -100,39 +107,9 @@ struct TrendChartView: View {
         }
     }
 
-    /// Max-value label at top-left; hovered month (or "month-end") at right.
-    private func axisHeader(scale: TrendScale) -> some View {
-        HStack {
-            Text(verbatim: compactAxisLabel(scale.upper))
-            Spacer(minLength: 8)
-            if let selection = hoverSelection {
-                Text(selection.period, format: .dateTime.year().month(.wide).locale(locale))
-            } else {
-                HStack(spacing: 10) {
-                    if !cachedMarkers.isEmpty {
-                        HStack(spacing: 4) {
-                            SnapshotDot()
-                            Text("dashboard.trend.snapshot")
-                        }
-                    }
-                    Text("dashboard.trend.monthEnd")
-                }
-            }
-        }
-        .font(.caption)
-        .monospacedDigit()
-        .foregroundStyle(Color.ink3)
-        .accessibilityHidden(true)
-    }
-
-    private func compactAxisLabel(_ value: Double) -> String {
-        let symbol = CurrencyAmountParts(0, code: homeCurrency, locale: locale).symbol
-        return symbol + value.formatted(.number.notation(.compactName).locale(locale))
-    }
-
-    /// Hash of every input that affects the chart's data series. Excluding
-    /// `hoverSelection` is the whole point — it means moving the cursor
-    /// over the chart never re-derives the trend.
+    /// Hash of every input that affects the chart's data series. Hover
+    /// selection is not an input, so moving the cursor over the chart never
+    /// re-derives the trend.
     private func currentFingerprint() -> Int {
         var hasher = Hasher()
         hasher.combine(homeCurrency)
@@ -192,200 +169,6 @@ struct TrendChartView: View {
         hasComputed = true
     }
 
-    private func chart(for points: [TrendPoint], scale: TrendScale) -> some View {
-        let markers = cachedMarkers
-        let ticks = xTicks(points)
-        return Chart {
-            trendMarks(points)
-            snapshotMarks(
-                snapshotPoints(points: points, markers: markers),
-                dense: points.count > 24,
-                locale: locale,
-                currencyCode: homeCurrency
-            )
-            endMark(points)
-            hoverMarks(possessionByPeriod: cachedPossessionSeries)
-        }
-        .chartYScale(domain: scale.lower...scale.upper)
-        .chartYAxis {
-            AxisMarks(values: scale.gridValues) { value in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: value.index == 0 ? 1 : 0.7))
-                    .foregroundStyle(Color.line)
-            }
-        }
-        .chartXAxis {
-            AxisMarks(values: ticks) { value in
-                AxisValueLabel(anchor: tickAnchor(index: value.index, count: value.count)) {
-                    if let date = value.as(Date.self) {
-                        Text(verbatim: tickLabel(date, ticks: ticks, locale: locale))
-                            .font(.caption)
-                            .foregroundStyle(Color.ink3)
-                    }
-                }
-            }
-        }
-        .chartOverlay { proxy in
-            GeometryReader { geo in
-                hoverOverlay(proxy: proxy, geo: geo, points: points, markers: markers)
-            }
-        }
-        .chartLegend(.hidden)
-        .frame(height: 196)
-        .accessibilityLabel(Text(LocalizedStringKey(showPossessionOverlay ? "dashboard.trend" : "assets.trend")))
-    }
-
-    @ViewBuilder
-    private func hoverOverlay(
-        proxy: ChartProxy,
-        geo: GeometryProxy,
-        points: [TrendPoint],
-        markers: [SnapshotMarker]
-    ) -> some View {
-        if let plotFrameAnchor = proxy.plotFrame {
-            let plot = geo[plotFrameAnchor]
-            Rectangle()
-                .fill(.clear)
-                .contentShape(Rectangle())
-                .frame(width: plot.width, height: plot.height)
-                .offset(x: plot.minX, y: plot.minY)
-                .onContinuousHover { phase in
-                    switch phase {
-                    case .active(let location):
-                        let relativeX = location.x - plot.minX
-                        guard relativeX >= 0, relativeX <= plot.width,
-                              let date: Date = proxy.value(atX: relativeX) else {
-                            hoverSelection = nil
-                            return
-                        }
-                        hoverSelection = nearestSelection(to: date, points: points, markers: markers)
-                    case .ended:
-                        hoverSelection = nil
-                    }
-                }
-                #if os(iOS)
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            let relativeX = value.location.x - plot.minX
-                            guard relativeX >= 0, relativeX <= plot.width,
-                                  let date: Date = proxy.value(atX: relativeX) else { return }
-                            hoverSelection = nearestSelection(to: date, points: points, markers: markers)
-                        }
-                        .onEnded { _ in hoverSelection = nil }
-                )
-                #endif
-        }
-    }
-
-    @ChartContentBuilder
-    private func hoverMarks(possessionByPeriod: [Date: Decimal]) -> some ChartContent {
-        if let selection = hoverSelection {
-            let possessionAmount = showPossessionOverlay ? possessionByPeriod[selection.period] : nil
-            RuleMark(x: .value("assets.trend.axis.month", selection.period))
-                .foregroundStyle(Color.ink3.opacity(0.6))
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                .annotation(
-                    position: .top,
-                    alignment: .center,
-                    spacing: 6,
-                    overflowResolution: .init(x: .fit(to: .chart), y: .fit(to: .chart))
-                ) {
-                    hoverCallout(for: selection, possessionAmount: possessionAmount)
-                }
-            PointMark(
-                x: .value("assets.trend.axis.month", selection.period),
-                y: .value(
-                    "assets.trend.axis.amount",
-                    selection.amountDouble + NSDecimalNumber(decimal: possessionAmount ?? 0).doubleValue
-                )
-            )
-            .symbolSize(50)
-            .foregroundStyle(Color.accent)
-        }
-    }
-
-    @ViewBuilder
-    private func hoverCallout(for selection: TrendSelection, possessionAmount: Decimal?) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(selection.period, format: .dateTime.year().month(.wide).locale(locale))
-                .font(.caption2)
-                .foregroundStyle(Color.ink3)
-            calloutRow(
-                color: .accent,
-                labelKey: "dashboard.balance.financial",
-                amount: selection.amount
-            )
-            if let possessionAmount {
-                calloutRow(
-                    color: .accent2,
-                    labelKey: "dashboard.balance.physical",
-                    amount: possessionAmount
-                )
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Color.notionSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.line, lineWidth: 0.5)
-        )
-    }
-
-    @ViewBuilder
-    private func calloutRow(color: Color, labelKey: LocalizedStringKey, amount: Decimal) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(color)
-                .frame(width: 6, height: 6)
-            Text(labelKey)
-                .font(.caption2)
-                .foregroundStyle(Color.ink2)
-            Text(amount.formatted(.currency(code: homeCurrency).precision(.fractionLength(0)).locale(locale)))
-                .font(.callout.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(Color.ink)
-        }
-    }
-
-    private func nearestSelection(
-        to date: Date,
-        points: [TrendPoint],
-        markers: [SnapshotMarker]
-    ) -> TrendSelection? {
-        // Only actual snapshot points are hoverable. Snap to the nearest marker,
-        // but only when the cursor is within ~half a month of it so the user has
-        // to intentionally land on a point.
-        guard !markers.isEmpty else { return nil }
-        let nearest = markers.min { lhs, rhs in
-            abs(lhs.periodMonth.timeIntervalSince(date)) < abs(rhs.periodMonth.timeIntervalSince(date))
-        }
-        guard let nearest else { return nil }
-        let snapWindow: TimeInterval = 60 * 60 * 24 * 20 // ~20 days
-        guard abs(nearest.periodMonth.timeIntervalSince(date)) <= snapWindow else { return nil }
-        return TrendSelection(period: nearest.periodMonth, amount: nearest.amount)
-    }
-
-    /// Monotone line (2.2pt accent) over a flat 10% accent fill.
-    @ChartContentBuilder
-    private func trendMarks(_ points: [TrendPoint]) -> some ChartContent {
-        ForEach(points) { point in
-            AreaMark(
-                x: .value("assets.trend.axis.month", point.period),
-                y: .value("assets.trend.axis.amount", point.amountDouble)
-            )
-            .foregroundStyle(Color.accent.opacity(0.10))
-            .interpolationMethod(.monotone)
-            LineMark(
-                x: .value("assets.trend.axis.month", point.period),
-                y: .value("assets.trend.axis.amount", point.amountDouble)
-            )
-            .foregroundStyle(Color.accent)
-            .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
-            .interpolationMethod(.monotone)
-        }
-    }
-
     private func trendPoints() -> [TrendPoint] {
         // Touch queries so @Query changes invalidate recomputation.
         _ = snapshots.count + rates.count + holdings.count
@@ -440,13 +223,27 @@ struct TrendChartView: View {
             return (anchor, value)
         }
 
+        return Self.cumulativeSeries(periods: points.map(\.period), entries: converted)
+    }
+
+    /// Running total of `entries` at each period: the sum of every entry
+    /// whose month is `<=` that period. Sorts once and walks the periods in
+    /// order, instead of re-scanning every entry per period.
+    static func cumulativeSeries(
+        periods: [Date],
+        entries: [(month: Date, amount: Decimal)]
+    ) -> [Date: Decimal] {
+        let sortedEntries = entries.sorted { $0.month < $1.month }
         var result: [Date: Decimal] = [:]
-        for point in points {
-            var sum: Decimal = 0
-            for entry in converted where entry.month <= point.period {
-                sum += entry.amount
+        result.reserveCapacity(periods.count)
+        var sum: Decimal = 0
+        var next = sortedEntries.startIndex
+        for period in periods.sorted() {
+            while next < sortedEntries.endIndex, sortedEntries[next].month <= period {
+                sum += sortedEntries[next].amount
+                next += 1
             }
-            result[point.period] = sum
+            result[period] = sum
         }
         return result
     }

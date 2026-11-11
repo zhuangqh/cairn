@@ -88,58 +88,80 @@ extension BatchEntryView {
     /// `historicalRates[foreign]` follows the Frankfurter convention
     /// `1 home = rate × foreign`, i.e. units `foreign / home`, so the
     /// home-side amount is `foreignAmount / rate`.
-    func convertToHome(amount: Decimal, from currency: String) -> Decimal? {
+    ///
+    /// `cache` is the pass's in-memory copy of the `FXRate` rows; it applies
+    /// the same direct-then-inverse lookup as `FXService.convert(in:)`
+    /// without a `#Predicate` fetch per row.
+    func convertToHome(amount: Decimal, from currency: String, cache: FXService.RateCache) -> Decimal? {
         if currency == homeCurrency { return amount }
         if let rate = historicalRates[currency], rate != 0 {
             return amount / rate
         }
-        return FXService.convert(
-            amount: amount,
-            from: currency,
-            to: homeCurrency,
-            in: context
+        return cache.convert(amount: amount, from: currency, to: homeCurrency)
+    }
+
+    /// Rows and conversion inputs derived once per render pass, so each
+    /// keystroke rebuilds `groupedRows` and loads the rate cache once
+    /// rather than once per consumer.
+    struct DerivedPass {
+        let groups: [MemberGroup]
+        let rows: [HoldingRow]
+        let rateCache: FXService.RateCache
+    }
+
+    func derivePass() -> DerivedPass {
+        let groups = groupedRows
+        let rows = groups.flatMap(\.rows)
+        // The cached `FXRate` rows are only consulted for currencies the
+        // fetched historical rates don't cover.
+        let needsCache = rows.contains { row in
+            row.holding.currency != homeCurrency && (historicalRates[row.holding.currency] ?? 0) == 0
+        }
+        return DerivedPass(
+            groups: groups,
+            rows: rows,
+            rateCache: needsCache ? FXService.RateCache.load(in: context) : .empty
         )
     }
 
-    func approxHome(for row: HoldingRow) -> Decimal? {
+    func approxHome(for row: HoldingRow, cache: FXService.RateCache) -> Decimal? {
         guard let amount = currentAmount(for: row) else { return nil }
-        return convertToHome(amount: amount, from: row.holding.currency)
+        return convertToHome(amount: amount, from: row.holding.currency, cache: cache)
     }
 
-    var totalInHome: Decimal {
-        groupedRows.flatMap(\.rows).reduce(Decimal(0)) { running, row in
-            guard let converted = approxHome(for: row) else { return running }
+    func totalInHome(_ pass: DerivedPass) -> Decimal {
+        pass.rows.reduce(Decimal(0)) { running, row in
+            guard let converted = approxHome(for: row, cache: pass.rateCache) else { return running }
             return running + converted
         }
     }
 
-    var unresolvedCurrencies: [String] {
+    func unresolvedCurrencies(_ pass: DerivedPass) -> [String] {
         var codes: Set<String> = []
-        for row in groupedRows.flatMap(\.rows) {
+        for row in pass.rows {
             guard let amount = currentAmount(for: row), amount != 0 else { continue }
             if row.holding.currency == homeCurrency { continue }
-            if convertToHome(amount: amount, from: row.holding.currency) == nil {
+            if convertToHome(amount: amount, from: row.holding.currency, cache: pass.rateCache) == nil {
                 codes.insert(row.holding.currency)
             }
         }
         return codes.sorted()
     }
 
-    var unresolvedFootnote: String {
+    func unresolvedFootnote(_ currencies: [String]) -> String {
         let template = String(localized: "assets.missingRates")
-        return template.replacingOccurrences(of: "{currencies}", with: unresolvedCurrencies.joined(separator: ", "))
+        return template.replacingOccurrences(of: "{currencies}", with: currencies.joined(separator: ", "))
     }
 
-    var hasUnsavedEdits: Bool {
+    func hasUnsavedEdits(rows: [HoldingRow]) -> Bool {
         if note != originalNote { return true }
-        let rows = groupedRows.flatMap(\.rows)
         return edits.contains { key, value in
             value != currentSavedAmount(for: key, in: rows)
         }
     }
 
-    var hasBlankWithPrevious: Bool {
-        groupedRows.flatMap(\.rows).contains { row in
+    func hasBlankWithPrevious(rows: [HoldingRow]) -> Bool {
+        rows.contains { row in
             currentAmount(for: row) == nil && row.previousAmount != nil
         }
     }

@@ -13,11 +13,9 @@ struct CurrencyAmountParts {
     let digits: String
     let symbolLeads: Bool
 
+    @MainActor
     init(_ amount: Decimal, code: String, locale: Locale, fractionDigits: Int = 0) {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = code
-        formatter.locale = locale
+        let formatter = CurrencyFormatterCache.formatter(code: code, locale: locale)
         let format = formatter.positiveFormat ?? "¤#"
         let symbolIndex = format.firstIndex(of: "¤")
         let digitIndex = format.firstIndex { $0 == "#" || $0 == "0" }
@@ -171,12 +169,9 @@ struct LedgerHero<Meta: View>: View {
 /// units (two decimals for most), display-only.
 enum LedgerAmountFormat {
     /// Fraction digits the currency uses (e.g. 2 for USD, 0 for JPY).
+    @MainActor
     static func minorUnits(for code: String, locale: Locale) -> Int {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = code
-        formatter.locale = locale
-        return formatter.maximumFractionDigits
+        CurrencyFormatterCache.formatter(code: code, locale: locale).maximumFractionDigits
     }
 
     /// `+300.00` / `−300.00` / `0.00`, without a currency symbol.

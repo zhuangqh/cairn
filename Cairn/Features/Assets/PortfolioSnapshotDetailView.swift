@@ -43,13 +43,21 @@ struct PortfolioSnapshotDetailView: View {
     }
 
     var body: some View {
+        // Decode the captured entries once per render; hovering a row
+        // re-runs `body`, and every section below reads them.
+        let entries = snapshot.entries
+        let priorEntries = previous?.entries
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 headerCard
-                if !snapshot.entries.isEmpty {
-                    holdingsCard
+                if !entries.isEmpty {
+                    holdingsCard(memberGroups(entries: entries, priorEntries: priorEntries))
                 }
-                if let breakdown, breakdown.hasContent {
+                if let breakdown = DecodedEntries(
+                    current: entries,
+                    prior: priorEntries,
+                    homeCurrency: snapshot.homeCurrency
+                ).breakdown, breakdown.hasContent {
                     changeBreakdownCard(breakdown)
                 }
             }
@@ -195,16 +203,16 @@ struct PortfolioSnapshotDetailView: View {
     // MARK: - Holdings
 
     @ViewBuilder
-    private var holdingsCard: some View {
+    private func holdingsCard(_ groups: [MemberGroup]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             detailSectionTitle("portfolioSnapshot.detail.breakdown")
             #if os(macOS)
-            memberCardsGrid
+            memberCardsGrid(groups)
             #else
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(memberGroups.enumerated()), id: \.element.member) { index, group in
+                ForEach(Array(groups.enumerated()), id: \.element.member) { index, group in
                     memberGroupCard(group)
-                    if index < memberGroups.count - 1 {
+                    if index < groups.count - 1 {
                         Divider()
                             .opacity(0.45)
                             .padding(.vertical, 12)
@@ -218,8 +226,7 @@ struct PortfolioSnapshotDetailView: View {
     }
 
     #if os(macOS)
-    private var memberCardsGrid: some View {
-        let groups = memberGroups
+    private func memberCardsGrid(_ groups: [MemberGroup]) -> some View {
         let pairs: [[MemberGroup]] = stride(from: 0, to: groups.count, by: 2).map { start in
             Array(groups[start..<min(start + 2, groups.count)])
         }
@@ -770,8 +777,10 @@ struct PortfolioSnapshotDetailView: View {
         Dictionary(members.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
-    var accountKindByHolding: [UUID: AccountKind] {
-        let ids = Set(snapshot.entries.compactMap(\.holdingId))
+    /// Only entries without a captured `accountKind` consult this map, so
+    /// the holdings fetch is skipped when every entry carries its kind.
+    func accountKindByHolding(for entries: [PortfolioSnapshot.Entry]) -> [UUID: AccountKind] {
+        let ids = Set(entries.filter { $0.accountKind == nil }.compactMap(\.holdingId))
         guard !ids.isEmpty else { return [:] }
         // SwiftData `#Predicate` with `Set.contains` on captured values
         // is unreliable on macOS — fetch all and filter in Swift.

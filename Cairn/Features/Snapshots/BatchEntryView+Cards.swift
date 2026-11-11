@@ -9,8 +9,8 @@ extension BatchEntryView {
     /// Shows historical FX rates fetched for the selected month.
     /// Empty when all holdings are already in `homeCurrency`.
     @ViewBuilder
-    var ratesSection: some View {
-        let quotes = neededQuoteCurrencies
+    func ratesSection(rows: [HoldingRow]) -> some View {
+        let quotes = neededQuoteCurrencies(rows: rows)
         if !quotes.isEmpty {
             LedgerSection(Text("batch.rates.title")) {
                 ratesMeta

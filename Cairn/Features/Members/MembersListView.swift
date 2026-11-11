@@ -30,6 +30,7 @@ struct MembersListView: View {
         let bundle = NetWorthCalculator.bundle(
             homeCurrency: homeCurrency,
             includeMemberBreakdown: true,
+            includeMonthOverMonthDelta: false,
             context: context
         )
         var dict: [UUID: Decimal] = [:]

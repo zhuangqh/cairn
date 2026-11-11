@@ -77,4 +77,29 @@ final class FXServiceTests: XCTestCase {
         let context = container.mainContext
         XCTAssertNil(FXService.convert(amount: 10, from: "USD", to: "JPY", in: context))
     }
+
+    /// The batch-entry sheet swapped per-row `convert(in:)` fetches for one
+    /// `RateCache`; both must agree on direct, inverse, zero-inverse,
+    /// identity, and missing pairs.
+    func testRateCacheConvertMatchesContextConvert() throws {
+        let context = container.mainContext
+        context.insert(FXRate(base: "USD", quote: "CNY", rate: Decimal(71_234) / 10_000, date: .now))
+        context.insert(FXRate(base: "EUR", quote: "USD", rate: Decimal(10_876) / 10_000, date: .now))
+        context.insert(FXRate(base: "GBP", quote: "USD", rate: 0, date: .now))
+        try context.save()
+        let cache = FXService.RateCache.load(in: context)
+
+        let pairs = [
+            ("USD", "CNY"), ("CNY", "USD"), ("EUR", "USD"), ("USD", "EUR"),
+            ("USD", "GBP"), ("GBP", "USD"), ("USD", "USD"), ("USD", "JPY"), ("JPY", "USD")
+        ]
+        let amount = Decimal(1_234_567) / 100
+        for (from, to) in pairs {
+            XCTAssertEqual(
+                cache.convert(amount: amount, from: from, to: to),
+                FXService.convert(amount: amount, from: from, to: to, in: context),
+                "\(from)->\(to)"
+            )
+        }
+    }
 }

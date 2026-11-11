@@ -1,10 +1,10 @@
 import SwiftUI
 import Charts
 
-// Chart marks and axis ticks for `TrendChartView` (DESIGN.md §5.8), split out
+// Chart marks and axis ticks for `TrendChartPlot` (DESIGN.md §5.8), split out
 // to keep the view within lint limits.
 
-extension TrendChartView {
+extension TrendChartPlot {
     /// Points on the plotted curve for months that have a captured portfolio
     /// snapshot, so the dots sit on the line (on the Dashboard the curve also
     /// includes physical assets).

@@ -30,20 +30,32 @@ struct FXRateResponse: Sendable {
 /// Used only at refresh time; the rest of the app reads cached `FXRate` rows.
 struct FrankfurterFetcher: FXRateFetching {
     func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse {
-        try await fetch(base: base, quotes: quotes, endpoint: "latest")
+        try await fetch(base: base, quotes: quotes, endpoint: "latest", dayFormatter: Self.makeDayFormatter())
     }
 
     func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse {
+        // One formatter serves both the endpoint path and response decoding.
+        let formatter = Self.makeDayFormatter()
+        let endpoint = formatter.string(from: date)
+        return try await fetch(base: base, quotes: quotes, endpoint: endpoint, dayFormatter: formatter)
+    }
+
+    /// `yyyy-MM-dd` in UTC, the provider's date format for paths and payloads.
+    private static func makeDayFormatter() -> DateFormatter {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .iso8601)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: "UTC") ?? .gmt
         formatter.dateFormat = "yyyy-MM-dd"
-        let endpoint = formatter.string(from: date)
-        return try await fetch(base: base, quotes: quotes, endpoint: endpoint)
+        return formatter
     }
 
-    private func fetch(base: String, quotes: [String], endpoint: String) async throws -> FXRateResponse {
+    private func fetch(
+        base: String,
+        quotes: [String],
+        endpoint: String,
+        dayFormatter formatter: DateFormatter
+    ) async throws -> FXRateResponse {
         let filtered = quotes.filter { $0 != base }
         guard !filtered.isEmpty else {
             return FXRateResponse(base: base, date: .now, rates: [:])
@@ -76,11 +88,6 @@ struct FrankfurterFetcher: FXRateFetching {
         }
 
         let decoder = JSONDecoder()
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .iso8601)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        formatter.dateFormat = "yyyy-MM-dd"
         decoder.dateDecodingStrategy = .formatted(formatter)
 
         let payload = try decoder.decode(FrankfurterPayload.self, from: data)

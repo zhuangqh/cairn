@@ -14,15 +14,19 @@ import SwiftData
 ///
 /// Wide macOS windows use two equal columns: hero | journal panel, then
 /// trend | composition, then the members line across both.
+///
+/// This outer view owns the store queries and loads the FX rate cache,
+/// snapshot index, and possession rows once per data change. Hover state
+/// lives in `DashboardContent`, so time-travelling over the trend only
+/// re-runs the cheap per-month aggregation.
 struct DashboardView: View {
     @Environment(\.modelContext) private var context
-    @Environment(\.locale) private var locale
     @Environment(LocalizationService.self) private var localization
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
 
-    // Query sentinels — touch .count in computed vars so @Query invalidates totals.
+    // Query sentinels — touched in `body` so @Query invalidates totals.
     @Query private var holdings: [Holding]
     @Query private var snapshots: [Snapshot]
     @Query private var rates: [FXRate]
@@ -30,13 +34,8 @@ struct DashboardView: View {
     @Query private var possessions: [Possession]
     @Query private var achievementEvents: [AchievementEvent]
 
-    /// Current hover selection from the embedded trend chart. When set, the
-    /// hero / composition / allocation cards render values as of that month.
-    @State private var hoverSelection: TrendSelection?
     @State private var isUpdatingMonth = false
     @State private var hasRecomputedAchievements = false
-
-    // MARK: - Derivation
 
     private var orderedAchievementEvents: [AchievementEvent] {
         achievementEvents.sorted {
@@ -45,11 +44,79 @@ struct DashboardView: View {
         }
     }
 
+    var body: some View {
+        // Touch the @Query sentinels so SwiftUI invalidates this view when
+        // any upstream model changes.
+        _ = holdings.count + snapshots.count + rates.count + members.count + possessions.count
+        return DashboardContent(
+            homeCurrency: homeCurrency,
+            rateCache: FXService.RateCache.load(in: context),
+            snapshotIndex: NetWorthCalculator.SortedSnapshotIndex.load(in: context),
+            possessions: (try? context.fetch(FetchDescriptor<Possession>())) ?? [],
+            members: members,
+            orderedAchievementEvents: orderedAchievementEvents
+        )
+        .navigationTitle(Text("dashboard.title", bundle: localization.bundle))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.large)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                if !holdings.isEmpty {
+                    Button {
+                        isUpdatingMonth = true
+                    } label: {
+                        Label("assets.updateThisMonth", systemImage: "calendar.badge.plus")
+                    }
+                    .foregroundStyle(Color.accent)
+                }
+            }
+        }
+        .sheet(isPresented: $isUpdatingMonth) {
+            BatchEntryView()
+        }
+        .task {
+            guard !hasRecomputedAchievements else { return }
+            hasRecomputedAchievements = true
+            _ = try? AchievementService.recompute(in: context)
+        }
+        .navigationDestination(for: Member.self) { member in
+            MemberDetailView(member: member)
+        }
+        .navigationDestination(for: Account.self) { account in
+            AccountDetailView(account: account)
+        }
+        .navigationDestination(for: DashboardRoute.self) { route in
+            switch route {
+            case .achievementJournal: AchievementJournalView()
+            }
+        }
+    }
+}
+
+/// Dashboard sections. Receives the per-data-change loads from
+/// `DashboardView` and owns the trend hover selection.
+private struct DashboardContent: View {
+    @Environment(\.modelContext) private var context
+    @Environment(\.locale) private var locale
+
+    let homeCurrency: String
+    let rateCache: FXService.RateCache
+    let snapshotIndex: NetWorthCalculator.SortedSnapshotIndex
+    let possessions: [Possession]
+    let members: [Member]
+    let orderedAchievementEvents: [AchievementEvent]
+
+    /// Current hover selection from the embedded trend chart. When set, the
+    /// hero / composition / allocation cards render values as of that month.
+    @State private var hoverSelection: TrendSelection?
+
+    // MARK: - Derivation
+
     /// Single render-pass aggregate. Bundles every figure the layout needs
-    /// — current + previous-month totals, per-segment splits, per-kind
-    /// allocation, and per-kind delta — so the FX rate cache and snapshot
-    /// index are loaded exactly once per body invocation regardless of how
-    /// many cards consume the data.
+    /// — current + previous-month totals, per-segment splits, and per-kind
+    /// allocation — from the rate cache and snapshot index loaded once per
+    /// data change by `DashboardView`.
     private struct Derivation {
         var financial: Decimal
         var physical: Decimal
@@ -73,20 +140,16 @@ struct DashboardView: View {
     }
 
     private func derive() -> Derivation {
-        // Touch the @Query sentinels so SwiftUI invalidates this view when
-        // any upstream model changes.
-        _ = holdings.count + snapshots.count + rates.count + members.count + possessions.count
-
         let asOf = effectiveAsOf
         let prevAsOf = previousMonth(of: asOf)
 
-        let rateCache = FXService.RateCache.load(in: context)
-        let snapshotIndex = NetWorthCalculator.SortedSnapshotIndex.load(in: context)
-
+        // The prior-month delta inside `bundle` is unused here; the
+        // previous month is computed explicitly below.
         let financial = NetWorthCalculator.bundle(
             homeCurrency: homeCurrency,
             asOf: asOf,
             includeMemberBreakdown: false,
+            includeMonthOverMonthDelta: false,
             rateCache: rateCache,
             sortedSnapshots: snapshotIndex,
             context: context
@@ -95,6 +158,7 @@ struct DashboardView: View {
             homeCurrency: homeCurrency,
             asOf: prevAsOf,
             includeMemberBreakdown: false,
+            includeMonthOverMonthDelta: false,
             rateCache: rateCache,
             sortedSnapshots: snapshotIndex,
             context: context
@@ -102,12 +166,14 @@ struct DashboardView: View {
         let physical = PossessionService.bundle(
             homeCurrency: homeCurrency,
             asOf: hoverSelection?.period,
+            possessions: possessions,
             rateCache: rateCache,
             context: context
         )
         let physicalPrev = PossessionService.bundle(
             homeCurrency: homeCurrency,
             asOf: prevAsOf,
+            possessions: possessions,
             rateCache: rateCache,
             context: context
         )
@@ -233,41 +299,6 @@ struct DashboardView: View {
             }
             .background(AppBackground())
         }
-        .navigationTitle(Text("dashboard.title", bundle: localization.bundle))
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.large)
-        #endif
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                if !holdings.isEmpty {
-                    Button {
-                        isUpdatingMonth = true
-                    } label: {
-                        Label("assets.updateThisMonth", systemImage: "calendar.badge.plus")
-                    }
-                    .foregroundStyle(Color.accent)
-                }
-            }
-        }
-        .sheet(isPresented: $isUpdatingMonth) {
-            BatchEntryView()
-        }
-        .task {
-            guard !hasRecomputedAchievements else { return }
-            hasRecomputedAchievements = true
-            _ = try? AchievementService.recompute(in: context)
-        }
-        .navigationDestination(for: Member.self) { member in
-            MemberDetailView(member: member)
-        }
-        .navigationDestination(for: Account.self) { account in
-            AccountDetailView(account: account)
-        }
-        .navigationDestination(for: DashboardRoute.self) { route in
-            switch route {
-            case .achievementJournal: AchievementJournalView()
-            }
-        }
     }
 
     // MARK: - Hero
@@ -292,6 +323,9 @@ struct DashboardView: View {
 
     // MARK: - Trend
 
+    /// `.equatable()` keeps hover re-renders of this view from re-running
+    /// the chart's body (and its data fingerprint): the callback only writes
+    /// `hoverSelection`, so a closure from an earlier render behaves the same.
     private var trendSection: some View {
         TrendChartView(
             showPossessionOverlay: true,
@@ -301,6 +335,7 @@ struct DashboardView: View {
                 }
             }
         )
+        .equatable()
     }
 
     // MARK: - Composition

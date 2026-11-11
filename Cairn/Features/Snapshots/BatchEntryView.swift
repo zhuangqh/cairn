@@ -85,17 +85,19 @@ struct BatchEntryView: View {
     }
 
     var body: some View {
+        let pass = derivePass()
+        let hasUnsavedEdits = hasUnsavedEdits(rows: pass.rows)
         NavigationStack {
             ZStack {
                 AppBackground()
-                if groupedRows.isEmpty {
+                if pass.groups.isEmpty {
                     ContentUnavailableView(
                         "batch.empty.title",
                         systemImage: "tablecells",
                         description: Text("batch.empty.hint")
                     )
                 } else {
-                    entryScroll
+                    entryScroll(pass)
                 }
             }
             .task(id: periodMonth) {
@@ -110,11 +112,11 @@ struct BatchEntryView: View {
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-            .toolbar { toolbarContent }
+            .toolbar { toolbarContent(hasUnsavedEdits: hasUnsavedEdits) }
             .keyboardDismissable(showsToolbar: false)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !groupedRows.isEmpty {
-                    footer
+                if !pass.groups.isEmpty {
+                    footer(pass, hasUnsavedEdits: hasUnsavedEdits)
                 }
             }
             .alert(
@@ -179,7 +181,7 @@ struct BatchEntryView: View {
     }
 
     @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
+    private func toolbarContent(hasUnsavedEdits: Bool) -> some ToolbarContent {
         #if !os(macOS)
         ToolbarItem(placement: .cancellationAction) {
             Button {
@@ -232,11 +234,11 @@ struct BatchEntryView: View {
 
     // MARK: - Scroll content
 
-    private var entryScroll: some View {
+    private func entryScroll(_ pass: DerivedPass) -> some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                monthCard
-                memberGroupsSection
+                monthCard(pass.rows)
+                memberGroupsSection(pass)
                 notesCard
             }
             .padding(.horizontal, pageHorizontalInset)
@@ -247,12 +249,12 @@ struct BatchEntryView: View {
         }
     }
 
-    private var monthCard: some View {
+    private func monthCard(_ rows: [HoldingRow]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             monthHeader
                 .padding(.bottom, 14)
-            fillFromLastAction
-            ratesSection
+            fillFromLastAction(hasBlankWithPrevious: hasBlankWithPrevious(rows: rows))
+            ratesSection(rows: rows)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -301,7 +303,7 @@ struct BatchEntryView: View {
         }
     }
 
-    private var fillFromLastAction: some View {
+    private func fillFromLastAction(hasBlankWithPrevious: Bool) -> some View {
         Button {
             fillFromLast()
         } label: {
@@ -340,15 +342,15 @@ struct BatchEntryView: View {
     }
 
     @ViewBuilder
-    private var memberGroupsSection: some View {
-        ForEach(groupedRows, id: \.member.id) { group in
-            memberGroupCard(group)
+    private func memberGroupsSection(_ pass: DerivedPass) -> some View {
+        ForEach(pass.groups, id: \.member.id) { group in
+            memberGroupCard(group, rateCache: pass.rateCache)
         }
     }
 
     /// Member group (§4): hairline rule, avatar + name header, then the
     /// member's holdings as entry rows.
-    private func memberGroupCard(_ group: MemberGroup) -> some View {
+    private func memberGroupCard(_ group: MemberGroup, rateCache: FXService.RateCache) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 10) {
                 MemberAvatarView(
@@ -366,7 +368,7 @@ struct BatchEntryView: View {
 
             VStack(spacing: 0) {
                 ForEach(Array(group.rows.enumerated()), id: \.element.holding.id) { index, row in
-                    entryRow(row)
+                    entryRow(row, rateCache: rateCache)
                     if index < group.rows.count - 1 {
                         LedgerHairline().padding(.leading, BatchEntryRowView.textColumnInset)
                     }
@@ -392,7 +394,7 @@ struct BatchEntryView: View {
     }
 
     @ViewBuilder
-    private func entryRow(_ row: HoldingRow) -> some View {
+    private func entryRow(_ row: HoldingRow, rateCache: FXService.RateCache) -> some View {
         BatchEntryRowView(
             accountName: row.holding.account?.name ?? "",
             accountKind: row.holding.account?.kind ?? .cash,
@@ -400,7 +402,7 @@ struct BatchEntryView: View {
             label: row.holding.label,
             previousAmount: row.previousAmount,
             homeCurrency: homeCurrency,
-            convertedPreview: approxHome(for: row),
+            convertedPreview: approxHome(for: row, cache: rateCache),
             isDirty: edits[row.holding.id] != nil,
             amount: binding(for: row)
         )
@@ -409,15 +411,15 @@ struct BatchEntryView: View {
     // MARK: - Footer
 
     @ViewBuilder
-    private var footer: some View {
+    private func footer(_ pass: DerivedPass, hasUnsavedEdits: Bool) -> some View {
         #if os(macOS)
-        macFooter
+        macFooter(totalInHome: totalInHome(pass), hasUnsavedEdits: hasUnsavedEdits)
         #else
-        iosFloatingTotal
+        iosFloatingTotal(totalInHome: totalInHome(pass), unresolvedCurrencies: unresolvedCurrencies(pass))
         #endif
     }
 
-    private var footerSummary: some View {
+    private func footerSummary(totalInHome: Decimal) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("batch.total")
                 .font(.caption.weight(.semibold))
@@ -434,9 +436,9 @@ struct BatchEntryView: View {
         }
     }
 
-    private var macFooter: some View {
+    private func macFooter(totalInHome: Decimal, hasUnsavedEdits: Bool) -> some View {
         HStack(spacing: 16) {
-            footerSummary
+            footerSummary(totalInHome: totalInHome)
 
             Spacer(minLength: 24)
 
@@ -451,7 +453,7 @@ struct BatchEntryView: View {
             }
             .keyboardShortcut(.cancelAction)
 
-            saveButton
+            saveButton(hasUnsavedEdits: hasUnsavedEdits)
                 .keyboardShortcut(.defaultAction)
         }
         .padding(.horizontal, 24)
@@ -461,7 +463,7 @@ struct BatchEntryView: View {
         .overlay(alignment: .top) { Divider().opacity(0.55) }
     }
 
-    private var iosFloatingTotal: some View {
+    private func iosFloatingTotal(totalInHome: Decimal, unresolvedCurrencies: [String]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 16) {
                 Text("batch.total")
@@ -486,7 +488,7 @@ struct BatchEntryView: View {
 
             if !unresolvedCurrencies.isEmpty {
                 Label {
-                    Text(unresolvedFootnote)
+                    Text(unresolvedFootnote(unresolvedCurrencies))
                 } icon: {
                     Image(systemName: "exclamationmark.triangle.fill")
                 }
@@ -503,7 +505,7 @@ struct BatchEntryView: View {
         .padding(.bottom, 8)
     }
 
-    private var saveButton: some View {
+    private func saveButton(hasUnsavedEdits: Bool) -> some View {
         Button {
             save()
         } label: {

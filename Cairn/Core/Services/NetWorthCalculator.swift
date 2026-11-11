@@ -57,11 +57,14 @@ enum NetWorthCalculator {
 
     /// Computes `Bundle` for a single `asOf` month. Optionally accepts a
     /// pre-loaded rate cache so multiple bundles (e.g. across a trend
-    /// window) can share one cache.
+    /// window) can share one cache. Pass `includeMonthOverMonthDelta: false`
+    /// to skip the prior-month aggregation when the caller ignores
+    /// `monthOverMonthDelta` (it is then `nil`).
     static func bundle(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
         includeMemberBreakdown: Bool = true,
+        includeMonthOverMonthDelta: Bool = true,
         rateCache: FXService.RateCache? = nil,
         sortedSnapshots: SortedSnapshotIndex? = nil,
         context: ModelContext
@@ -88,16 +91,18 @@ enum NetWorthCalculator {
             ? buildMemberTotals(byMember: current.byMember, in: context)
             : []
 
-        let delta = priorMonthDelta(
-            currentTotal: current.total,
-            asOf: periodMonth,
-            inputs: AggregationInputs(
-                holdings: holdings,
-                homeCurrency: homeCurrency,
-                cache: cache,
-                index: index
+        let delta = includeMonthOverMonthDelta
+            ? priorMonthDelta(
+                currentTotal: current.total,
+                asOf: periodMonth,
+                inputs: AggregationInputs(
+                    holdings: holdings,
+                    homeCurrency: homeCurrency,
+                    cache: cache,
+                    index: index
+                )
             )
-        )
+            : nil
 
         return Bundle(
             totals: Totals(amount: current.total, missingCurrencies: current.missing.sorted()),
@@ -153,14 +158,17 @@ enum NetWorthCalculator {
     }
 
     /// Net worth across all holdings, valued at the latest snapshot on or
-    /// before `periodMonth`.
+    /// before `periodMonth`. Pass a pre-loaded cache / index to share them
+    /// with other aggregations in the same render pass.
     static func total(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
+        rateCache: FXService.RateCache? = nil,
+        sortedSnapshots: SortedSnapshotIndex? = nil,
         context: ModelContext
     ) -> Totals {
-        let cache = FXService.RateCache.load(in: context)
-        let index = SortedSnapshotIndex.load(in: context)
+        let cache = rateCache ?? FXService.RateCache.load(in: context)
+        let index = sortedSnapshots ?? SortedSnapshotIndex.load(in: context)
         let agg = aggregateFast(
             holdings: index.holdings,
             homeCurrency: homeCurrency,
@@ -175,13 +183,15 @@ enum NetWorthCalculator {
     static func totalsByMember(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
+        rateCache: FXService.RateCache? = nil,
+        sortedSnapshots: SortedSnapshotIndex? = nil,
         context: ModelContext
     ) -> [MemberTotal] {
         // Preserve existing semantics: iterate `Member`s in their fetch order
         // (matches previous behaviour & test expectations).
         let members = (try? context.fetch(FetchDescriptor<Member>())) ?? []
-        let cache = FXService.RateCache.load(in: context)
-        let index = SortedSnapshotIndex.load(in: context)
+        let cache = rateCache ?? FXService.RateCache.load(in: context)
+        let index = sortedSnapshots ?? SortedSnapshotIndex.load(in: context)
         return members.compactMap { member in
             let holdings = member.accounts?
                 .flatMap { $0.holdings ?? [] } ?? []

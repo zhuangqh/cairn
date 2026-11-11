@@ -74,17 +74,21 @@ struct AssetsView: View {
         var sourceSnapshot: PortfolioSnapshot?
     }
 
-    private func deriveFinancial() -> FinancialDerivation {
+    private func deriveFinancial(listing: SnapshotListing) -> FinancialDerivation {
         _ = snapshots.count + rates.count + holdings.count + members.count
         if let latest = portfolioSnapshots.first(where: { $0.homeCurrency == homeCurrency }) {
-            return deriveFinancial(from: latest)
+            return deriveFinancial(from: latest, previous: listing.previous(for: latest))
         }
 
         // Before the first portfolio snapshot exists, retain the live
         // calculation so the empty state still gives the user a useful total.
+        // One rate cache + snapshot index serves every aggregate below.
+        let rateCache = FXService.RateCache.load(in: context)
+        let snapshotIndex = NetWorthCalculator.SortedSnapshotIndex.load(in: context)
         let bundle = NetWorthCalculator.bundle(
             homeCurrency: homeCurrency,
             includeMemberBreakdown: true,
+            rateCache: rateCache, sortedSnapshots: snapshotIndex,
             context: context
         )
 
@@ -102,6 +106,7 @@ struct AssetsView: View {
             let prevTotal = NetWorthCalculator.total(
                 homeCurrency: homeCurrency,
                 asOf: lastMonth,
+                rateCache: rateCache, sortedSnapshots: snapshotIndex,
                 context: context
             )
             deltaAmount = bundle.totals.amount - prevTotal.amount
@@ -109,6 +114,7 @@ struct AssetsView: View {
             let prevMembers = NetWorthCalculator.totalsByMember(
                 homeCurrency: homeCurrency,
                 asOf: lastMonth,
+                rateCache: rateCache, sortedSnapshots: snapshotIndex,
                 context: context
             )
             let prevById = Dictionary(uniqueKeysWithValues: prevMembers.map { ($0.memberId, $0.amount) })
@@ -123,6 +129,7 @@ struct AssetsView: View {
                 previous: NetWorthCalculator.totalsByCurrency(
                     homeCurrency: homeCurrency,
                     asOf: lastMonth,
+                    rateCache: rateCache, sortedSnapshots: snapshotIndex,
                     context: context
                 )
             )
@@ -143,11 +150,16 @@ struct AssetsView: View {
     /// Once history exists, the Assets summary is a view of the latest
     /// captured portfolio snapshot. This keeps the headline, member totals,
     /// and deltas on the same frozen balances and FX rates.
-    private func deriveFinancial(from latest: PortfolioSnapshot) -> FinancialDerivation {
-        let previous = previousSnapshot(for: latest)
-        let latestMembers = memberTotals(in: latest)
+    private func deriveFinancial(
+        from latest: PortfolioSnapshot,
+        previous: PortfolioSnapshot?
+    ) -> FinancialDerivation {
+        let holdingsById = Dictionary(uniqueKeysWithValues: holdings.map { ($0.id, $0) })
+        let latestMembers = memberTotals(in: latest, holdingsById: holdingsById)
         let previousById = Dictionary(
-            uniqueKeysWithValues: previous.map(memberTotals(in:))?.map { ($0.memberId, $0.amount) } ?? []
+            uniqueKeysWithValues: previous
+                .map { memberTotals(in: $0, holdingsById: holdingsById) }?
+                .map { ($0.memberId, $0.amount) } ?? []
         )
 
         let deltaAmount = previous.map { latest.totalAmount - $0.totalAmount }
@@ -197,8 +209,10 @@ struct AssetsView: View {
         return deltas
     }
 
-    private func memberTotals(in snapshot: PortfolioSnapshot) -> [NetWorthCalculator.MemberTotal] {
-        let holdingsById = Dictionary(uniqueKeysWithValues: holdings.map { ($0.id, $0) })
+    private func memberTotals(
+        in snapshot: PortfolioSnapshot,
+        holdingsById: [UUID: Holding]
+    ) -> [NetWorthCalculator.MemberTotal] {
         var amountsByMemberId: [UUID: Decimal] = [:]
 
         for entry in snapshot.entries {
@@ -221,7 +235,8 @@ struct AssetsView: View {
     }
 
     var body: some View {
-        Group {
+        let years = availableYears
+        return Group {
             #if os(iOS)
             iosBody
             #else
@@ -261,11 +276,11 @@ struct AssetsView: View {
             }
         }
         .onAppear {
-            if selectedYear == nil, let latest = availableYears.first {
+            if selectedYear == nil, let latest = years.first {
                 selectedYear = latest
             }
         }
-        .onChange(of: availableYears) { _, newYears in
+        .onChange(of: years) { _, newYears in
             if let selected = selectedYear, !newYears.contains(selected) {
                 selectedYear = newYears.first
             } else if selectedYear == nil {
@@ -407,10 +422,11 @@ struct AssetsView: View {
             )
             .padding(.top, 64)
         } else {
-            let derivation = deriveFinancial()
+            let listing = snapshotListing()
+            let derivation = deriveFinancial(listing: listing)
             VStack(alignment: .leading, spacing: 0) {
                 heroCard(derivation: derivation)
-                bottomRow(derivation: derivation)
+                bottomRow(derivation: derivation, listing: listing)
             }
         }
     }
@@ -419,7 +435,7 @@ struct AssetsView: View {
     /// macOS windows the breakdowns stack in the leading column beside
     /// snapshots; everywhere else everything stacks vertically.
     @ViewBuilder
-    private func bottomRow(derivation: FinancialDerivation) -> some View {
+    private func bottomRow(derivation: FinancialDerivation, listing: SnapshotListing) -> some View {
         let hasMembers = !derivation.memberTotals.isEmpty
         // A single currency would be one 100% row, so the card waits for two.
         let hasCurrencies = derivation.currencyTotals.count > 1
@@ -432,23 +448,23 @@ struct AssetsView: View {
                         if hasCurrencies { currencyCard(derivation: derivation) }
                     }
                     .frame(minWidth: 380, maxWidth: .infinity)
-                    snapshotsCard
+                    snapshotsCard(listing)
                         .frame(minWidth: 380, maxWidth: .infinity)
                 }
                 VStack(spacing: 0) {
                     if hasMembers { membersCard(derivation: derivation) }
                     if hasCurrencies { currencyCard(derivation: derivation) }
-                    snapshotsCard
+                    snapshotsCard(listing)
                 }
             }
         } else {
-            snapshotsCard
+            snapshotsCard(listing)
         }
         #else
         VStack(spacing: 0) {
             if hasMembers { membersCard(derivation: derivation) }
             if hasCurrencies { currencyCard(derivation: derivation) }
-            snapshotsCard
+            snapshotsCard(listing)
         }
         #endif
     }
@@ -546,10 +562,10 @@ struct AssetsView: View {
         )
     }
 
-    private var snapshotsCard: some View {
+    private func snapshotsCard(_ listing: SnapshotListing) -> some View {
         LedgerSection(Text("assets.snapshots")) {
-            if !availableYears.isEmpty {
-                yearFilterMenu
+            if !listing.years.isEmpty {
+                yearFilterMenu(years: listing.years)
             }
         } content: {
             if portfolioSnapshots.isEmpty {
@@ -562,14 +578,14 @@ struct AssetsView: View {
                         .foregroundStyle(Color.ink2)
                 }
                 .padding(.vertical, 8)
-            } else if filteredSnapshots.isEmpty {
+            } else if listing.filtered.isEmpty {
                 Text("assets.snapshots.filter.empty")
                     .font(.callout)
                     .foregroundStyle(Color.ink2)
                     .padding(.vertical, 8)
             } else {
-                LedgerRows(data: filteredSnapshots) { snapshot in
-                    let previous = previousSnapshot(for: snapshot)
+                LedgerRows(data: listing.filtered) { snapshot in
+                    let previous = listing.previous(for: snapshot)
                     NavigationLink(value: AssetsRoute.snapshot(snapshot, previous: previous)) {
                         AssetsSnapshotRow(
                             snapshot: snapshot,
@@ -584,7 +600,7 @@ struct AssetsView: View {
         }
     }
 
-    private var yearFilterMenu: some View {
+    private func yearFilterMenu(years: [Int]) -> some View {
         Menu {
             Button {
                 selectedYear = nil
@@ -596,7 +612,7 @@ struct AssetsView: View {
                 }
             }
             Divider()
-            ForEach(availableYears, id: \.self) { year in
+            ForEach(years, id: \.self) { year in
                 Button {
                     selectedYear = year
                 } label: {
@@ -617,11 +633,49 @@ struct AssetsView: View {
         .fixedSize()
     }
 
-    private func previousSnapshot(for snapshot: PortfolioSnapshot) -> PortfolioSnapshot? {
-        portfolioSnapshots.first {
-            $0.homeCurrency == snapshot.homeCurrency &&
-            $0.periodMonth < snapshot.periodMonth
+    /// Snapshot history derived once per render: the year filter's options,
+    /// the rows it selects, and each row's predecessor.
+    private struct SnapshotListing {
+        let years: [Int]
+        let filtered: [PortfolioSnapshot]
+        let previousByID: [ObjectIdentifier: PortfolioSnapshot]
+
+        func previous(for snapshot: PortfolioSnapshot) -> PortfolioSnapshot? {
+            previousByID[ObjectIdentifier(snapshot)]
         }
+    }
+
+    private func snapshotListing() -> SnapshotListing {
+        SnapshotListing(
+            years: availableYears,
+            filtered: filteredSnapshots,
+            previousByID: Self.previousSnapshots(in: portfolioSnapshots)
+        )
+    }
+
+    /// Maps each snapshot to the first entry after it in `descending` (sorted
+    /// newest month first) with the same home currency and an earlier month —
+    /// a single pass instead of a scan per row. Equal months share their
+    /// predecessor, matching the earlier first-match search.
+    static func previousSnapshots(
+        in descending: [PortfolioSnapshot]
+    ) -> [ObjectIdentifier: PortfolioSnapshot] {
+        var result: [ObjectIdentifier: PortfolioSnapshot] = [:]
+        result.reserveCapacity(descending.count)
+        // Walk oldest → newest, remembering per currency the most recently
+        // visited snapshot and the predecessor it resolved to.
+        var lastByCurrency: [String: (snapshot: PortfolioSnapshot, previous: PortfolioSnapshot?)] = [:]
+        for snapshot in descending.reversed() {
+            let previous: PortfolioSnapshot?
+            if let last = lastByCurrency[snapshot.homeCurrency] {
+                previous = last.snapshot.periodMonth < snapshot.periodMonth ? last.snapshot : last.previous
+            } else {
+                previous = nil
+            }
+            if let previous { result[ObjectIdentifier(snapshot)] = previous }
+            lastByCurrency[snapshot.homeCurrency] = (snapshot, previous)
+        }
+        return result
     }
 
     private var availableYears: [Int] {

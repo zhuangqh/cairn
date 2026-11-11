@@ -19,14 +19,16 @@ extension NetWorthCalculator {
     static func totalsByCurrency(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
+        rateCache: FXService.RateCache? = nil,
+        sortedSnapshots: SortedSnapshotIndex? = nil,
         context: ModelContext
     ) -> [CurrencyTotal] {
-        let index = SortedSnapshotIndex.load(in: context)
+        let index = sortedSnapshots ?? SortedSnapshotIndex.load(in: context)
         let agg = aggregateFast(
             holdings: index.holdings,
             homeCurrency: homeCurrency,
             asOf: periodMonth,
-            cache: FXService.RateCache.load(in: context),
+            cache: rateCache ?? FXService.RateCache.load(in: context),
             sortedSnapshots: index
         )
         return sortedCurrencyTotals(agg.byCurrency)
