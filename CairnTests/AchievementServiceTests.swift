@@ -3,17 +3,7 @@ import SwiftData
 @testable import Cairn
 
 @MainActor
-final class AchievementServiceTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class AchievementServiceTests: InMemoryStoreTestCase {
     func testFirstSnapshotBackfillsFirstStoneAndWealthLadder() throws {
         let context = container.mainContext
         context.insert(try snapshot("2026-01-01", total: 1_100_000, currency: "AUD"))
@@ -107,7 +97,7 @@ final class AchievementServiceTests: XCTestCase {
             eventKey: "wealth-7",
             family: .wealthMilestone,
             stageKey: "wealth-7",
-            logicalMonth: try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-01-01T00:00:00Z")),
+            logicalMonth: try date("2026-01-01T00:00:00Z"),
             observedAmount: 20_000_000
         ))
         try context.save()
@@ -130,7 +120,7 @@ final class AchievementServiceTests: XCTestCase {
 
     private func snapshot(_ date: String, total: Decimal, currency: String) throws -> PortfolioSnapshot {
         PortfolioSnapshot(
-            periodMonth: try XCTUnwrap(ISO8601DateFormatter().date(from: "\(date)T00:00:00Z")),
+            periodMonth: try self.date("\(date)T00:00:00Z"),
             homeCurrency: currency,
             totalAmount: total,
             entries: [],

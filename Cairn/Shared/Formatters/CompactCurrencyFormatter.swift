@@ -57,16 +57,6 @@ enum CompactCurrencyFormatter {
         return "\(signPrefix)\(symbol)\(body)"
     }
 
-    /// Compact format with a custom sign prefix override (used to render
-    /// the delta line where we want `↑` / `↓` chevrons separately).
-    static func unsignedString(
-        amount: Decimal,
-        code: String,
-        locale: Locale
-    ) -> String {
-        string(amount: abs(amount), code: code, locale: locale, alwaysSigned: false)
-    }
-
     private static func formatScaled(_ value: Double, suffix: String) -> String {
         // 1 fractional digit for tens / hundreds, 2 for single digits, 0
         // when the abbreviation would otherwise repeat the same digit

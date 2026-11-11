@@ -6,6 +6,103 @@ import SwiftUI
 // internal so the primary file can reference these helpers directly.
 
 extension BatchEntryView {
+    // MARK: - Month
+
+    /// Selected day, date picker, fill-from-last action, and FX rates.
+    func monthCard(_ rows: [HoldingRow]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            monthHeader
+                .padding(.bottom, 14)
+            fillFromLastAction(hasBlankWithPrevious: hasBlankWithPrevious(rows: rows))
+            ratesSection(rows: rows)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var monthHeader: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 16) {
+                monthSummary
+                Spacer(minLength: 12)
+                monthPicker
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                monthSummary
+                monthPicker
+            }
+        }
+    }
+
+    private var monthSummary: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("batch.monthCard.title")
+                .font(.subheadline)
+                .foregroundStyle(Color.ink2)
+            Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
+                .font(.title.bold())
+                .monospacedDigit()
+                .foregroundStyle(Color.ink)
+        }
+    }
+
+    private var monthPicker: some View {
+        DatePicker(
+            "batch.month",
+            selection: $periodMonth,
+            displayedComponents: [.date]
+        )
+        .labelsHidden()
+        .font(.subheadline.weight(.medium))
+        .controlSize(.small)
+        .fixedSize()
+        .disabled(isMonthLocked)
+        .onChange(of: periodMonth) { _, newValue in
+            let day = Snapshot.normalizeDay(newValue)
+            if day != periodMonth { periodMonth = day }
+        }
+    }
+
+    private func fillFromLastAction(hasBlankWithPrevious: Bool) -> some View {
+        Button {
+            fillFromLast()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.down.to.line")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.accent)
+                    .frame(width: 30, height: 30)
+                    .background(Color.accentSoft, in: RoundedRectangle(cornerRadius: 8))
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("batch.fillFromLast")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(Color.accent)
+                    Text("batch.fillFromLast.hint")
+                        .font(.caption)
+                        .foregroundStyle(Color.ink3)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.ink3)
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: LedgerMetrics.rowHeight + 8, alignment: .leading)
+        .overlay(alignment: .top) { LedgerHairline() }
+        .contentShape(Rectangle())
+        .disabled(!hasBlankWithPrevious)
+        .opacity(hasBlankWithPrevious ? 1 : 0.52)
+        .help(Text("batch.fillFromLast.hint"))
+    }
+
+    // MARK: - Rates
+
     /// Shows historical FX rates fetched for the selected month.
     /// Empty when all holdings are already in `homeCurrency`.
     @ViewBuilder

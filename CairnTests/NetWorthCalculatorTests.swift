@@ -3,23 +3,10 @@ import SwiftData
 @testable import Cairn
 
 @MainActor
-final class NetWorthCalculatorTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class NetWorthCalculatorTests: InMemoryStoreTestCase {
     func testTotalSumsInHomeCurrencyWhenNoConversionNeeded() throws {
         let context = container.mainContext
-        let member = Member(name: "Alice")
-        let account = Account(name: "Primary", kind: .cash, member: member)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(member); context.insert(account); context.insert(holding)
+        let holding = insertHolding(memberName: "Alice", in: context)
         _ = SnapshotService.upsert(amount: 1_000, periodMonth: .now, for: holding, context: context)
 
         let totals = NetWorthCalculator.total(homeCurrency: "USD", context: context)
@@ -36,10 +23,7 @@ final class NetWorthCalculatorTests: XCTestCase {
         ))
         try await FXService.refresh(base: "USD", quotes: ["CNY"], fetcher: fetcher, context: context)
 
-        let member = Member(name: "Alice")
-        let account = Account(name: "RMB", kind: .cash, member: member)
-        let holding = Holding(currency: "CNY", account: account)
-        context.insert(member); context.insert(account); context.insert(holding)
+        let holding = insertHolding(currency: "CNY", accountName: "RMB", memberName: "Alice", in: context)
         _ = SnapshotService.upsert(amount: 7_000, periodMonth: .now, for: holding, context: context)
 
         let totals = NetWorthCalculator.total(homeCurrency: "USD", context: context)
@@ -48,9 +32,7 @@ final class NetWorthCalculatorTests: XCTestCase {
 
     func testTotalReportsMissingCurrencies() throws {
         let context = container.mainContext
-        let account = Account(name: "JPY", kind: .cash)
-        let holding = Holding(currency: "JPY", account: account)
-        context.insert(account); context.insert(holding)
+        let holding = insertHolding(currency: "JPY", accountName: "JPY", in: context)
         _ = SnapshotService.upsert(amount: 100_000, periodMonth: .now, for: holding, context: context)
 
         let totals = NetWorthCalculator.total(homeCurrency: "USD", context: context)
@@ -73,9 +55,7 @@ final class NetWorthCalculatorTests: XCTestCase {
 
     func testTotalUsesLatestSnapshotAtOrBeforeCutoff() throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account); context.insert(holding)
+        let holding = insertHolding(in: context)
 
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt

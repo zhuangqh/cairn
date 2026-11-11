@@ -228,11 +228,9 @@ enum PreviewSampleData {
     }
 
     private static func recentMonths(_ count: Int) -> [Date] {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
         let now = Snapshot.normalize(.now)
         return (0..<count).reversed().compactMap { offset in
-            calendar.date(byAdding: .month, value: -offset, to: now)
+            Snapshot.adding(months: -offset, to: now)
         }
     }
 }
@@ -247,6 +245,12 @@ enum PreviewDefaults {
         UserDefaults.standard.set(true, forKey: AppSettingsKeys.onboardingCompleted)
         UserDefaults.standard.set(true, forKey: AppSettingsKeys.featureTourSeen)
         UserDefaults.standard.set(homeCurrency, forKey: AppSettingsKeys.homeCurrency)
+    }
+
+    /// Clears the onboarding flags so the first-run tour is presented.
+    static func primeFirstRun() {
+        UserDefaults.standard.set(false, forKey: AppSettingsKeys.onboardingCompleted)
+        UserDefaults.standard.set(false, forKey: AppSettingsKeys.featureTourSeen)
     }
 }
 #endif

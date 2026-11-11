@@ -1,50 +1,6 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - Delta badge
-
-/// Compact direction-arrow change, e.g. `↗ 2.9%` (accent) or `↘ 1.4%` (ink2).
-/// Direction is carried by the arrow, so no `+` sign (DESIGN.md §6).
-/// Hidden when `percent` is `nil` (no baseline available).
-struct DeltaBadge: View {
-    /// Fractional change, e.g. `0.029` → `2.9%`. `nil` renders nothing.
-    let percent: Double?
-    /// Optional absolute delta — when supplied in `.full`, drawn before the percent.
-    let amount: Decimal?
-    let currencyCode: String
-    let locale: Locale
-
-    /// Compact (just the percent) or full (amount + percent).
-    enum Style { case compact, full }
-    var style: Style = .compact
-
-    init(
-        percent: Double?,
-        amount: Decimal? = nil,
-        currencyCode: String = "USD",
-        locale: Locale = .current,
-        style: Style = .compact
-    ) {
-        self.percent = percent
-        self.amount = amount
-        self.currencyCode = currencyCode
-        self.locale = locale
-        self.style = style
-    }
-
-    var body: some View {
-        if let percent {
-            LedgerDeltaLine(
-                amount: style == .full ? amount : nil,
-                percent: percent,
-                code: currencyCode,
-                locale: locale
-            )
-            .font(.caption.weight(.semibold))
-        }
-    }
-}
-
 // MARK: - Breakdown section + row
 
 /// Titled section shared by the By member / By currency breakdowns and the
@@ -215,8 +171,7 @@ struct AssetsSnapshotRow: View {
     }
 
     private var deltaPercent: Double? {
-        guard let prev = previous, prev.totalAmount != 0 else { return nil }
-        let change = (snapshot.totalAmount - prev.totalAmount) / prev.totalAmount
-        return NSDecimalNumber(decimal: change).doubleValue
+        guard let prev = previous else { return nil }
+        return NetWorthCalculator.percentChange(current: snapshot.totalAmount, previous: prev.totalAmount)
     }
 }

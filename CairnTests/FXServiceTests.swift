@@ -2,26 +2,8 @@ import XCTest
 import SwiftData
 @testable import Cairn
 
-struct StubFXFetcher: FXRateFetching {
-    let response: FXRateResponse
-
-    func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse {
-        response
-    }
-}
-
 @MainActor
-final class FXServiceTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class FXServiceTests: InMemoryStoreTestCase {
     func testRefreshInsertsRates() async throws {
         let context = container.mainContext
         let fetcher = StubFXFetcher(response: FXRateResponse(

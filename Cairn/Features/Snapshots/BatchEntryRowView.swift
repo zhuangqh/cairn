@@ -174,8 +174,7 @@ struct BatchEntryRowView: View {
 
         // Percent change — guard against zero baseline.
         let percentText: String
-        if previous != 0 {
-            let pct = NSDecimalNumber(decimal: delta / previous).doubleValue
+        if let pct = NetWorthCalculator.percentChange(current: current, previous: previous) {
             percentText = "(" + pct.formatted(
                 .percent.sign(strategy: .always(includingZero: false))
                     .precision(.fractionLength(1))

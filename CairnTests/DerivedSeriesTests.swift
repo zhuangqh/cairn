@@ -4,17 +4,7 @@ import SwiftData
 
 /// Equivalence checks for single-pass rewrites of per-render derivations.
 @MainActor
-final class DerivedSeriesTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class DerivedSeriesTests: InMemoryStoreTestCase {
     // MARK: - Trend possession overlay
 
     func testCumulativeSeriesMatchesPerPeriodScan() {

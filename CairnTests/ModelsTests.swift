@@ -2,18 +2,7 @@ import XCTest
 import SwiftData
 @testable import Cairn
 
-final class ModelsTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
-    @MainActor
+final class ModelsTests: InMemoryStoreTestCase {
     func testMemberCascadeDeletesAccountsAndHoldings() throws {
         let context = container.mainContext
         let member = Member(name: "Alice")
@@ -64,7 +53,6 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(AccountKind.device.rawValue, "device")
     }
 
-    @MainActor
     func testCreateAccountAndHoldingGraph() throws {
         let context = container.mainContext
         let member = Member(name: "Bob")

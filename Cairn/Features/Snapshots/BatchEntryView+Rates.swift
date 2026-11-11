@@ -8,6 +8,13 @@ import SwiftData
 // within lint limits.
 
 extension BatchEntryView {
+    /// Identity for the rates/note load task; changing either input
+    /// restarts it.
+    struct RatesKey: Equatable {
+        let periodMonth: Date
+        let homeCurrency: String
+    }
+
     /// Distinct non-home currencies currently in use across active
     /// holdings, sorted for stable display. Empty when everything is
     /// already denominated in `homeCurrency`.
@@ -49,7 +56,8 @@ extension BatchEntryView {
 
         isLoadingRates = true
         ratesFetchError = nil
-        defer { isLoadingRates = false }
+        // A cancelled load leaves the flag to its replacement task.
+        defer { if !Task.isCancelled { isLoadingRates = false } }
 
         let referenceDate = Self.referenceDate(for: periodMonth, now: .now)
         do {
@@ -58,9 +66,11 @@ extension BatchEntryView {
                 quotes: quotes,
                 on: referenceDate
             )
+            guard !Task.isCancelled else { return }
             historicalRates = response.rates
             historicalRatesAsOf = response.date
         } catch {
+            guard !Task.isCancelled else { return }
             historicalRates = [:]
             historicalRatesAsOf = nil
             ratesFetchError = error.localizedDescription

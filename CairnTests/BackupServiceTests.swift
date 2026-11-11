@@ -3,25 +3,10 @@ import SwiftData
 @testable import Cairn
 
 @MainActor
-final class BackupServiceTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class BackupServiceTests: InMemoryStoreTestCase {
     func testExportImportRoundTrip() throws {
         let context = container.mainContext
-        let member = Member(name: "Alice")
-        let account = Account(name: "Primary", kind: .cash, member: member)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(member)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(memberName: "Alice", in: context)
         _ = SnapshotService.upsert(amount: 1_234, periodMonth: .now, for: holding, context: context)
         try context.save()
 
@@ -39,12 +24,7 @@ final class BackupServiceTests: XCTestCase {
     func testRestoreReplacesExistingData() throws {
         // Populate store 1 and export.
         let sourceContext = container.mainContext
-        let member = Member(name: "Alice")
-        let account = Account(name: "Primary", kind: .cash, member: member)
-        let holding = Holding(currency: "USD", account: account)
-        sourceContext.insert(member)
-        sourceContext.insert(account)
-        sourceContext.insert(holding)
+        let holding = insertHolding(memberName: "Alice", in: sourceContext)
         _ = SnapshotService.upsert(amount: 500, periodMonth: .now, for: holding, context: sourceContext)
         try sourceContext.save()
         let backup = try BackupService.makeBackup(in: sourceContext, homeCurrency: "USD")
@@ -387,12 +367,7 @@ final class BackupServiceTests: XCTestCase {
 
     func testRestoreIsIdempotentAcrossRepeatedImports() throws {
         let context = container.mainContext
-        let member = Member(name: "Alice")
-        let account = Account(name: "Primary", kind: .cash, member: member)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(member)
-        context.insert(account)
-        context.insert(holding)
+        insertHolding(memberName: "Alice", in: context)
         try context.save()
 
         let backup = try BackupService.makeBackup(in: context, homeCurrency: "USD")

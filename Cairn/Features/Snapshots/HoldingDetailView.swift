@@ -117,10 +117,7 @@ struct HoldingDetailView: View {
         }
         .alert(
             Text("snapshot.delete.confirm.title"),
-            isPresented: Binding(
-                get: { snapshotPendingDeletion != nil },
-                set: { if !$0 { snapshotPendingDeletion = nil } }
-            ),
+            isPresented: Binding(isPresent: $snapshotPendingDeletion),
             presenting: snapshotPendingDeletion
         ) { snapshot in
             Button(role: .destructive) {

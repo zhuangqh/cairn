@@ -127,10 +127,7 @@ struct MembersListView: View {
         }
         .alert(
             Text("member.delete.confirm.title"),
-            isPresented: Binding(
-                get: { memberPendingDeletion != nil },
-                set: { if !$0 { memberPendingDeletion = nil } }
-            ),
+            isPresented: Binding(isPresent: $memberPendingDeletion),
             presenting: memberPendingDeletion
         ) { member in
             Button(role: .destructive) {

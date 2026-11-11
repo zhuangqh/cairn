@@ -51,18 +51,12 @@ extension Color {
     /// Recessed surface — same as the page ground.
     static let notionSurfaceAlt = Color(light: Color(hex: 0xF0EEE8), dark: Color(hex: 0x0F1210))
 
-    /// Legacy badge pair, now mapped onto the accent family.
-    static let notionBadgeBlueBg = accentSoft
-    static let notionBadgeBlueText = accent
-
     // Legacy semantic accents, desaturated into the ink-green family. Kept so
     // screens not yet restyled stay within the palette (§2 forbids candy hues).
     static let notionTeal = Color(light: Color(hex: 0x6F927F), dark: Color(hex: 0x8FB09E))
     static let notionGreen = accent
-    static let notionOrange = ink2
     static let notionPink = Color(hex: 0xA9BEB0)
     static let notionPurple = Color(hex: 0x6B604B)
-    static let notionBrown = Color(hex: 0x6B604B)
 
     /// Brass — second accent for achievements, milestones, and "now"
     /// markers. Never used for interaction or for gain/loss.
@@ -136,11 +130,6 @@ extension View {
         modifier(NotionCardStyle(cornerRadius: cornerRadius, padding: padding))
     }
 
-    /// Lower-contrast card variant for nested or secondary content.
-    func notionCardAlt(cornerRadius: CGFloat = 12, padding: CGFloat = 20) -> some View {
-        modifier(NotionCardStyle(cornerRadius: cornerRadius, padding: padding, surface: .notionSurfaceAlt))
-    }
-
     /// Uses Apple's interactive Liquid Glass button on the newest systems and
     /// the native prominent style on systems supported by the deployment target.
     @ViewBuilder
@@ -152,15 +141,6 @@ extension View {
         }
     }
 
-    /// Secondary control treatment for compact actions placed above content.
-    @ViewBuilder
-    func cairnGlassButtonStyle() -> some View {
-        if #available(iOS 26.0, macOS 26.0, *) {
-            buttonStyle(.glass)
-        } else {
-            buttonStyle(.bordered)
-        }
-    }
 }
 
 // MARK: - Page background
@@ -234,64 +214,6 @@ struct GlyphBadge: View {
     }
 }
 
-// MARK: - Pill badge
-
-/// Notion-style pill: fully-rounded, tinted background, 12pt semibold label
-/// with the signature `+0.125` letter spacing.
-struct NotionPillBadge: View {
-    let text: LocalizedStringKey
-    let textColor: Color
-    let background: Color
-
-    init(
-        _ text: LocalizedStringKey,
-        textColor: Color = .notionBadgeBlueText,
-        background: Color = .notionBadgeBlueBg
-    ) {
-        self.text = text
-        self.textColor = textColor
-        self.background = background
-    }
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: 12, weight: .semibold))
-            .tracking(0.125)
-            .foregroundStyle(textColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(background, in: Capsule())
-    }
-}
-
-/// Pill badge initialized with a raw (non-localized) string. Useful for
-/// currency codes / member initials where the source is data, not a catalog.
-struct NotionPillRaw: View {
-    let text: String
-    let textColor: Color
-    let background: Color
-
-    init(
-        _ text: String,
-        textColor: Color = .notionBadgeBlueText,
-        background: Color = .notionBadgeBlueBg
-    ) {
-        self.text = text
-        self.textColor = textColor
-        self.background = background
-    }
-
-    var body: some View {
-        Text(verbatim: text)
-            .font(.system(size: 12, weight: .semibold, design: .default).monospaced())
-            .tracking(0.125)
-            .foregroundStyle(textColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(background, in: Capsule())
-    }
-}
-
 // MARK: - Primary button style
 
 /// `#0075de` bg, white text, 4pt radius — the only saturated CTA per §4.
@@ -317,22 +239,6 @@ struct NotionPrimaryButtonStyle: ButtonStyle {
                     .fill(configuration.isPressed ? Color.accentActive : Color.accent)
             )
             .opacity(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
-
-/// Translucent warm-gray secondary button (§4 Secondary/Tertiary).
-struct NotionSecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(Color.ink)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(Color.black.opacity(configuration.isPressed ? 0.10 : 0.05))
-            )
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
@@ -367,19 +273,6 @@ struct NotionSectionHeader: View {
             Spacer(minLength: 0)
         }
     }
-}
-
-// MARK: - Typography helpers
-
-extension Font {
-    /// Display hero (64 / 700 / tight). For landing-style moments.
-    static let notionDisplay = Font.system(size: 44, weight: .bold, design: .default)
-    /// Sub-heading used in card titles (22 / 700).
-    static let notionCardTitle = Font.system(size: 22, weight: .bold, design: .default)
-    /// Body large (20 / 600).
-    static let notionBodyLarge = Font.system(size: 18, weight: .semibold, design: .default)
-    /// Caption (14 / 500).
-    static let notionCaption = Font.system(size: 13, weight: .medium, design: .default)
 }
 
 // MARK: - Color(hex:)

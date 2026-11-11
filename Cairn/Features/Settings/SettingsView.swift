@@ -17,10 +17,10 @@ struct SettingsView: View {
     }
 
     @Environment(LocalizationService.self) private var localization
-    @Environment(\.modelContext) private var context
+    @Environment(\.modelContext) var context
 
     @AppStorage(AppSettingsKeys.homeCurrency)
-    private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
+    var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
 
     @AppStorage(AppSettingsKeys.appearance)
     private var appearanceRaw: String = AppAppearance.default.rawValue
@@ -37,16 +37,31 @@ struct SettingsView: View {
     @AppStorage(AppSettingsKeys.reminderDay)
     private var reminderDay: Int = AppSettingsKeys.defaultReminderDay
 
-    @State private var exportDocument: BackupDocument?
-    @State private var csvExportDocument: CSVExportDocument?
-    @State private var isExporting: Bool = false
-    @State private var isExportingCSV: Bool = false
+    @State var exportDocument: BackupDocument?
+    @State var csvExportDocument: CSVExportDocument?
+    @State var isExporting: Bool = false
+    @State var isExportingCSV: Bool = false
     @State private var isImporting: Bool = false
-    @State private var importConfirmation: Data?
-    @State private var resultMessage: LocalizedStringKey?
+    @State var importConfirmation: Data?
+    @State var resultMessage: LocalizedStringKey?
     @State private var isShowingFeatureTour: Bool = false
-    @State private var importedAchievements: [AchievementPresentation] = []
-    @State private var isShowingImportSummary: Bool = false
+    @State var importedAchievements: [AchievementPresentation] = []
+    @State var isShowingImportSummary: Bool = false
+    /// Last reminder configuration seen by the reminder task. `nil` until
+    /// first appearance, which only records the baseline (matching the
+    /// former `onChange` handlers, which never fired initially).
+    @State private var appliedReminderConfig: ReminderConfig?
+
+    private struct ReminderConfig: Equatable {
+        let enabled: Bool
+        let day: Int
+        let hour: Int
+        let minute: Int
+    }
+
+    private var reminderConfig: ReminderConfig {
+        ReminderConfig(enabled: reminderEnabled, day: reminderDay, hour: reminderHour, minute: reminderMinute)
+    }
 
     var body: some View {
         @Bindable var localization = localization
@@ -134,17 +149,8 @@ struct SettingsView: View {
             } footer: {
                 sectionFooter("settings.reminder.footer")
             }
-            .onChange(of: reminderEnabled) { _, newValue in
-                Task { await applyReminder(enabled: newValue) }
-            }
-            .onChange(of: reminderHour) { _, _ in
-                Task { await applyReminder(enabled: reminderEnabled) }
-            }
-            .onChange(of: reminderMinute) { _, _ in
-                Task { await applyReminder(enabled: reminderEnabled) }
-            }
-            .onChange(of: reminderDay) { _, _ in
-                Task { await applyReminder(enabled: reminderEnabled) }
+            .task(id: reminderConfig) {
+                await applyReminderIfChanged(reminderConfig)
             }
 
             Section {
@@ -268,7 +274,7 @@ struct SettingsView: View {
             isPresented: $isExporting,
             document: exportDocument,
             contentType: .json,
-            defaultFilename: defaultExportFilename()
+            defaultFilename: defaultExportFilename(stem: "cairn-backup", fileExtension: "cairn")
         ) { result in
             exportDocument = nil
             switch result {
@@ -282,7 +288,7 @@ struct SettingsView: View {
             isPresented: $isExportingCSV,
             document: csvExportDocument,
             contentType: .commaSeparatedText,
-            defaultFilename: defaultCSVExportFilename()
+            defaultFilename: defaultExportFilename(stem: "cairn-snapshots", fileExtension: "csv")
         ) { result in
             csvExportDocument = nil
             switch result {
@@ -307,10 +313,7 @@ struct SettingsView: View {
         }
         .alert(
             "settings.backup.import.confirm.title",
-            isPresented: .init(
-                get: { importConfirmation != nil },
-                set: { if !$0 { importConfirmation = nil } }
-            )
+            isPresented: Binding(isPresent: $importConfirmation)
         ) {
             Button(role: .destructive) {
                 performRestore()
@@ -327,10 +330,7 @@ struct SettingsView: View {
         }
         .alert(
             resultMessage ?? "",
-            isPresented: .init(
-                get: { resultMessage != nil },
-                set: { if !$0 { resultMessage = nil } }
-            )
+            isPresented: Binding(isPresent: $resultMessage)
         ) {
             Button {
                 resultMessage = nil
@@ -402,7 +402,8 @@ struct SettingsView: View {
         )
     }
 
-    private var reminderTimeBinding: Binding<Date> {        Binding(
+    private var reminderTimeBinding: Binding<Date> {
+        Binding(
             get: {
                 var components = DateComponents()
                 components.hour = reminderHour
@@ -417,9 +418,21 @@ struct SettingsView: View {
         )
     }
 
+    private func applyReminderIfChanged(_ config: ReminderConfig) async {
+        guard let previous = appliedReminderConfig else {
+            appliedReminderConfig = config
+            return
+        }
+        guard previous != config else { return }
+        appliedReminderConfig = config
+        await applyReminder(enabled: config.enabled)
+    }
+
     private func applyReminder(enabled: Bool) async {
         if enabled {
             let granted = await ReminderService.requestAuthorization()
+            // A newer configuration replaced this task; let it apply instead.
+            guard !Task.isCancelled else { return }
             if granted {
                 await ReminderService.schedule(day: reminderDay, hour: reminderHour, minute: reminderMinute)
             } else {
@@ -430,152 +443,10 @@ struct SettingsView: View {
             ReminderService.cancel()
         }
     }
-
-    // MARK: - Backup
-
-    @MainActor
-    private func beginExport() {
-        do {
-            let data = try BackupService.makeBackup(in: context, homeCurrency: homeCurrency)
-            exportDocument = BackupDocument(data: data)
-            isExporting = true
-        } catch {
-            resultMessage = "settings.backup.export.failure"
-        }
-    }
-
-    @MainActor
-    private func beginCSVExport() {
-        do {
-            let data = try BackupService.makeSnapshotCSV(in: context)
-            csvExportDocument = CSVExportDocument(data: data)
-            isExportingCSV = true
-        } catch {
-            resultMessage = "settings.backup.export.failure"
-        }
-    }
-
-    private func defaultExportFilename() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd-HHmm"
-        return "cairn-backup-\(formatter.string(from: .now)).cairn"
-    }
-
-    private func defaultCSVExportFilename() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd-HHmm"
-        return "cairn-snapshots-\(formatter.string(from: .now)).csv"
-    }
-
-    private func loadImportCandidate(from url: URL) {
-        let didStart = url.startAccessingSecurityScopedResource()
-        defer { if didStart { url.stopAccessingSecurityScopedResource() } }
-
-        do {
-            let data = try Data(contentsOf: url)
-            _ = try BackupService.parse(data)
-            importConfirmation = data
-        } catch let error as DomainError {
-            resultMessage = LocalizedStringKey(error.localizationKey)
-        } catch {
-            resultMessage = "settings.backup.import.failure"
-        }
-    }
-
-    @MainActor
-    private func performRestore() {
-        guard let data = importConfirmation else { return }
-        importConfirmation = nil
-        do {
-            let payload = try BackupService.restoreReplacing(from: data, context: context)
-            if let restoredCurrency = BackupService.restorableHomeCurrency(in: payload) {
-                homeCurrency = restoredCurrency
-            }
-            _ = try AchievementService.recompute(in: context, source: .imported)
-            importedAchievements = AchievementService.allPresentations(in: context)
-            isShowingImportSummary = true
-        } catch let error as DomainError {
-            resultMessage = LocalizedStringKey(error.localizationKey)
-        } catch {
-            resultMessage = "settings.backup.import.failure"
-        }
-    }
-}
-
-private struct CurrencyPickerView: View {
-    @Binding var selection: String
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        List {
-            Section("currency.picker.pinned") {
-                ForEach(CurrencyCatalog.pinned, id: \.self) { code in
-                    row(code)
-                }
-            }
-            Section("currency.picker.other") {
-                ForEach(CurrencyCatalog.rest, id: \.self) { code in
-                    row(code)
-                }
-            }
-        }
-        .navigationTitle("currency.picker.title")
-    }
-
-    private func row(_ code: String) -> some View {
-        Button {
-            selection = code
-            dismiss()
-        } label: {
-            HStack(spacing: 12) {
-                Text(verbatim: code)
-                    .font(.body.monospaced().weight(.semibold))
-                    .foregroundStyle(Color.ink)
-                    .frame(width: 44, alignment: .leading)
-                Text(verbatim: CurrencyCatalog.displayName(code))
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                Spacer()
-                if code == selection {
-                    Image(systemName: "checkmark")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
-                }
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 #Preview {
     SettingsView()
         .environment(LocalizationService())
         .modelContainer(PreviewSampleData.container())
-}
-
-/// Settings chrome. iOS shows flat rows on the ivory ground — no inset
-/// cards — separated by hairlines (§5.11); macOS keeps its grouped form.
-private struct SettingsContainer<Content: View>: View {
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        #if os(iOS)
-        List {
-            content()
-                .listRowBackground(Color.clear)
-                .listRowSeparatorTint(Color.line)
-                .listSectionSeparator(.hidden)
-        }
-        .listStyle(.grouped)
-        .glassListStyle()
-        #else
-        Form {
-            content()
-        }
-        .formStyle(.grouped)
-        .glassListStyle()
-        #endif
-    }
 }

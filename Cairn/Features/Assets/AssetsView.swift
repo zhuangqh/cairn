@@ -1,13 +1,6 @@
 import SwiftUI
 import SwiftData
 
-/// Net worth hero, snapshots history, and per-member breakdown for the
-/// Financial tab. Complements the Dashboard (which emphasizes allocation
-/// + activity).
-///
-/// Hosts a segmented tab at the top so the user can flip between the
-/// financial view and a dedicated "Possessions" tab that manages physical
-/// possessions (PRD §4.7, v1.1).
 /// Pages the Assets screen pushes. Pushes in the sidebar stacks must be
 /// value-based: on macOS a `NavigationLink(destination:)` page lands in the
 /// split view's own column and outlives sidebar switches (see `RootView`).
@@ -15,6 +8,13 @@ enum AssetsRoute: Hashable {
     case snapshot(PortfolioSnapshot, previous: PortfolioSnapshot?)
 }
 
+/// Net worth hero, snapshots history, and per-member breakdown for the
+/// Financial tab. Complements the Dashboard (which emphasizes allocation
+/// + activity).
+///
+/// Hosts a segmented tab at the top so the user can flip between the
+/// financial view and a dedicated "Possessions" tab that manages physical
+/// possessions (PRD §4.7, v1.1).
 struct AssetsView: View {
     enum Tab: Hashable, CaseIterable {
         case financial
@@ -58,180 +58,17 @@ struct AssetsView: View {
     /// One-shot derivation for the financial tab. Computed in a single
     /// pass per `body` render so the hero, members, and snapshot cards
     /// share one holdings fetch + FX cache + sorted-snapshot index.
-    private struct FinancialDerivation {
-        var totals: NetWorthCalculator.Totals
-        var memberTotals: [NetWorthCalculator.MemberTotal]
-        /// Month-over-month percentage delta for the household total.
-        var monthDeltaPercent: Double?
-        /// Month-over-month absolute delta in `homeCurrency`.
-        var monthDeltaAmount: Decimal?
-        /// Per-member month-over-month percentage deltas, keyed by id.
-        var memberDeltaPercent: [UUID: Double]
-        var currencyTotals: [NetWorthCalculator.CurrencyTotal]
-        /// Per-currency month-over-month percentage deltas, keyed by code.
-        var currencyDeltaPercent: [String: Double]
-        /// The source snapshot when the displayed values are captured history.
-        var sourceSnapshot: PortfolioSnapshot?
-    }
-
-    private func deriveFinancial(listing: SnapshotListing) -> FinancialDerivation {
+    private func deriveFinancial(listing: SnapshotListing) -> AssetsSummaryService.Summary {
         _ = snapshots.count + rates.count + holdings.count + members.count
         if let latest = portfolioSnapshots.first(where: { $0.homeCurrency == homeCurrency }) {
-            return deriveFinancial(from: latest, previous: listing.previous(for: latest))
-        }
-
-        // Before the first portfolio snapshot exists, retain the live
-        // calculation so the empty state still gives the user a useful total.
-        // One rate cache + snapshot index serves every aggregate below.
-        let rateCache = FXService.RateCache.load(in: context)
-        let snapshotIndex = NetWorthCalculator.SortedSnapshotIndex.load(in: context)
-        let bundle = NetWorthCalculator.bundle(
-            homeCurrency: homeCurrency,
-            includeMemberBreakdown: true,
-            rateCache: rateCache, sortedSnapshots: snapshotIndex,
-            context: context
-        )
-
-        // Prior month — computed once, reused for absolute delta + per-member.
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        let thisMonth = Snapshot.normalize(.now)
-        let lastMonth = calendar.date(byAdding: .month, value: -1, to: thisMonth)
-
-        var deltaAmount: Decimal?
-        var memberDeltas: [UUID: Double] = [:]
-        var currencyDeltas: [String: Double] = [:]
-
-        if let lastMonth {
-            let prevTotal = NetWorthCalculator.total(
-                homeCurrency: homeCurrency,
-                asOf: lastMonth,
-                rateCache: rateCache, sortedSnapshots: snapshotIndex,
-                context: context
-            )
-            deltaAmount = bundle.totals.amount - prevTotal.amount
-
-            let prevMembers = NetWorthCalculator.totalsByMember(
-                homeCurrency: homeCurrency,
-                asOf: lastMonth,
-                rateCache: rateCache, sortedSnapshots: snapshotIndex,
-                context: context
-            )
-            let prevById = Dictionary(uniqueKeysWithValues: prevMembers.map { ($0.memberId, $0.amount) })
-            for entry in bundle.byMember {
-                guard let prior = prevById[entry.memberId], prior != 0 else { continue }
-                let change = (entry.amount - prior) / prior
-                memberDeltas[entry.memberId] = NSDecimalNumber(decimal: change).doubleValue
-            }
-
-            currencyDeltas = Self.currencyDeltas(
-                current: bundle.byCurrency,
-                previous: NetWorthCalculator.totalsByCurrency(
-                    homeCurrency: homeCurrency,
-                    asOf: lastMonth,
-                    rateCache: rateCache, sortedSnapshots: snapshotIndex,
-                    context: context
-                )
+            return AssetsSummaryService.summary(
+                from: latest,
+                previous: listing.previous(for: latest),
+                members: members,
+                holdings: holdings
             )
         }
-
-        return FinancialDerivation(
-            totals: bundle.totals,
-            memberTotals: bundle.byMember,
-            monthDeltaPercent: bundle.monthOverMonthDelta,
-            monthDeltaAmount: deltaAmount,
-            memberDeltaPercent: memberDeltas,
-            currencyTotals: bundle.byCurrency,
-            currencyDeltaPercent: currencyDeltas,
-            sourceSnapshot: nil
-        )
-    }
-
-    /// Once history exists, the Assets summary is a view of the latest
-    /// captured portfolio snapshot. This keeps the headline, member totals,
-    /// and deltas on the same frozen balances and FX rates.
-    private func deriveFinancial(
-        from latest: PortfolioSnapshot,
-        previous: PortfolioSnapshot?
-    ) -> FinancialDerivation {
-        let holdingsById = Dictionary(uniqueKeysWithValues: holdings.map { ($0.id, $0) })
-        let latestMembers = memberTotals(in: latest, holdingsById: holdingsById)
-        let previousById = Dictionary(
-            uniqueKeysWithValues: previous
-                .map { memberTotals(in: $0, holdingsById: holdingsById) }?
-                .map { ($0.memberId, $0.amount) } ?? []
-        )
-
-        let deltaAmount = previous.map { latest.totalAmount - $0.totalAmount }
-        let deltaPercent: Double? = previous.flatMap { prior in
-            guard prior.totalAmount != 0 else { return nil }
-            let change = (latest.totalAmount - prior.totalAmount) / prior.totalAmount
-            return NSDecimalNumber(decimal: change).doubleValue
-        }
-
-        var memberDeltas: [UUID: Double] = [:]
-        for entry in latestMembers {
-            guard let prior = previousById[entry.memberId], prior != 0 else { continue }
-            let change = (entry.amount - prior) / prior
-            memberDeltas[entry.memberId] = NSDecimalNumber(decimal: change).doubleValue
-        }
-
-        let latestCurrencies = NetWorthCalculator.currencyTotals(in: latest.entries)
-        return FinancialDerivation(
-            totals: .init(amount: latest.totalAmount, missingCurrencies: []),
-            memberTotals: latestMembers,
-            monthDeltaPercent: deltaPercent,
-            monthDeltaAmount: deltaAmount,
-            memberDeltaPercent: memberDeltas,
-            currencyTotals: latestCurrencies,
-            currencyDeltaPercent: Self.currencyDeltas(
-                current: latestCurrencies,
-                previous: previous.map { NetWorthCalculator.currencyTotals(in: $0.entries) } ?? []
-            ),
-            sourceSnapshot: latest
-        )
-    }
-
-    /// Converted-amount change per currency; skipped when either side lacks
-    /// a rate or the prior balance is zero.
-    private static func currencyDeltas(
-        current: [NetWorthCalculator.CurrencyTotal],
-        previous: [NetWorthCalculator.CurrencyTotal]
-    ) -> [String: Double] {
-        let priorByCode = Dictionary(uniqueKeysWithValues: previous.map { ($0.currency, $0.convertedAmount) })
-        var deltas: [String: Double] = [:]
-        for entry in current {
-            guard let value = entry.convertedAmount,
-                  let prior = priorByCode[entry.currency] ?? nil,
-                  prior != 0 else { continue }
-            deltas[entry.currency] = NSDecimalNumber(decimal: (value - prior) / prior).doubleValue
-        }
-        return deltas
-    }
-
-    private func memberTotals(
-        in snapshot: PortfolioSnapshot,
-        holdingsById: [UUID: Holding]
-    ) -> [NetWorthCalculator.MemberTotal] {
-        var amountsByMemberId: [UUID: Decimal] = [:]
-
-        for entry in snapshot.entries {
-            guard let amount = entry.convertedAmount else { continue }
-            let resolvedMember = entry.holdingId
-                .flatMap { holdingsById[$0]?.account?.member }
-                ?? members.first(where: { $0.name == entry.memberName })
-            guard let resolvedMember else { continue }
-            amountsByMemberId[resolvedMember.id, default: 0] += amount
-        }
-
-        return members.compactMap { member in
-            guard let amount = amountsByMemberId[member.id] else { return nil }
-            return NetWorthCalculator.MemberTotal(
-                memberId: member.id,
-                memberName: member.name,
-                amount: amount
-            )
-        }
+        return AssetsSummaryService.liveSummary(homeCurrency: homeCurrency, context: context)
     }
 
     var body: some View {
@@ -435,7 +272,7 @@ struct AssetsView: View {
     /// macOS windows the breakdowns stack in the leading column beside
     /// snapshots; everywhere else everything stacks vertically.
     @ViewBuilder
-    private func bottomRow(derivation: FinancialDerivation, listing: SnapshotListing) -> some View {
+    private func bottomRow(derivation: AssetsSummaryService.Summary, listing: SnapshotListing) -> some View {
         let hasMembers = !derivation.memberTotals.isEmpty
         // A single currency would be one 100% row, so the card waits for two.
         let hasCurrencies = derivation.currencyTotals.count > 1
@@ -474,7 +311,7 @@ struct AssetsView: View {
     /// Hero summary (§5.2) for the latest snapshot. On macOS the "Add
     /// snapshot" action sits under it; on iOS it lives in the navigation bar.
     @ViewBuilder
-    private func heroCard(derivation: FinancialDerivation) -> some View {
+    private func heroCard(derivation: AssetsSummaryService.Summary) -> some View {
         LedgerHero(
             eyebrow: Text("assets.netWorth"),
             amount: derivation.totals.amount,
@@ -494,10 +331,10 @@ struct AssetsView: View {
     /// Snapshot month, or a missing-rates warning / rates footnote for the
     /// live (pre-snapshot) total.
     @ViewBuilder
-    private func heroMeta(derivation: FinancialDerivation) -> some View {
+    private func heroMeta(derivation: AssetsSummaryService.Summary) -> some View {
         if !derivation.totals.missingCurrencies.isEmpty {
             Label {
-                Text(missingRatesMessage(derivation.totals.missingCurrencies))
+                Text(MissingRatesMessage.text(for: derivation.totals.missingCurrencies))
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
             }
@@ -523,7 +360,7 @@ struct AssetsView: View {
         .cairnProminentButtonStyle()
     }
 
-    private func membersCard(derivation: FinancialDerivation) -> some View {
+    private func membersCard(derivation: AssetsSummaryService.Summary) -> some View {
         let memberTotals = derivation.memberTotals
         let membersById = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0) })
         let totalAmount = derivation.totals.amount
@@ -552,7 +389,7 @@ struct AssetsView: View {
         }
     }
 
-    private func currencyCard(derivation: FinancialDerivation) -> some View {
+    private func currencyCard(derivation: AssetsSummaryService.Summary) -> some View {
         AssetsCurrencyCard(
             totals: derivation.currencyTotals,
             householdTotal: derivation.totals.amount,
@@ -563,79 +400,18 @@ struct AssetsView: View {
     }
 
     private func snapshotsCard(_ listing: SnapshotListing) -> some View {
-        LedgerSection(Text("assets.snapshots")) {
-            if !listing.years.isEmpty {
-                yearFilterMenu(years: listing.years)
-            }
-        } content: {
-            if portfolioSnapshots.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("assets.snapshots.empty.title")
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(Color.ink)
-                    Text("assets.snapshots.empty.hint")
-                        .font(.footnote)
-                        .foregroundStyle(Color.ink2)
-                }
-                .padding(.vertical, 8)
-            } else if listing.filtered.isEmpty {
-                Text("assets.snapshots.filter.empty")
-                    .font(.callout)
-                    .foregroundStyle(Color.ink2)
-                    .padding(.vertical, 8)
-            } else {
-                LedgerRows(data: listing.filtered) { snapshot in
-                    let previous = listing.previous(for: snapshot)
-                    NavigationLink(value: AssetsRoute.snapshot(snapshot, previous: previous)) {
-                        AssetsSnapshotRow(
-                            snapshot: snapshot,
-                            previous: previous,
-                            homeCurrency: homeCurrency,
-                            locale: locale
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private func yearFilterMenu(years: [Int]) -> some View {
-        Menu {
-            Button {
-                selectedYear = nil
-            } label: {
-                if selectedYear == nil {
-                    Label("assets.snapshots.filter.allYears", systemImage: "checkmark")
-                } else {
-                    Text("assets.snapshots.filter.allYears")
-                }
-            }
-            Divider()
-            ForEach(years, id: \.self) { year in
-                Button {
-                    selectedYear = year
-                } label: {
-                    if selectedYear == year {
-                        Label(String(year), systemImage: "checkmark")
-                    } else {
-                        Text(verbatim: String(year))
-                    }
-                }
-            }
-        } label: {
-            LedgerFilterLabel(
-                title: selectedYear.map(String.init) ?? String(localized: "assets.snapshots.filter.allYears")
-            )
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
+        AssetsSnapshotsCard(
+            listing: listing,
+            hasSnapshots: !portfolioSnapshots.isEmpty,
+            selectedYear: $selectedYear,
+            homeCurrency: homeCurrency,
+            locale: locale
+        )
     }
 
     /// Snapshot history derived once per render: the year filter's options,
     /// the rows it selects, and each row's predecessor.
-    private struct SnapshotListing {
+    struct SnapshotListing {
         let years: [Int]
         let filtered: [PortfolioSnapshot]
         let previousByID: [ObjectIdentifier: PortfolioSnapshot]
@@ -679,23 +455,11 @@ struct AssetsView: View {
     }
 
     private var availableYears: [Int] {
-        let calendar = Calendar.current
-        let years = Set(portfolioSnapshots.map { calendar.component(.year, from: $0.periodMonth) })
-        return years.sorted(by: >)
+        LedgerYearFilterMenu.years(of: portfolioSnapshots.lazy.map(\.periodMonth))
     }
 
     private var filteredSnapshots: [PortfolioSnapshot] {
-        guard let selectedYear else { return portfolioSnapshots }
-        let calendar = Calendar.current
-        return portfolioSnapshots.filter {
-            calendar.component(.year, from: $0.periodMonth) == selectedYear
-        }
-    }
-
-    private func missingRatesMessage(_ currencies: [String]) -> String {
-        let list = currencies.joined(separator: ", ")
-        let template = String(localized: "assets.missingRates")
-        return template.replacingOccurrences(of: "{currencies}", with: list)
+        LedgerYearFilterMenu.filter(portfolioSnapshots, year: selectedYear, date: \.periodMonth)
     }
 
     private func latestRatesFootnote(date: Date) -> String {
@@ -703,8 +467,6 @@ struct AssetsView: View {
         let formatted = date.formatted(.dateTime.year().month().day().locale(locale))
         return template.replacingOccurrences(of: "{date}", with: formatted)
     }
-
-    // MARK: - Actions
 }
 
 #if DEBUG

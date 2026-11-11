@@ -29,6 +29,20 @@ enum AppSettingsKeys {
     static let appearance: String = "cairn.appearance"
 }
 
+#if DEBUG
+/// Debug-only launch arguments used by visual review (`scripts/screenshot-*.sh`).
+/// Values are read from the argument domain of `UserDefaults`, so
+/// `-CairnScreen assets` is looked up with `screen`.
+enum DebugLaunchKeys {
+    /// Path to a `.cairn` backup loaded into an in-memory store.
+    static let mockData: String = "CairnMockData"
+    /// `SidebarItem` case name to select on launch.
+    static let screen: String = "CairnScreen"
+    /// Flag argument (no value) that loads the built-in preview graph.
+    static let sampleDataArgument: String = "-CairnSampleData"
+}
+#endif
+
 /// User-facing appearance preference. `system` defers to the OS; `light` /
 /// `dark` pin the app to a specific color scheme regardless of system
 /// setting. Persisted as the raw string via `@AppStorage`.

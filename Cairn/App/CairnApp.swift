@@ -17,12 +17,12 @@ struct CairnApp: App {
         // Visual-review launches (scripts/screenshot-*.sh) use in-memory data
         // so they never open or modify the user's store: the mock backup
         // passed with `-CairnMockData <path>`, or the built-in preview graph.
-        if let path = UserDefaults.standard.string(forKey: "CairnMockData") {
+        if let path = UserDefaults.standard.string(forKey: DebugLaunchKeys.mockData) {
             return MainActor.assumeIsolated {
                 PreviewSampleData.mockContainer(contentsOf: URL(fileURLWithPath: path))
             }
         }
-        if ProcessInfo.processInfo.arguments.contains("-CairnSampleData") {
+        if ProcessInfo.processInfo.arguments.contains(DebugLaunchKeys.sampleDataArgument) {
             return MainActor.assumeIsolated { PreviewSampleData.container() }
         }
         #endif

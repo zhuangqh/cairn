@@ -106,10 +106,7 @@ struct AccountDetailView: View {
         }
         .alert(
             Text("snapshot.delete.confirm.title"),
-            isPresented: Binding(
-                get: { snapshotPendingDeletion != nil },
-                set: { if !$0 { snapshotPendingDeletion = nil } }
-            ),
+            isPresented: Binding(isPresent: $snapshotPendingDeletion),
             presenting: snapshotPendingDeletion
         ) { snapshot in
             Button(role: .destructive) {
@@ -165,9 +162,7 @@ struct AccountDetailView: View {
                 if let previous {
                     LedgerDeltaLine(
                         amount: latest.amount - previous.amount,
-                        percent: previous.amount == 0
-                            ? nil
-                            : NSDecimalNumber(decimal: (latest.amount - previous.amount) / previous.amount).doubleValue,
+                        percent: NetWorthCalculator.percentChange(current: latest.amount, previous: previous.amount),
                         code: primary.currency,
                         locale: locale,
                         caption: Text("dashboard.vsLastMonth")
@@ -221,36 +216,7 @@ struct AccountDetailView: View {
     private func yearFilterMenu(for holding: Holding) -> some View {
         let years = availableYears(for: holding)
         if !years.isEmpty {
-            Menu {
-                Button {
-                    selectedYear = nil
-                } label: {
-                    if selectedYear == nil {
-                        Label("assets.snapshots.filter.allYears", systemImage: "checkmark")
-                    } else {
-                        Text("assets.snapshots.filter.allYears")
-                    }
-                }
-                Divider()
-                ForEach(years, id: \.self) { year in
-                    Button {
-                        selectedYear = year
-                    } label: {
-                        if selectedYear == year {
-                            Label(String(year), systemImage: "checkmark")
-                        } else {
-                            Text(verbatim: String(year))
-                        }
-                    }
-                }
-            } label: {
-                LedgerFilterLabel(
-                    title: selectedYear.map(String.init) ?? String(localized: "assets.snapshots.filter.allYears")
-                )
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
+            LedgerYearFilterMenu(selection: $selectedYear, years: years)
         }
     }
 
@@ -379,16 +345,11 @@ struct AccountDetailView: View {
     }
 
     private func availableYears(for holding: Holding) -> [Int] {
-        let calendar = Calendar.current
-        let years = Set((holding.snapshots ?? []).map { calendar.component(.year, from: $0.periodMonth) })
-        return years.sorted(by: >)
+        LedgerYearFilterMenu.years(of: (holding.snapshots ?? []).lazy.map(\.periodMonth))
     }
 
     private func filteredSnapshots(for holding: Holding) -> [Snapshot] {
-        let all = sortedSnapshots(for: holding)
-        guard let selectedYear else { return all }
-        let calendar = Calendar.current
-        return all.filter { calendar.component(.year, from: $0.periodMonth) == selectedYear }
+        LedgerYearFilterMenu.filter(sortedSnapshots(for: holding), year: selectedYear, date: \.periodMonth)
     }
 
     private func primeSelectedYear() {

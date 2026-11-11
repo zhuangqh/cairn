@@ -95,10 +95,7 @@ struct MemberDetailView: View {
         }
         .alert(
             Text("account.delete.confirm.title"),
-            isPresented: Binding(
-                get: { accountPendingDeletion != nil },
-                set: { if !$0 { accountPendingDeletion = nil } }
-            ),
+            isPresented: Binding(isPresent: $accountPendingDeletion),
             presenting: accountPendingDeletion
         ) { account in
             Button(role: .destructive) {
@@ -177,11 +174,6 @@ struct MemberDetailView: View {
         return draft
     }
 
-    private func cleanupUnsavedDraft() {
-        guard let draft = pendingAccountDraft else { return }
-        context.delete(draft)
-        pendingAccountDraft = nil
-    }
 }
 
 struct MemberAccountRow: View {

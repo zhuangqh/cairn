@@ -74,23 +74,6 @@ enum PossessionService {
         return aggregate(possessions: possessions, homeCurrency: homeCurrency, asOf: asOf, cache: cache)
     }
 
-    /// Per-category totals, sorted by amount descending. See `total(...)`
-    /// for the time-travel semantics when `asOf` is provided.
-    static func totalsByCategory(
-        homeCurrency: String,
-        asOf: Date? = nil,
-        context: ModelContext
-    ) -> [CategoryTotal] {
-        let possessions = (try? context.fetch(FetchDescriptor<Possession>())) ?? []
-        let cache = FXService.RateCache.load(in: context)
-        return categoryTotals(
-            possessions: possessions,
-            homeCurrency: homeCurrency,
-            asOf: asOf,
-            cache: cache
-        )
-    }
-
     /// Single-pass bundle. Useful when a view needs both the headline total
     /// and the per-category breakdown in the same render — avoids fetching
     /// `Possession` rows + the FX cache twice. Pass `possessions` (from a
@@ -130,29 +113,6 @@ enum PossessionService {
             totals: Totals(amount: total, missingCurrencies: missing.sorted()),
             byCategory: byCategory
         )
-    }
-
-    private static func categoryTotals(
-        possessions: [Possession],
-        homeCurrency: String,
-        asOf: Date?,
-        cache: FXService.RateCache
-    ) -> [CategoryTotal] {
-        var sums: [PossessionCategory: Decimal] = [:]
-        for possession in possessions {
-            guard let value = effectiveValue(for: possession, asOf: asOf) else { continue }
-            let converted: Decimal?
-            if possession.purchaseCurrency == homeCurrency {
-                converted = value
-            } else {
-                converted = cache.convert(amount: value, from: possession.purchaseCurrency, to: homeCurrency)
-            }
-            guard let value = converted else { continue }
-            sums[possession.category, default: 0] += value
-        }
-        return sums
-            .map { CategoryTotal(category: $0.key, amount: $0.value) }
-            .sorted { $0.amount > $1.amount }
     }
 
     private static func aggregate(

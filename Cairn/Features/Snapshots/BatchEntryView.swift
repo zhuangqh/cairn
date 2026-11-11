@@ -100,12 +100,11 @@ struct BatchEntryView: View {
                     entryScroll(pass)
                 }
             }
-            .task(id: periodMonth) {
+            // One task keyed on both inputs: a newer month or currency
+            // cancels the in-flight fetch so a stale response never lands.
+            .task(id: RatesKey(periodMonth: periodMonth, homeCurrency: homeCurrency)) {
                 await loadHistoricalRates()
-                loadNoteForCurrentMonth()
-            }
-            .onChange(of: homeCurrency) { _, _ in
-                Task { await loadHistoricalRates() }
+                guard !Task.isCancelled else { return }
                 loadNoteForCurrentMonth()
             }
             .navigationTitle(navTitle)
@@ -147,10 +146,7 @@ struct BatchEntryView: View {
             }
             .alert(
                 "batch.save.failure",
-                isPresented: .init(
-                    get: { errorMessage != nil },
-                    set: { if !$0 { errorMessage = nil } }
-                )
+                isPresented: Binding(isPresent: $errorMessage)
             ) {
                 Button { errorMessage = nil } label: { Text("common.action.done") }
             } message: {
@@ -249,98 +245,6 @@ struct BatchEntryView: View {
         }
     }
 
-    private func monthCard(_ rows: [HoldingRow]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            monthHeader
-                .padding(.bottom, 14)
-            fillFromLastAction(hasBlankWithPrevious: hasBlankWithPrevious(rows: rows))
-            ratesSection(rows: rows)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var monthHeader: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 16) {
-                monthSummary
-                Spacer(minLength: 12)
-                monthPicker
-            }
-
-            VStack(alignment: .leading, spacing: 12) {
-                monthSummary
-                monthPicker
-            }
-        }
-    }
-
-    private var monthSummary: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("batch.monthCard.title")
-                .font(.subheadline)
-                .foregroundStyle(Color.ink2)
-            Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
-                .font(.title.bold())
-                .monospacedDigit()
-                .foregroundStyle(Color.ink)
-        }
-    }
-
-    private var monthPicker: some View {
-        DatePicker(
-            "batch.month",
-            selection: $periodMonth,
-            displayedComponents: [.date]
-        )
-        .labelsHidden()
-        .font(.subheadline.weight(.medium))
-        .controlSize(.small)
-        .fixedSize()
-        .disabled(isMonthLocked)
-        .onChange(of: periodMonth) { _, newValue in
-            let day = Snapshot.normalizeDay(newValue)
-            if day != periodMonth { periodMonth = day }
-        }
-    }
-
-    private func fillFromLastAction(hasBlankWithPrevious: Bool) -> some View {
-        Button {
-            fillFromLast()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "arrow.down.to.line")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.accent)
-                    .frame(width: 30, height: 30)
-                    .background(Color.accentSoft, in: RoundedRectangle(cornerRadius: 8))
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("batch.fillFromLast")
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(Color.accent)
-                    Text("batch.fillFromLast.hint")
-                        .font(.caption)
-                        .foregroundStyle(Color.ink3)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 8)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.ink3)
-            }
-        }
-        .buttonStyle(.plain)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, minHeight: LedgerMetrics.rowHeight + 8, alignment: .leading)
-        .overlay(alignment: .top) { LedgerHairline() }
-        .contentShape(Rectangle())
-        .disabled(!hasBlankWithPrevious)
-        .opacity(hasBlankWithPrevious ? 1 : 0.52)
-        .help(Text("batch.fillFromLast.hint"))
-    }
-
     @ViewBuilder
     private func memberGroupsSection(_ pass: DerivedPass) -> some View {
         ForEach(pass.groups, id: \.member.id) { group in
@@ -413,113 +317,27 @@ struct BatchEntryView: View {
     @ViewBuilder
     private func footer(_ pass: DerivedPass, hasUnsavedEdits: Bool) -> some View {
         #if os(macOS)
-        macFooter(totalInHome: totalInHome(pass), hasUnsavedEdits: hasUnsavedEdits)
-        #else
-        iosFloatingTotal(totalInHome: totalInHome(pass), unresolvedCurrencies: unresolvedCurrencies(pass))
-        #endif
-    }
-
-    private func footerSummary(totalInHome: Decimal) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("batch.total")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.ink2)
-                .textCase(.uppercase)
-            Text(
-                totalInHome,
-                format: .currency(code: homeCurrency)
-                    .precision(.fractionLength(0))
-                    .locale(locale)
-            )
-                .font(.title3.monospacedDigit().weight(.semibold))
-                .foregroundStyle(Color.ink)
-        }
-    }
-
-    private func macFooter(totalInHome: Decimal, hasUnsavedEdits: Bool) -> some View {
-        HStack(spacing: 16) {
-            footerSummary(totalInHome: totalInHome)
-
-            Spacer(minLength: 24)
-
-            Button {
+        BatchEntryMacFooter(
+            totalInHome: totalInHome(pass),
+            homeCurrency: homeCurrency,
+            hasUnsavedEdits: hasUnsavedEdits,
+            isSaving: isSaving,
+            onCancel: {
                 if hasUnsavedEdits {
                     showDiscardConfirm = true
                 } else {
                     dismiss()
                 }
-            } label: {
-                Text("common.action.cancel")
-            }
-            .keyboardShortcut(.cancelAction)
-
-            saveButton(hasUnsavedEdits: hasUnsavedEdits)
-                .keyboardShortcut(.defaultAction)
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 14)
-        .background(.bar)
-        .background(Color.notionSurfaceAlt)
-        .overlay(alignment: .top) { Divider().opacity(0.55) }
-    }
-
-    private func iosFloatingTotal(totalInHome: Decimal, unresolvedCurrencies: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 16) {
-                Text("batch.total")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.ink3)
-                    .textCase(.uppercase)
-                    .tracking(0.5)
-
-                Spacer(minLength: 8)
-
-                Text(
-                    totalInHome,
-                    format: .currency(code: homeCurrency)
-                        .precision(.fractionLength(0))
-                        .locale(locale)
-                )
-                    .font(.headline.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Color.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.68)
-            }
-
-            if !unresolvedCurrencies.isEmpty {
-                Label {
-                    Text(unresolvedFootnote(unresolvedCurrencies))
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                }
-                .font(.caption)
-                .foregroundStyle(.orange)
-            }
-        }
-        .padding(.horizontal, 15)
-        .padding(.vertical, 10)
-        .frame(maxWidth: 420, alignment: .leading)
-        .liquidGlassBackground(cornerRadius: 16, tint: Color.accent.opacity(0.018))
-        .padding(.horizontal, 28)
-        .padding(.top, 10)
-        .padding(.bottom, 8)
-    }
-
-    private func saveButton(hasUnsavedEdits: Bool) -> some View {
-        Button {
-            save()
-        } label: {
-            if isSaving {
-                ProgressView()
-                    .controlSize(.small)
-                    .frame(minWidth: 72)
-            } else {
-                Label("batch.save", systemImage: "checkmark")
-            }
-        }
-        .controlSize(.large)
-        .disabled(!hasUnsavedEdits || isSaving)
-        .buttonStyle(.borderedProminent)
+            },
+            onSave: save
+        )
+        #else
+        BatchEntryFloatingTotal(
+            totalInHome: totalInHome(pass),
+            homeCurrency: homeCurrency,
+            unresolvedCurrencies: unresolvedCurrencies(pass)
+        )
+        #endif
     }
 
     // MARK: - Actions

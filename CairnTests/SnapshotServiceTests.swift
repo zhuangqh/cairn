@@ -3,23 +3,10 @@ import SwiftData
 @testable import Cairn
 
 @MainActor
-final class SnapshotServiceTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class SnapshotServiceTests: InMemoryStoreTestCase {
     func testUpsertInsertsWhenAbsent() throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(in: context)
 
         let snapshot = SnapshotService.upsert(
             amount: 1_000,
@@ -33,10 +20,7 @@ final class SnapshotServiceTests: XCTestCase {
 
     func testUpsertUpdatesExistingMonth() throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(in: context)
 
         let month = Snapshot.normalize(.now)
         let first = SnapshotService.upsert(
@@ -58,10 +42,7 @@ final class SnapshotServiceTests: XCTestCase {
 
     func testUpsertNormalizesPeriodMonth() throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(in: context)
 
         // Two different times on the same calendar day (UTC) should collapse
         // into one snapshot — uniqueness is now per day, not per month.
@@ -80,10 +61,7 @@ final class SnapshotServiceTests: XCTestCase {
 
     func testUpsertKeepsDistinctDaysInSameMonth() throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(in: context)
 
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt

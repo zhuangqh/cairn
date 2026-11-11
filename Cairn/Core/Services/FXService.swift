@@ -160,6 +160,28 @@ enum FXService {
         return nil
     }
 
+    /// Converts `amount` (denominated in `from`) to `home`, preferring the
+    /// historical rates fetched for a capture date and calling `fallback`
+    /// (a cached-rate conversion) only when they have no usable rate.
+    /// Portfolio capture and the batch-entry preview both go through this so
+    /// their totals agree.
+    ///
+    /// `historicalRates` is keyed by the *foreign* (quote) currency and was
+    /// fetched with `base = home`. Per `FXRateFetching`'s contract —
+    /// `1 base == rate × quote` — a rate means `1 home = rate × foreign`,
+    /// i.e. units `foreign / home`, so the home amount is `amount / rate`.
+    nonisolated static func convert(
+        amount: Decimal,
+        from: String,
+        to home: String,
+        historicalRates: [String: Decimal],
+        fallback: () -> Decimal?
+    ) -> Decimal? {
+        if from == home { return amount }
+        if let rate = historicalRates[from], rate != 0 { return amount / rate }
+        return fallback()
+    }
+
     /// In-memory snapshot of every cached `FXRate` row, keyed by
     /// `(base, quote)`. Built once via `RateCache.load(in:)` and reused for
     /// every `convert(...)` call within an aggregation pass — replaces the
@@ -185,10 +207,6 @@ enum FXService {
             return RateCache(pairs: pairs)
         }
 
-        func rate(from base: String, to quote: String) -> Decimal? {
-            pairs[base]?[quote]
-        }
-
         /// Convert with the same fallback rules as `FXService.convert`,
         /// but purely in-memory.
         func convert(amount: Decimal, from: String, to: String) -> Decimal? {
@@ -201,18 +219,6 @@ enum FXService {
             }
             return nil
         }
-    }
-
-    /// Convenience overload that goes through a precomputed `RateCache`,
-    /// avoiding per-conversion SwiftData fetches. Prefer this in tight
-    /// loops (aggregation, trends).
-    static func convert(
-        amount: Decimal,
-        from: String,
-        to: String,
-        cache: RateCache
-    ) -> Decimal? {
-        cache.convert(amount: amount, from: from, to: to)
     }
 
     private static func fetchRate(base: String, quote: String, in context: ModelContext) -> FXRate? {

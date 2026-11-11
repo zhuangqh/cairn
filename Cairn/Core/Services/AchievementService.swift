@@ -254,15 +254,11 @@ enum AchievementService {
     }
 
     private static func monthsApart(_ lhs: Date, _ rhs: Date) -> Int {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        return calendar.dateComponents([.month], from: Snapshot.normalize(lhs), to: Snapshot.normalize(rhs)).month ?? 0
+        Snapshot.utcCalendar.dateComponents([.month], from: Snapshot.normalize(lhs), to: Snapshot.normalize(rhs)).month ?? 0
     }
 
     private static func monthIdentifier(_ date: Date) -> String {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        let components = calendar.dateComponents([.year, .month], from: date)
+        let components = Snapshot.utcCalendar.dateComponents([.year, .month], from: date)
         return String(format: "%04d-%02d", components.year ?? 0, components.month ?? 0)
     }
 

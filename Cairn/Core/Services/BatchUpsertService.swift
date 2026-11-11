@@ -66,7 +66,7 @@ enum BatchUpsertService {
         let byId = Dictionary(uniqueKeysWithValues: holdings.map { ($0.id, $0) })
         let holdingIds = Set(rows.map(\.holdingId))
         let monthStart = Snapshot.normalize(periodMonth)
-        let monthEnd = nextMonthStart(after: monthStart)
+        let monthEnd = Snapshot.nextMonthStart(after: monthStart)
 
         let descriptor = FetchDescriptor<Snapshot>(
             predicate: #Predicate { $0.periodMonth >= monthStart && $0.periodMonth < monthEnd }
@@ -90,11 +90,5 @@ enum BatchUpsertService {
             context.rollback()
             throw error
         }
-    }
-
-    private static func nextMonthStart(after monthStart: Date) -> Date {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        return calendar.date(byAdding: .month, value: 1, to: monthStart) ?? monthStart
     }
 }

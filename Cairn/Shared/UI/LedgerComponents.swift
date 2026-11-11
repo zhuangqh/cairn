@@ -94,22 +94,6 @@ extension LedgerSection where Accessory == EmptyView {
     }
 }
 
-/// Accent text action with a trailing chevron, e.g. 「全部 ›」.
-struct LedgerSectionLink: View {
-    let title: Text
-
-    var body: some View {
-        HStack(spacing: 4) {
-            title
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .accessibilityHidden(true)
-        }
-        .font(.subheadline.weight(.medium))
-        .foregroundStyle(Color.accent)
-    }
-}
-
 /// Year-filter label for section headers: 「⚟ 2026」.
 struct LedgerFilterLabel: View {
     let title: String

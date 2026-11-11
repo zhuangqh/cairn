@@ -49,19 +49,25 @@ struct PortfolioSnapshotDetailView: View {
         let priorEntries = previous?.entries
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                headerCard
+                HeaderCard(snapshot: snapshot, capturedDate: capturedDate, totalDelta: totalDelta)
                 if !entries.isEmpty {
-                    holdingsCard(memberGroups(entries: entries, priorEntries: priorEntries))
+                    HoldingsCard(
+                        groups: memberGroups(entries: entries, priorEntries: priorEntries),
+                        homeCurrency: snapshot.homeCurrency,
+                        memberByName: memberByName,
+                        hoveredEntryID: $hoveredEntryID,
+                        convertedEntryID: $convertedEntryID
+                    )
                 }
-                if let breakdown = DecodedEntries(
+                if let breakdown = PortfolioChangeBreakdown.compute(
                     current: entries,
                     prior: priorEntries,
                     homeCurrency: snapshot.homeCurrency
-                ).breakdown, breakdown.hasContent {
-                    changeBreakdownCard(breakdown)
+                ), breakdown.hasContent {
+                    ChangeBreakdownCard(breakdown: breakdown, homeCurrency: snapshot.homeCurrency)
                 }
             }
-            .padding(.horizontal, pageHorizontalInset)
+            .padding(.horizontal, Metrics.pageHorizontalInset)
             .padding(.vertical, 20)
             .frame(maxWidth: 1100)
             .frame(maxWidth: .infinity)
@@ -95,8 +101,8 @@ struct PortfolioSnapshotDetailView: View {
         .sheet(isPresented: $showEditSheet) {
             BatchEntryView(
                 initialPeriodMonth: capturedDate,
-                lockedRates: lockedRatesForEdit,
-                lockedBaseline: lockedBaselineForEdit,
+                lockedRates: snapshot.lockedRatesForEdit,
+                lockedBaseline: snapshot.lockedBaselineForEdit,
                 initialNote: snapshot.note ?? ""
             )
         }
@@ -115,10 +121,7 @@ struct PortfolioSnapshotDetailView: View {
         }
         .alert(
             "portfolioSnapshot.delete.failure",
-            isPresented: .init(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )
+            isPresented: Binding(isPresent: $errorMessage)
         ) {
             Button { errorMessage = nil } label: { Text("common.action.done") }
         } message: {
@@ -128,609 +131,6 @@ struct PortfolioSnapshotDetailView: View {
 
     private var titleText: String {
         snapshot.periodMonth.formatted(.dateTime.year().month(.wide).locale(locale))
-    }
-
-    // MARK: - Header
-
-    private var headerCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Text("portfolioSnapshot.detail.total")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                Text(verbatim: "·")
-                    .foregroundStyle(.tertiary)
-                Text(verbatim: snapshot.homeCurrency)
-                    .font(.caption.monospaced().weight(.semibold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.secondary.opacity(0.15), in: Capsule())
-            }
-            Text(
-                snapshot.totalAmount,
-                format: .currency(code: snapshot.homeCurrency)
-                    .precision(.fractionLength(0))
-                    .locale(locale)
-            )
-                .font(.system(size: 36, weight: .bold))
-                .monospacedDigit()
-                .foregroundStyle(Color.ink)
-            if let totalDelta {
-                headerDeltaLine(totalDelta)
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                Text(LocalizedStringKey(
-                    "portfolioSnapshot.detail.batchDate \(capturedDate, format: footnoteDateFormat)"
-                ))
-                Text(LocalizedStringKey(
-                    "portfolioSnapshot.detail.capturedAt \(snapshot.recordedAt, format: footnoteDateFormat)"
-                ))
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            if let note = snapshot.note, !note.isEmpty {
-                Text(verbatim: note)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: detailCardCornerRadius, padding: detailCardPadding)
-    }
-
-    @ViewBuilder
-    private func headerDeltaLine(_ delta: TotalDelta) -> some View {
-        let isPositive = delta.amount >= 0
-        let tint = ChangeTone.color(for: delta.amount, locale: locale)
-        HStack(spacing: 8) {
-            Image(systemName: isPositive ? "arrow.up" : "arrow.down")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(tint)
-            Text(verbatim: signedAmount(delta.amount, currency: snapshot.homeCurrency))
-                .font(.headline.monospacedDigit().weight(.semibold))
-                .foregroundStyle(tint)
-            if let percent = delta.percent {
-                Text(verbatim: "(\(signedPercent(percent)))")
-                    .font(.subheadline.monospacedDigit().weight(.medium))
-                    .foregroundStyle(tint.opacity(0.85))
-            }
-            Text(verbatim: vsPreviousLabel(delta.previousMonth))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    // MARK: - Holdings
-
-    @ViewBuilder
-    private func holdingsCard(_ groups: [MemberGroup]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            detailSectionTitle("portfolioSnapshot.detail.breakdown")
-            #if os(macOS)
-            memberCardsGrid(groups)
-            #else
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(groups.enumerated()), id: \.element.member) { index, group in
-                    memberGroupCard(group)
-                    if index < groups.count - 1 {
-                        Divider()
-                            .opacity(0.45)
-                            .padding(.vertical, 12)
-                    }
-                }
-            }
-            #endif
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: detailCardCornerRadius, padding: detailCardPadding)
-    }
-
-    #if os(macOS)
-    private func memberCardsGrid(_ groups: [MemberGroup]) -> some View {
-        let pairs: [[MemberGroup]] = stride(from: 0, to: groups.count, by: 2).map { start in
-            Array(groups[start..<min(start + 2, groups.count)])
-        }
-        return VStack(spacing: 12) {
-            ForEach(Array(pairs.enumerated()), id: \.offset) { _, pair in
-                HStack(alignment: .top, spacing: 12) {
-                    ForEach(pair, id: \.member) { group in
-                        memberGroupCard(group)
-                            .frame(maxWidth: .infinity, alignment: .top)
-                    }
-                    if pair.count == 1 {
-                        Color.clear.frame(maxWidth: .infinity)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-    }
-    #endif
-
-    private func memberGroupCard(_ group: MemberGroup) -> some View {
-        #if os(macOS)
-        memberGroupSection(group)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(
-                Color.notionSurfaceAlt.opacity(0.55),
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.line.opacity(0.65), lineWidth: 0.7)
-            )
-        #else
-        memberGroupSection(group)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        #endif
-    }
-
-    @ViewBuilder
-    private func memberGroupSection(_ group: MemberGroup) -> some View {
-        let displayName = group.member.isEmpty
-            ? String(localized: "portfolioSnapshot.detail.member.unassigned")
-            : group.member
-        let resolvedMember = group.member.isEmpty ? nil : memberByName[group.member]
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .center, spacing: 8) {
-                    MemberAvatarView(
-                        name: displayName,
-                        avatarData: resolvedMember?.avatarData,
-                        seed: resolvedMember?.id ?? Self.unassignedMemberSeed,
-                        size: memberAvatarSize
-                    )
-                    Text(verbatim: displayName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.ink)
-                    Spacer(minLength: 8)
-                    Text(
-                        group.total,
-                        format: .currency(code: snapshot.homeCurrency)
-                            .precision(.fractionLength(0))
-                            .locale(locale)
-                    )
-                    .font(.caption.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(Color.ink2)
-                }
-                if let memberDelta = group.delta {
-                    HStack {
-                        Spacer(minLength: 0)
-                        inlineDelta(memberDelta, currency: snapshot.homeCurrency)
-                    }
-                }
-            }
-            VStack(spacing: 0) {
-                ForEach(Array(group.entries.enumerated()), id: \.element.current.id) { index, row in
-                    entryRow(row)
-                    if index < group.entries.count - 1 {
-                        Divider().opacity(0.35)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func entryRow(_ row: EntryRow) -> some View {
-        #if os(macOS)
-        desktopEntryRow(row)
-        #else
-        compactEntryRow(row)
-        #endif
-    }
-
-    private func compactEntryRow(_ row: EntryRow) -> some View {
-        let entry = row.current
-        let displaysConversion = convertedEntryID == entry.id && hasForeignConversion(entry)
-        let displayedDelta = displaysConversion ? convertedDelta(for: row) : row.delta
-        let deltaCurrency = displaysConversion ? snapshot.homeCurrency : entry.currency
-        return VStack(alignment: .trailing, spacing: 6) {
-            HStack(alignment: .center, spacing: rowSpacing) {
-                entryIdentity(row)
-
-                Spacer(minLength: minimumColumnSpacing)
-
-                if hasForeignConversion(entry) {
-                    Button {
-                        withAnimation(.easeOut(duration: 0.18)) {
-                            convertedEntryID = displaysConversion ? nil : entry.id
-                        }
-                    } label: {
-                        entryAmount(
-                            entry,
-                            displayInHomeCurrency: displaysConversion,
-                            showsConversionAffordance: true
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .fixedSize(horizontal: true, vertical: false)
-                } else {
-                    entryAmount(entry)
-                        .fixedSize(horizontal: true, vertical: false)
-                }
-            }
-
-            if let displayedDelta {
-                HStack {
-                    Spacer(minLength: rowGlyphSize + rowSpacing)
-                    inlineDelta(displayedDelta, currency: deltaCurrency)
-                        .contentTransition(.numericText())
-                }
-            }
-        }
-        .padding(.vertical, rowVerticalPadding)
-        .animation(.easeOut(duration: 0.18), value: displaysConversion)
-    }
-
-    private func desktopEntryRow(_ row: EntryRow) -> some View {
-        let entry = row.current
-        let revealsConversion = revealsConversion(for: entry)
-        return HStack(alignment: .center, spacing: rowSpacing) {
-            entryIdentity(row)
-
-            Spacer(minLength: minimumColumnSpacing)
-
-            VStack(alignment: .trailing, spacing: 3) {
-                entryAmount(entry)
-                if let entryDelta = row.delta {
-                    inlineDelta(entryDelta, currency: entry.currency)
-                }
-                if let converted = entry.convertedAmount,
-                   hasForeignConversion(entry), revealsConversion {
-                    convertedAmountLabel(converted)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
-            .layoutPriority(0)
-        }
-        .padding(.vertical, rowVerticalPadding)
-        .contentShape(Rectangle())
-        .onHover { isHovering in
-            updateHoveredEntry(entry.id, isHovering: isHovering)
-        }
-        .animation(.easeOut(duration: 0.18), value: revealsConversion)
-    }
-
-    private func entryIdentity(_ row: EntryRow) -> some View {
-        let entry = row.current
-        return HStack(alignment: .center, spacing: rowSpacing) {
-            GlyphBadge(
-                systemName: row.accountKind.iconName,
-                tint: row.accountKind.tint,
-                size: rowGlyphSize
-            )
-            VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: entry.accountName)
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(Color.ink)
-                    .lineLimit(1)
-                    .allowsTightening(true)
-                    .minimumScaleFactor(0.82)
-                if let label = entry.holdingLabel, !label.isEmpty {
-                    Text(verbatim: label)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .layoutPriority(1)
-        }
-    }
-
-    private func hasForeignConversion(_ entry: PortfolioSnapshot.Entry) -> Bool {
-        entry.convertedAmount != nil && entry.currency != snapshot.homeCurrency
-    }
-
-    private func revealsConversion(for entry: PortfolioSnapshot.Entry) -> Bool {
-        hoveredEntryID == entry.id
-    }
-
-    private func convertedDelta(for row: EntryRow) -> Decimal? {
-        guard let current = row.current.convertedAmount,
-              let prior = row.prior?.convertedAmount else { return nil }
-        return current - prior
-    }
-
-    private func updateHoveredEntry(_ entryID: UUID, isHovering: Bool) {
-        if isHovering {
-            hoveredEntryID = entryID
-        } else if hoveredEntryID == entryID {
-            hoveredEntryID = nil
-        }
-    }
-
-    private func convertedAmountLabel(_ converted: Decimal) -> some View {
-        Text(
-            verbatim: "≈ " + converted.formatted(
-                .currency(code: snapshot.homeCurrency)
-                    .precision(.fractionLength(0))
-                    .locale(locale)
-            )
-        )
-        .font(.caption2.monospacedDigit())
-        .foregroundStyle(.tertiary)
-        .lineLimit(1)
-        .minimumScaleFactor(0.78)
-    }
-
-    private func entryAmount(
-        _ entry: PortfolioSnapshot.Entry,
-        displayInHomeCurrency: Bool = false,
-        showsConversionAffordance: Bool = false
-    ) -> some View {
-        let usesHomeCurrency = displayInHomeCurrency && entry.convertedAmount != nil
-        let currency = usesHomeCurrency ? snapshot.homeCurrency : entry.currency
-        let amount = usesHomeCurrency ? (entry.convertedAmount ?? entry.amount) : entry.amount
-        return HStack(spacing: 6) {
-            Text(verbatim: currency)
-                .font(.caption.weight(.semibold).monospaced())
-                .foregroundStyle(Color.ink3)
-
-            if showsConversionAffordance {
-                Image(systemName: "arrow.left.arrow.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.ink3.opacity(0.8))
-            } else {
-                Divider()
-                    .frame(height: 17)
-            }
-
-            Text(
-                amount,
-                format: .number
-                    .precision(.fractionLength(0))
-                    .locale(locale)
-            )
-            .font(.callout.weight(.semibold).monospacedDigit())
-            .foregroundStyle(Color.ink)
-            .lineLimit(1)
-            .minimumScaleFactor(0.76)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .contentTransition(.numericText())
-        }
-        .padding(.horizontal, 9)
-        .frame(width: amountBoxWidth, height: 38)
-        .background(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(Color.notionSurfaceAlt.opacity(0.72))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .strokeBorder(Color.line, lineWidth: 0.75)
-        )
-    }
-
-    // MARK: - Change breakdown
-
-    @ViewBuilder
-    private func changeBreakdownCard(_ breakdown: ChangeBreakdown) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            detailSectionTitle("portfolioSnapshot.detail.change.title")
-
-            let rows = breakdown.displayRows
-            VStack(spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                    breakdownRow(
-                        row,
-                        rateChanges: row.id == "fx" ? breakdown.fxRateChanges : []
-                    )
-                    if index < rows.count - 1 {
-                        Divider()
-                            .opacity(0.35)
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: detailCardCornerRadius, padding: detailCardPadding)
-    }
-
-    @ViewBuilder
-    private func breakdownRow(_ row: BreakdownRow, rateChanges: [FXRateChange]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(row.titleKey)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Color.ink)
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-
-                Text(verbatim: signedAmount(row.amount, currency: snapshot.homeCurrency))
-                    .font(.title3.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(amountTint(row.amount))
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                    .layoutPriority(2)
-            }
-
-            Text(row.subtitleKey)
-                .font(.caption)
-                .foregroundStyle(Color.ink2)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if !rateChanges.isEmpty {
-                VStack(spacing: 0) {
-                    HStack(spacing: 6) {
-                        Text("portfolioSnapshot.detail.rates")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.ink2)
-                        Spacer()
-                        Text(verbatim: snapshot.homeCurrency)
-                            .font(.caption2.monospaced().weight(.semibold))
-                            .foregroundStyle(Color.ink3)
-                    }
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 8)
-
-                    Divider().opacity(0.35)
-
-                    ForEach(Array(rateChanges.enumerated()), id: \.element.id) { index, change in
-                        HStack(spacing: 10) {
-                            Text(verbatim: change.currency)
-                                .font(.caption.monospaced().weight(.semibold))
-                                .foregroundStyle(Color.ink)
-                                .frame(width: 34, alignment: .leading)
-
-                            Text(verbatim: formattedRate(change.oldRate))
-                                .foregroundStyle(Color.ink3)
-
-                            Image(systemName: "arrow.right")
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(Color.ink3.opacity(0.65))
-
-                            Text(verbatim: formattedRate(change.newRate))
-                                .foregroundStyle(Color.ink)
-                                .fontWeight(.medium)
-
-                            Spacer(minLength: 0)
-                        }
-                        .font(.caption.monospacedDigit())
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 8)
-
-                        if index < rateChanges.count - 1 {
-                            Divider()
-                                .opacity(0.22)
-                                .padding(.leading, 11)
-                        }
-                    }
-                }
-                .background(
-                    Color.notionSurfaceAlt.opacity(0.55),
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                )
-            }
-        }
-        .padding(.vertical, 10)
-    }
-
-    private func formattedRate(_ rate: Decimal) -> String {
-        rate.formatted(.number.precision(.fractionLength(2...4)).locale(locale))
-    }
-
-    // MARK: - Inline delta helper
-
-    private func detailSectionTitle(_ key: LocalizedStringKey) -> some View {
-        Text(key)
-            .font(.headline.weight(.semibold))
-            .foregroundStyle(Color.ink)
-    }
-
-    @ViewBuilder
-    private func inlineDelta(_ amount: Decimal, currency: String) -> some View {
-        let isPositive = amount >= 0
-        let tint = ChangeTone.color(for: amount, locale: locale)
-        HStack(spacing: 3) {
-            Image(systemName: isPositive ? "arrow.up" : "arrow.down")
-                .font(.caption2.weight(.bold))
-            Text(verbatim: signedAmount(amount, currency: currency))
-                .font(.caption.monospacedDigit().weight(.semibold))
-        }
-        .foregroundStyle(tint)
-    }
-
-    // MARK: - Formatting helpers
-
-    private var pageHorizontalInset: CGFloat {
-        #if os(macOS)
-        24
-        #else
-        10
-        #endif
-    }
-
-    private var detailCardPadding: CGFloat {
-        #if os(macOS)
-        20
-        #else
-        12
-        #endif
-    }
-
-    private var detailCardCornerRadius: CGFloat {
-        #if os(macOS)
-        16
-        #else
-        14
-        #endif
-    }
-
-    private var memberAvatarSize: CGFloat {
-        #if os(macOS)
-        24
-        #else
-        26
-        #endif
-    }
-
-    private var amountBoxWidth: CGFloat {
-        #if os(macOS)
-        190
-        #else
-        148
-        #endif
-    }
-
-    private var rowGlyphSize: CGFloat { 28 }
-
-    private var rowSpacing: CGFloat {
-        #if os(macOS)
-        12
-        #else
-        8
-        #endif
-    }
-
-    private var minimumColumnSpacing: CGFloat {
-        #if os(macOS)
-        8
-        #else
-        6
-        #endif
-    }
-
-    private var rowVerticalPadding: CGFloat {
-        #if os(macOS)
-        9
-        #else
-        8
-        #endif
-    }
-
-    private func signedAmount(_ value: Decimal, currency: String) -> String {
-        let isPositive = value >= 0
-        let abs = value < 0 ? -value : value
-        let formatted = abs.formatted(
-            .currency(code: currency)
-                .locale(locale)
-                .precision(.fractionLength(0))
-        )
-        return (isPositive ? "+" : "−") + formatted
-    }
-
-    private func signedPercent(_ value: Double) -> String {
-        let isPositive = value >= 0
-        let abs = Swift.abs(value)
-        let formatted = abs.formatted(.percent.precision(.fractionLength(1)))
-        return (isPositive ? "+" : "−") + formatted
-    }
-
-    private func amountTint(_ value: Decimal) -> Color {
-        ChangeTone.color(for: value, locale: locale)
-    }
-
-    private func vsPreviousLabel(_ previousMonth: Date) -> String {
-        let template = String(localized: "portfolioSnapshot.detail.change.vs")
-        let label = previousMonth.formatted(
-            .dateTime.year().month(.abbreviated).locale(locale)
-        )
-        return template.replacingOccurrences(of: "{month}", with: label)
-    }
-
-    private var footnoteDateFormat: Date.FormatStyle {
-        Date.FormatStyle.dateTime.year().month().day().locale(locale)
     }
 
     private var capturedDate: Date {
@@ -766,10 +166,6 @@ struct PortfolioSnapshotDetailView: View {
             .max { $0.periodMonth < $1.periodMonth }
     }
 
-    /// Resolves each captured entry's holding to the live account's
-    /// `kind`, so we can render the same glyph badge used elsewhere
-    /// (account list, batch entry). Falls back to `.cash` for entries
-    /// whose holding has been deleted since capture.
     /// Live members keyed by name, so each captured `memberName` can be
     /// matched to the current `Member` for avatar display. Best-effort:
     /// renamed members won't match.
@@ -777,8 +173,11 @@ struct PortfolioSnapshotDetailView: View {
         Dictionary(members.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// Only entries without a captured `accountKind` consult this map, so
-    /// the holdings fetch is skipped when every entry carries its kind.
+    /// Resolves each captured entry's holding to the live account's
+    /// `kind`, so rows render the same glyph badge used elsewhere
+    /// (account list, batch entry). Only entries without a captured
+    /// `accountKind` consult this map, so the holdings fetch is skipped
+    /// when every entry carries its kind.
     func accountKindByHolding(for entries: [PortfolioSnapshot.Entry]) -> [UUID: AccountKind] {
         let ids = Set(entries.filter { $0.accountKind == nil }.compactMap(\.holdingId))
         guard !ids.isEmpty else { return [:] }
@@ -793,34 +192,6 @@ struct PortfolioSnapshotDetailView: View {
         }
         return map
     }
-
-    /// Captured rates rebuilt as `quote → rate` (matching Frankfurter's
-    /// `1 home == rate × quote` convention) so the editor reuses the
-    /// snapshot's historical rates instead of refetching live data.
-    private var lockedRatesForEdit: [String: Decimal] {
-        var map: [String: Decimal] = [:]
-        for rate in snapshot.rates where rate.base == snapshot.homeCurrency {
-            map[rate.quote] = rate.rate
-        }
-        return map
-    }
-
-    /// Captured per-holding amounts keyed by `holdingId`, used to seed
-    /// the editor with the snapshot's recorded values rather than the
-    /// previous month's. Entries whose holding has since been deleted
-    /// (no `holdingId`) are skipped — the row simply won't appear.
-    private var lockedBaselineForEdit: [UUID: Decimal] {
-        var map: [UUID: Decimal] = [:]
-        for entry in snapshot.entries {
-            guard let holdingId = entry.holdingId else { continue }
-            map[holdingId] = entry.amount
-        }
-        return map
-    }
-}
-
-private extension PortfolioSnapshotDetailView {
-    static let unassignedMemberSeed = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
 }
 
 #Preview {

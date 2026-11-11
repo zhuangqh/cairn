@@ -168,7 +168,7 @@ struct PossessionsView: View {
                 Text(verbatim: countsLine(derivation: derivation))
                 if !derivation.missingCurrencies.isEmpty {
                     Label {
-                        Text(missingRatesMessage(derivation.missingCurrencies))
+                        Text(MissingRatesMessage.text(for: derivation.missingCurrencies))
                     } icon: {
                         Image(systemName: "exclamationmark.triangle.fill")
                     }
@@ -191,12 +191,6 @@ struct PossessionsView: View {
                 .replacingOccurrences(of: "{count}", with: String(derivation.sold.count)))
         }
         return parts.joined(separator: " · ")
-    }
-
-    private func missingRatesMessage(_ currencies: [String]) -> String {
-        let list = currencies.joined(separator: ", ")
-        let template = String(localized: "assets.missingRates")
-        return template.replacingOccurrences(of: "{currencies}", with: list)
     }
 
     #if os(macOS)

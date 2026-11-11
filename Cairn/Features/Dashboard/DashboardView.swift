@@ -129,14 +129,6 @@ private struct DashboardContent: View {
         var allocation: [NetWorthCalculator.KindTotal]
 
         var missingCurrencies: [String]
-
-        /// Convenience: signed percentage change vs prior month, or nil when
-        /// the prior period has no baseline.
-        static func deltaPercent(current: Decimal, previous: Decimal) -> Double? {
-            guard previous != 0 else { return nil }
-            let change = (current - previous) / previous
-            return NSDecimalNumber(decimal: change).doubleValue
-        }
     }
 
     private func derive() -> Derivation {
@@ -223,10 +215,8 @@ private struct DashboardContent: View {
     }
 
     private func previousMonth(of date: Date) -> Date {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
         let normalized = Snapshot.normalize(date)
-        return calendar.date(byAdding: .month, value: -1, to: normalized) ?? normalized
+        return Snapshot.adding(months: -1, to: normalized) ?? normalized
     }
 
     // MARK: - Computed
@@ -304,7 +294,7 @@ private struct DashboardContent: View {
     // MARK: - Hero
 
     private func heroSection(derivation: Derivation) -> some View {
-        let deltaPercent = Derivation.deltaPercent(
+        let deltaPercent = NetWorthCalculator.percentChange(
             current: derivation.combined,
             previous: derivation.combinedPrev
         )

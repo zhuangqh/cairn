@@ -3,17 +3,7 @@ import SwiftData
 @testable import Cairn
 
 @MainActor
-final class PortfolioSnapshotServiceTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class PortfolioSnapshotServiceTests: InMemoryStoreTestCase {
     func testDeleteRemovesUnderlyingMonthlySnapshots() throws {
         let context = container.mainContext
         let member = Member(name: "Alice")
@@ -125,10 +115,7 @@ final class PortfolioSnapshotServiceTests: XCTestCase {
     /// 1000 / 0.93 ≈ 1075.27 USD, not 930 USD.
     func testCaptureUsesCorrectConversionDirectionWithOnlineRates() async throws {
         let context = container.mainContext
-        let account = Account(name: "Travel", kind: .cash)
-        let holding = Holding(currency: "EUR", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(currency: "EUR", accountName: "Travel", in: context)
 
         let month = Snapshot.normalize(.now)
         context.insert(Snapshot(periodMonth: month, amount: 1_000, holding: holding))
@@ -166,20 +153,11 @@ final class PortfolioSnapshotServiceTests: XCTestCase {
         // to exercise the inverse fallback path.
         context.insert(FXRate(base: "EUR", quote: "USD", rate: Decimal(1) / Decimal(0.93)))
 
-        let account = Account(name: "Travel", kind: .cash)
-        let holding = Holding(currency: "EUR", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(currency: "EUR", accountName: "Travel", in: context)
 
         let month = Snapshot.normalize(.now)
         context.insert(Snapshot(periodMonth: month, amount: 1_000, holding: holding))
         try context.save()
-
-        struct FailingFetcher: FXRateFetching {
-            func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse {
-                throw URLError(.notConnectedToInternet)
-            }
-        }
 
         let portfolio = try await PortfolioSnapshotService.captureForMonth(
             month,
@@ -197,10 +175,7 @@ final class PortfolioSnapshotServiceTests: XCTestCase {
 
     func testCaptureFetchesRatesForPickedSnapshotDay() async throws {
         let context = container.mainContext
-        let account = Account(name: "Travel", kind: .cash)
-        let holding = Holding(currency: "EUR", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(currency: "EUR", accountName: "Travel", in: context)
 
         let pickedDay = Snapshot.normalizeDay(try date("2026-02-15T00:00:00Z"))
         context.insert(Snapshot(periodMonth: pickedDay, amount: 100, holding: holding))
@@ -224,10 +199,7 @@ final class PortfolioSnapshotServiceTests: XCTestCase {
 
     func testCaptureCanClearExistingNote() async throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(in: context)
 
         let month = Snapshot.normalize(.now)
         context.insert(Snapshot(periodMonth: month, amount: 100, holding: holding))
@@ -247,25 +219,5 @@ final class PortfolioSnapshotServiceTests: XCTestCase {
         )
 
         XCTAssertNil(updated.note)
-    }
-
-    private func date(_ iso8601: String) throws -> Date {
-        try XCTUnwrap(ISO8601DateFormatter().date(from: iso8601))
-    }
-}
-
-private struct ExactDateFetcher: FXRateFetching {
-    let expectedDate: Date
-    let response: FXRateResponse
-
-    func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse {
-        throw NSError(domain: "ExactDateFetcher", code: 1)
-    }
-
-    func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse {
-        guard date == expectedDate else {
-            throw NSError(domain: "ExactDateFetcher", code: 2)
-        }
-        return response
     }
 }

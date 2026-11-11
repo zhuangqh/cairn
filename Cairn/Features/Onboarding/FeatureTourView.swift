@@ -419,8 +419,7 @@ private struct HomeCurrencyPageView: View {
 }
 
 #Preview("Tour · first run") {
-    UserDefaults.standard.set(false, forKey: AppSettingsKeys.onboardingCompleted)
-    UserDefaults.standard.set(false, forKey: AppSettingsKeys.featureTourSeen)
+    PreviewDefaults.primeFirstRun()
     return FeatureTourView(mode: .firstRun)
         .modelContainer(PreviewSampleData.emptyContainer())
 }

@@ -72,7 +72,7 @@ enum PortfolioSnapshotService {
     /// the portfolio snapshot's month for any of the captured holdings.
     static func delete(_ snapshot: PortfolioSnapshot, context: ModelContext) throws {
         let monthStart = snapshot.periodMonth
-        let monthEnd = Self.nextMonthStart(after: monthStart)
+        let monthEnd = Snapshot.nextMonthStart(after: monthStart)
         let holdingIds = Set(snapshot.entries.compactMap(\.holdingId))
         if !holdingIds.isEmpty {
             let descriptor = FetchDescriptor<Snapshot>(
@@ -87,19 +87,6 @@ enum PortfolioSnapshotService {
         context.delete(snapshot)
         try context.save()
         try AchievementService.recompute(in: context)
-    }
-
-    /// First instant of the month following `monthStart` in UTC.
-    private static func nextMonthStart(after monthStart: Date) -> Date {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        return calendar.date(byAdding: .month, value: 1, to: monthStart) ?? monthStart
-    }
-
-    /// All portfolio snapshots, ordered by `periodMonth` descending.
-    static func all(context: ModelContext) -> [PortfolioSnapshot] {
-        let snapshots = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
-        return snapshots.sorted { $0.periodMonth > $1.periodMonth }
     }
 
     /// Best-effort reconstruction of the concrete day the user picked when
@@ -119,7 +106,7 @@ enum PortfolioSnapshotService {
         guard !holdingIds.isEmpty else { return snapshot.periodMonth }
 
         let monthStart = snapshot.periodMonth
-        let monthEnd = nextMonthStart(after: monthStart)
+        let monthEnd = Snapshot.nextMonthStart(after: monthStart)
         let expectedAmountByHoldingId = Dictionary(
             snapshot.entries.compactMap { entry -> (UUID, Decimal)? in
                 guard let holdingId = entry.holdingId else { return nil }
@@ -223,13 +210,14 @@ enum PortfolioSnapshotService {
             guard let account = holding.account else { continue }
             guard let amount = latestAmount(for: holding, asOf: periodMonth) else { continue }
 
-            let converted = convert(
+            let converted = FXService.convert(
                 amount: amount,
                 from: holding.currency,
                 to: homeCurrency,
-                using: historicalRates,
-                fallbackContext: context
-            )
+                historicalRates: historicalRates
+            ) {
+                FXService.convert(amount: amount, from: holding.currency, to: homeCurrency, in: context)
+            }
             if let value = converted { total += value }
 
             entries.append(
@@ -291,38 +279,10 @@ enum PortfolioSnapshotService {
         return fallback
     }
 
-    /// Converts `amount` (denominated in `from`) to `home`.
-    ///
-    /// `rates` is the dictionary returned by `fetchHistoricalRates`, keyed by
-    /// the *foreign* (quote) currency. Per `FXRateFetching`'s contract —
-    /// `1 base == rate × quote` — and because we fetched with `base = home`,
-    /// the stored rate means `1 home = rate × foreign`, i.e. `rate` has units
-    /// `foreign / home`. To land the result in `home` units we therefore
-    /// divide by the rate (equivalently, multiply by `home / foreign`).
-    private static func convert(
-        amount: Decimal,
-        from: String,
-        to home: String,
-        using rates: [String: Decimal],
-        fallbackContext: ModelContext
-    ) -> Decimal? {
-        if from == home { return amount }
-        if let rate = rates[from], rate != 0 { return amount / rate }
-        return FXService.convert(amount: amount, from: from, to: home, in: fallbackContext)
-    }
-
     private static func latestAmount(for holding: Holding, asOf cutoff: Date) -> Decimal? {
         // Expand the cutoff to the last instant of its containing month so
         // day-granular snapshots recorded within that month are included.
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        let monthStart = Snapshot.normalize(cutoff)
-        let effective: Date
-        if let nextMonthStart = calendar.date(byAdding: .month, value: 1, to: monthStart) {
-            effective = nextMonthStart.addingTimeInterval(-1)
-        } else {
-            effective = cutoff
-        }
+        let effective = Snapshot.endOfMonth(containing: cutoff) ?? cutoff
         let snapshots = (holding.snapshots ?? [])
             .filter { $0.periodMonth <= effective }
             .sorted { $0.periodMonth > $1.periodMonth }

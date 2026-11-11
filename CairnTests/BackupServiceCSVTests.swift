@@ -3,17 +3,7 @@ import SwiftData
 @testable import Cairn
 
 @MainActor
-final class BackupServiceCSVTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class BackupServiceCSVTests: InMemoryStoreTestCase {
     func testSnapshotCSVExportsBatchRowsInNativeCurrencies() throws {
         let context = container.mainContext
         let alice = Member(name: "Alice")
@@ -133,9 +123,5 @@ final class BackupServiceCSVTests: XCTestCase {
             note: "first, batch",
             recordedAt: try date("2026-02-02T03:04:05Z")
         )
-    }
-
-    private func date(_ iso8601: String) throws -> Date {
-        try XCTUnwrap(ISO8601DateFormatter().date(from: iso8601))
     }
 }

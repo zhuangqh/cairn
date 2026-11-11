@@ -85,19 +85,18 @@ extension BatchEntryView {
     /// agree; falls back to the local `FXRate` cache when the live fetch
     /// produced nothing (offline / no rate for that day).
     ///
-    /// `historicalRates[foreign]` follows the Frankfurter convention
-    /// `1 home = rate × foreign`, i.e. units `foreign / home`, so the
-    /// home-side amount is `foreignAmount / rate`.
-    ///
     /// `cache` is the pass's in-memory copy of the `FXRate` rows; it applies
     /// the same direct-then-inverse lookup as `FXService.convert(in:)`
     /// without a `#Predicate` fetch per row.
     func convertToHome(amount: Decimal, from currency: String, cache: FXService.RateCache) -> Decimal? {
-        if currency == homeCurrency { return amount }
-        if let rate = historicalRates[currency], rate != 0 {
-            return amount / rate
+        FXService.convert(
+            amount: amount,
+            from: currency,
+            to: homeCurrency,
+            historicalRates: historicalRates
+        ) {
+            cache.convert(amount: amount, from: currency, to: homeCurrency)
         }
-        return cache.convert(amount: amount, from: currency, to: homeCurrency)
     }
 
     /// Rows and conversion inputs derived once per render pass, so each
@@ -146,11 +145,6 @@ extension BatchEntryView {
             }
         }
         return codes.sorted()
-    }
-
-    func unresolvedFootnote(_ currencies: [String]) -> String {
-        let template = String(localized: "assets.missingRates")
-        return template.replacingOccurrences(of: "{currencies}", with: currencies.joined(separator: ", "))
     }
 
     func hasUnsavedEdits(rows: [HoldingRow]) -> Bool {

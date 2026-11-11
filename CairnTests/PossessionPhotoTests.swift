@@ -5,17 +5,7 @@ import UniformTypeIdentifiers
 @testable import Cairn
 
 @MainActor
-final class PossessionPhotoTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class PossessionPhotoTests: InMemoryStoreTestCase {
     // MARK: - Backup
 
     func testRestorePreservesPossessionPhoto() throws {

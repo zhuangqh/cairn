@@ -44,10 +44,7 @@ struct PossessionsSheetsModifier: ViewModifier {
             // centered, which avoids both issues.
             .alert(
                 Text("possession.delete.confirm.title"),
-                isPresented: Binding(
-                    get: { possessionPendingDeletion != nil },
-                    set: { if !$0 { possessionPendingDeletion = nil } }
-                ),
+                isPresented: Binding(isPresent: $possessionPendingDeletion),
                 presenting: possessionPendingDeletion
             ) { possession in
                 Button(role: .destructive) {

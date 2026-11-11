@@ -18,7 +18,7 @@ struct RootView: View {
     /// Debug-only `-CairnScreen <item>` launch argument used by visual review.
     private static var initialSelection: SidebarItem {
         #if DEBUG
-        if let name = UserDefaults.standard.string(forKey: "CairnScreen"),
+        if let name = UserDefaults.standard.string(forKey: DebugLaunchKeys.screen),
            let item = SidebarItem.allCases.first(where: { "\($0)" == name }) {
             return item
         }
@@ -296,8 +296,7 @@ enum SidebarItem: CaseIterable, Hashable {
 }
 
 #Preview("RootView · first run") {
-    UserDefaults.standard.set(false, forKey: AppSettingsKeys.onboardingCompleted)
-    UserDefaults.standard.set(false, forKey: AppSettingsKeys.featureTourSeen)
+    PreviewDefaults.primeFirstRun()
     return RootView()
         .environment(LocalizationService())
         .modelContainer(PreviewSampleData.emptyContainer())

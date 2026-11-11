@@ -29,17 +29,6 @@ enum NetWorthCalculator {
         var id: AccountKind { kind }
     }
 
-    struct Activity: Sendable, Identifiable {
-        let id: UUID
-        let recordedAt: Date
-        let periodMonth: Date
-        let memberName: String
-        let accountName: String
-        let holdingLabel: String?
-        let currency: String
-        let amount: Decimal
-    }
-
     /// One-shot bundle of every aggregate the UI typically asks for in the
     /// same render pass — total, per-member, per-kind, missing currencies,
     /// and the month-over-month delta — computed from a single holdings
@@ -141,10 +130,8 @@ enum NetWorthCalculator {
         asOf periodMonth: Date,
         inputs: AggregationInputs
     ) -> Double? {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
         let thisMonth = Snapshot.normalize(periodMonth)
-        guard let lastMonth = calendar.date(byAdding: .month, value: -1, to: thisMonth) else { return nil }
+        guard let lastMonth = Snapshot.adding(months: -1, to: thisMonth) else { return nil }
         let prev = aggregateFast(
             holdings: inputs.holdings,
             homeCurrency: inputs.homeCurrency,
@@ -152,9 +139,7 @@ enum NetWorthCalculator {
             cache: inputs.cache,
             sortedSnapshots: inputs.index
         )
-        guard prev.total != 0 else { return nil }
-        let change = (currentTotal - prev.total) / prev.total
-        return NSDecimalNumber(decimal: change).doubleValue
+        return percentChange(current: currentTotal, previous: prev.total)
     }
 
     /// Net worth across all holdings, valued at the latest snapshot on or
@@ -223,12 +208,10 @@ enum NetWorthCalculator {
         guard months > 0 else { return [] }
         let cache = FXService.RateCache.load(in: context)
         let index = SortedSnapshotIndex.load(in: context)
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
 
         let anchorMonth = Snapshot.normalize(anchor)
         let periods: [Date] = (0..<months).reversed().compactMap { offset in
-            calendar.date(byAdding: .month, value: -offset, to: anchorMonth)
+            Snapshot.adding(months: -offset, to: anchorMonth)
         }
         return periods.map { period in
             let agg = aggregateFast(
@@ -242,88 +225,12 @@ enum NetWorthCalculator {
         }
     }
 
-    /// Net-worth totals broken down by account kind (cash/stock/realEstate/device),
-    /// valued at the latest snapshot on or before `periodMonth`. Only kinds with
-    /// non-zero totals are returned, sorted by amount descending.
-    static func totalsByKind(
-        homeCurrency: String,
-        asOf periodMonth: Date = .now,
-        context: ModelContext
-    ) -> [KindTotal] {
-        let cache = FXService.RateCache.load(in: context)
-        let index = SortedSnapshotIndex.load(in: context)
-        let agg = aggregateFast(
-            holdings: index.holdings,
-            homeCurrency: homeCurrency,
-            asOf: periodMonth,
-            cache: cache,
-            sortedSnapshots: index
-        )
-        return agg.byKind
-            .filter { $0.value != 0 }
-            .map { KindTotal(kind: $0.key, amount: $0.value) }
-            .sorted { $0.amount > $1.amount }
-    }
-
-    /// Percentage change between `asOf` month total and the preceding month total.
-    /// Returns `nil` when the previous month has zero net worth (no baseline).
-    static func monthOverMonthDelta(
-        homeCurrency: String,
-        asOf periodMonth: Date = .now,
-        context: ModelContext
-    ) -> Double? {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        let thisMonth = Snapshot.normalize(periodMonth)
-        guard let lastMonth = calendar.date(byAdding: .month, value: -1, to: thisMonth) else { return nil }
-
-        let cache = FXService.RateCache.load(in: context)
-        let index = SortedSnapshotIndex.load(in: context)
-        let current = aggregateFast(
-            holdings: index.holdings,
-            homeCurrency: homeCurrency,
-            asOf: thisMonth,
-            cache: cache,
-            sortedSnapshots: index
-        ).total
-        let previous = aggregateFast(
-            holdings: index.holdings,
-            homeCurrency: homeCurrency,
-            asOf: lastMonth,
-            cache: cache,
-            sortedSnapshots: index
-        ).total
+    /// Relative change `(current - previous) / previous` as a fraction
+    /// (`0.05` = +5%), or `nil` when `previous` is zero (no baseline).
+    nonisolated static func percentChange(current: Decimal, previous: Decimal) -> Double? {
         guard previous != 0 else { return nil }
         let change = (current - previous) / previous
         return NSDecimalNumber(decimal: change).doubleValue
-    }
-
-    /// The most recently recorded snapshots across the whole store. Each entry
-    /// carries resolved member / account / holding context for display.
-    static func recentActivities(
-        limit: Int = 10,
-        context: ModelContext
-    ) -> [Activity] {
-        let sorted = ((try? context.fetch(FetchDescriptor<Snapshot>())) ?? [])
-            .sorted { $0.recordedAt > $1.recordedAt }
-        // A fetch limit of 0 means "no limit", matching the previous
-        // `fetchLimit = max(0, limit)` behaviour.
-        let rows = limit > 0 ? Array(sorted.prefix(limit)) : sorted
-        return rows.map { snapshot in
-            let holding = snapshot.holding
-            let account = holding?.account
-            let member = account?.member
-            return Activity(
-                id: snapshot.id,
-                recordedAt: snapshot.recordedAt,
-                periodMonth: snapshot.periodMonth,
-                memberName: member?.name ?? "",
-                accountName: account?.name ?? "",
-                holdingLabel: holding?.label,
-                currency: holding?.currency ?? "",
-                amount: snapshot.amount
-            )
-        }
     }
 
     // MARK: - Internals
@@ -434,12 +341,6 @@ enum NetWorthCalculator {
     /// are included in "as of" queries. Expressed as `startOfNextMonth - 1s`
     /// so the `<=` filter remains inclusive of the final day.
     private static func cutoffEndOfMonth(for periodMonth: Date) -> Date {
-        var calendar = Calendar(identifier: .iso8601)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        let monthStart = Snapshot.normalize(periodMonth)
-        guard let nextMonthStart = calendar.date(byAdding: .month, value: 1, to: monthStart) else {
-            return monthStart
-        }
-        return nextMonthStart.addingTimeInterval(-1)
+        Snapshot.endOfMonth(containing: periodMonth) ?? Snapshot.normalize(periodMonth)
     }
 }

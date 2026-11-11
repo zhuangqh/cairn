@@ -536,13 +536,6 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%d 个月刻度" } }
       }
     },
-    "achievement.inspect.drag" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag the medal to turn it" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "拖动奖牌，自由旋转观察" } }
-      }
-    },
     "achievement.inspect.eyebrow" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1407,23 +1400,6 @@
         }
       }
     },
-    "assets.homeCurrency" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Home currency"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本币"
-          }
-        }
-      }
-    },
     "assets.member.accountCount %lld" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1521,40 +1497,6 @@
         }
       }
     },
-    "assets.refresh.failure" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to refresh rates"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "汇率刷新失败"
-          }
-        }
-      }
-    },
-    "assets.refreshRates" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refresh rates"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刷新汇率"
-          }
-        }
-      }
-    },
     "assets.snapshots" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1640,23 +1582,6 @@
         }
       }
     },
-    "assets.tab.assets" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Physical"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "实物资产"
-          }
-        }
-      }
-    },
     "assets.tab.financial" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1674,23 +1599,6 @@
         }
       }
     },
-    "assets.tab.picker" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "View"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "视图"
-          }
-        }
-      }
-    },
     "assets.tab.possessions" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1704,23 +1612,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "实物资产"
-          }
-        }
-      }
-    },
-    "assets.tab.trend" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trend"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "趋势"
           }
         }
       }
@@ -2303,23 +2194,6 @@
         }
       }
     },
-    "batch.summary.filled" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filled"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已填"
-          }
-        }
-      }
-    },
     "batch.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2425,23 +2299,6 @@
         }
       }
     },
-    "common.action.collapse" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collapse"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "收起"
-          }
-        }
-      }
-    },
     "common.action.delete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2489,23 +2346,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "编辑"
-          }
-        }
-      }
-    },
-    "common.action.expand" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Expand"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "展开"
           }
         }
       }
@@ -2612,23 +2452,6 @@
         }
       }
     },
-    "common.placeholder.comingSoon" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Coming soon"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "即将推出"
-          }
-        }
-      }
-    },
     "currency.picker.other" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2676,74 +2499,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "币种"
-          }
-        }
-      }
-    },
-    "dashboard.allocation" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Asset Allocation"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "资产配置"
-          }
-        }
-      }
-    },
-    "dashboard.allocation.axis.amount" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Amount"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "金额"
-          }
-        }
-      }
-    },
-    "dashboard.allocation.axis.kind" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Category"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "类别"
-          }
-        }
-      }
-    },
-    "dashboard.assetCategories" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Asset Categories"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "资产类别"
           }
         }
       }
@@ -2829,57 +2584,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "家庭成员"
-          }
-        }
-      }
-    },
-    "dashboard.portfolioAllocation" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Portfolio Allocation"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "资产分布"
-          }
-        }
-      }
-    },
-    "dashboard.recentActivities" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recent Activities"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最近动态"
-          }
-        }
-      }
-    },
-    "dashboard.recentActivities.empty" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No snapshots yet. Record this month's values to see them here."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尚无快照。记录本月数值后将在此显示。"
           }
         }
       }
@@ -3037,40 +2741,6 @@
         }
       }
     },
-    "holding.delete.confirm.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will delete every snapshot on this holding."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将删除此持仓下的所有快照。"
-          }
-        }
-      }
-    },
-    "holding.delete.confirm.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete holding?"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除持仓？"
-          }
-        }
-      }
-    },
     "holding.detail.snapshots" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3186,23 +2856,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建持仓"
-          }
-        }
-      }
-    },
-    "holding.snapshot.none" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No snapshot"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无快照"
           }
         }
       }
@@ -3479,74 +3132,6 @@
         }
       }
     },
-    "onboarding.continue" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "继续"
-          }
-        }
-      }
-    },
-    "onboarding.finish" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Get started"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "开始使用"
-          }
-        }
-      }
-    },
-    "onboarding.firstMember.body" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cairn groups assets by family member. You can add more — and accounts, holdings, snapshots — later."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cairn 按家庭成员组织资产，之后可以继续添加成员、账户、持仓和快照。"
-          }
-        }
-      }
-    },
-    "onboarding.firstMember.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add your first family member"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加第一位家庭成员"
-          }
-        }
-      }
-    },
     "onboarding.homeCurrency.body" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3577,74 +3162,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择本币"
-          }
-        }
-      }
-    },
-    "onboarding.skip" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skip for now"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂时跳过"
-          }
-        }
-      }
-    },
-    "onboarding.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Welcome"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "欢迎"
-          }
-        }
-      }
-    },
-    "onboarding.welcome.body" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A monthly net-worth check-up for your family. Record a snapshot each month, and Cairn will chart the trail."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "为家庭做月度净资产盘点。每月记录一次快照，Cairn 会为你绘制净资产曲线。"
-          }
-        }
-      }
-    },
-    "onboarding.welcome.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Welcome to Cairn"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "欢迎使用 Cairn"
           }
         }
       }
@@ -3802,23 +3319,6 @@
         }
       }
     },
-    "portfolioSnapshot.detail.change.fxNote" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 {currency} → {home}: {old} → {new}"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 {currency} → {home}：{old} → {new}"
-          }
-        }
-      }
-    },
     "portfolioSnapshot.detail.change.manual" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3849,40 +3349,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "相比上次快照新增或移除的持仓"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.detail.change.market" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Market movement"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "市场变动"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.detail.change.market.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change in native amounts at this period's rates"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本期汇率下，原币金额的变化"
           }
         }
       }
@@ -3968,159 +3434,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "合计"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.empty.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Record at least one monthly value before capturing a snapshot."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请先录入一个月度数值，再添加快照。"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.empty.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nothing to snapshot"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暂无可拍快照的数据"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.form.breakdown" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Breakdown"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "账户明细"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.form.date" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Date"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "日期"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.form.note.placeholder" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Note (optional)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "备注（可选）"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.form.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New snapshot"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新建快照"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.form.total" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "合计"
-          }
-        }
-      }
-    },
-    "portfolioSnapshot.save.failure" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't save snapshot"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法保存快照"
-          }
-        }
-      }
-    },
-    "possession.badge.revalued" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revalued"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已重估"
           }
         }
       }
@@ -4975,108 +4288,6 @@
         }
       }
     },
-    "possession.trend" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cumulative purchase cost"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "累计购置成本"
-          }
-        }
-      }
-    },
-    "possession.trend.empty.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add your first asset to see the purchase timeline."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加首个资产后，将会显示购置时间曲线。"
-          }
-        }
-      }
-    },
-    "possession.trend.empty.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No purchases yet"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尚无购置记录"
-          }
-        }
-      }
-    },
-    "possession.value.label.current" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "current"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当前估值"
-          }
-        }
-      }
-    },
-    "possession.value.label.purchase" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "purchase"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "购置价格"
-          }
-        }
-      }
-    },
-    "possession.value.label.sale" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "sale"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出售价格"
-          }
-        }
-      }
-    },
     "reminder.body" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5501,23 +4712,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "写入备份时出错，原有数据已保留。"
-          }
-        }
-      }
-    },
-    "settings.backup.import.success" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Backup imported."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "备份已导入。"
           }
         }
       }
@@ -5949,23 +5143,6 @@
         }
       }
     },
-    "snapshot.form.month" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Month"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "月份"
-          }
-        }
-      }
-    },
     "snapshot.new.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5979,23 +5156,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建快照"
-          }
-        }
-      }
-    },
-    "tour.back" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Back"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上一步"
           }
         }
       }
@@ -6030,91 +5190,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下一步"
-          }
-        }
-      }
-    },
-    "tour.page.batch.body" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "One screen, one row per holding, last month's values pre-filled. Edit only what changed, hit Save all — designed to take under three minutes a month."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "一屏一行一条持仓，自动填入上月数值。只改有变化的行，点击「全部保存」——设计目标是每月不到三分钟。"
-          }
-        }
-      }
-    },
-    "tour.page.batch.bullet1" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keyboard navigation: Tab, ↑ ↓, Enter"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "键盘导航：Tab、↑ ↓、Enter"
-          }
-        }
-      }
-    },
-    "tour.page.batch.bullet2" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Live running total in your home currency"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "以本币显示的实时合计金额"
-          }
-        }
-      }
-    },
-    "tour.page.batch.bullet3" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Atomic save · backfill any past month"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "原子保存 · 可补录任意历史月份"
-          }
-        }
-      }
-    },
-    "tour.page.batch.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Excel-style monthly batch entry"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "类 Excel 的月度批量录入"
           }
         }
       }

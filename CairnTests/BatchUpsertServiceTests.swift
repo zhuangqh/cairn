@@ -3,23 +3,10 @@ import SwiftData
 @testable import Cairn
 
 @MainActor
-final class BatchUpsertServiceTests: XCTestCase {
-    private var container: ModelContainer!
-
-    override func setUp() async throws {
-        container = try PersistenceController.makeContainer(.inMemory)
-    }
-
-    override func tearDown() async throws {
-        container = nil
-    }
-
+final class BatchUpsertServiceTests: InMemoryStoreTestCase {
     func testApplyCreatesSnapshotsForEnteredRows() throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(in: context)
         try context.save()
 
         let rows = [BatchUpsertService.Row(holdingId: holding.id, amount: 1_000)]
@@ -53,10 +40,7 @@ final class BatchUpsertServiceTests: XCTestCase {
 
     func testApplyUpdatesExistingSnapshotForSameMonth() throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(in: context)
         try context.save()
 
         try BatchUpsertService.apply(
@@ -77,10 +61,7 @@ final class BatchUpsertServiceTests: XCTestCase {
 
     func testReplaceMonthRemovesStaleSnapshotsBeforeWritingCurrentRows() throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(in: context)
 
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
@@ -110,10 +91,7 @@ final class BatchUpsertServiceTests: XCTestCase {
 
     func testReplaceMonthDeletesExistingRowsForBlankAmounts() throws {
         let context = container.mainContext
-        let account = Account(name: "Primary", kind: .cash)
-        let holding = Holding(currency: "USD", account: account)
-        context.insert(account)
-        context.insert(holding)
+        let holding = insertHolding(in: context)
 
         let month = Snapshot.normalize(.now)
         context.insert(Snapshot(periodMonth: month, amount: 100, holding: holding))
