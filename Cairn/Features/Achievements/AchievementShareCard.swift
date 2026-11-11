@@ -10,6 +10,7 @@ import AppKit
 /// sharing reveals only the artifact name and the month it was earned.
 struct AchievementShareButton: View {
     let presentation: AchievementPresentation
+    var fillsWidth = false
 
     @Environment(\.locale) private var locale
     @Environment(LocalizationService.self) private var localization
@@ -20,6 +21,7 @@ struct AchievementShareButton: View {
             preview: SharePreview(shareItem.title)
         ) {
             Label("achievement.share.action", systemImage: "square.and.arrow.up")
+                .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: fillsWidth ? 28 : nil)
         }
     }
 

@@ -16,6 +16,7 @@ struct AchievementJournalView: View {
     @State private var inspectionProgress = 0.0
     @State private var sourceFrames: [String: CGRect] = [:]
     @State private var inspectionTask: Task<Void, Never>?
+    @State private var inspectionSourceRevealed = false
 
     private var presentations: [AchievementPresentation] {
         events
@@ -52,23 +53,34 @@ struct AchievementJournalView: View {
             // after the closing animation had already finished.
             .opacity(1 - 0.78 * inspectionProgress)
             .allowsHitTesting(inspectedPresentation == nil)
-
-            if let presentation = inspectedPresentation {
+            .accessibilityHidden(inspectedPresentation != nil)
+        }
+        .inspectionPresentation(
+            isPresented: inspectedPresentation != nil,
+            onPresented: startInspection
+        ) {
+            // Emptied when the real badge is revealed, so nothing is left in
+            // the cover to animate while it dismisses.
+            if let presentation = inspectedPresentation, !inspectionSourceRevealed {
                 AchievementMedalInspectionView(
                     presentation: presentation,
                     title: localized(presentation.titleKey),
                     requirement: inspectionRequirement(presentation),
-                    sourceFrame: inspectedSourceFrame,
+                    sourceFrame: sourceFrames[featuredMatchedID(presentation)] ?? inspectedSourceFrame,
                     progress: inspectionProgress,
                     canClose: inspectionTask == nil && inspectionProgress == 1,
                     onClose: closeInspection
                 )
-                .zIndex(10)
             }
         }
         .background(AppBackground())
         .navigationTitle(Text("achievement.journal.title", bundle: localization.bundle))
         .onPreferenceChange(AchievementInspectionSourceFramesKey.self) { sourceFrames = $0 }
+        // Registered here so the family pages work in any stack that shows
+        // the journal (dashboard, import summary).
+        .navigationDestination(for: AchievementFamily.self) { family in
+            AchievementFamilyDetailView(family: family)
+        }
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -102,9 +114,12 @@ struct AchievementJournalView: View {
         Button {
             openInspection(presentation)
         } label: {
-            if inspectedPresentation?.id == presentation.id {
+            if !inspectionSourceRevealed, inspectedPresentation?.id == presentation.id {
+                // Keeps reporting its frame so the flight follows the slot
+                // when hiding the bars shifts the page.
                 Color.clear
                     .frame(width: size * 1.4, height: size * 1.4)
+                    .achievementInspectionSource(id: featuredMatchedID(presentation))
             } else {
                 ZStack {
                     AchievementBadgeView(presentation, size: size)
@@ -192,9 +207,7 @@ struct AchievementJournalView: View {
         current: AchievementPresentation?,
         next: String?
     ) -> some View {
-        NavigationLink {
-            AchievementFamilyDetailView(family: family)
-        } label: {
+        NavigationLink(value: family) {
             HStack(spacing: LedgerMetrics.columnSpacing) {
                 AchievementBadgeView(
                     family: family,
@@ -308,7 +321,8 @@ struct AchievementJournalView: View {
                 AchievementService.wealthStageIndex(from: presentation.stageKey)
             }
             .max()
-        let threshold = AchievementService.wealthThreshold(at: (latest ?? -1) + 1)
+        guard let next = AchievementService.nextWealthStageIndex(afterEarned: latest) else { return nil }
+        let threshold = AchievementService.wealthThreshold(at: next)
         return threshold.formatted(.currency(code: homeCurrency).precision(.fractionLength(0)).locale(locale))
     }
 
@@ -329,48 +343,6 @@ struct AchievementJournalView: View {
 
     private func featuredMatchedID(_ presentation: AchievementPresentation) -> String {
         "journal-featured-medal-\(presentation.id)"
-    }
-
-    private func openInspection(_ presentation: AchievementPresentation) {
-        guard inspectedPresentation == nil, inspectionTask == nil else { return }
-        let matchedID = featuredMatchedID(presentation)
-        guard let sourceFrame = sourceFrames[matchedID] else { return }
-        inspectedSourceFrame = sourceFrame
-        inspectionProgress = 0
-        inspectedPresentation = presentation
-
-        inspectionTask = Task { @MainActor in
-            await Task.yield()
-            guard !Task.isCancelled else { return }
-            let duration = reduceMotion ? 0.25 : 0.78
-            withAnimation(reduceMotion
-                ? .easeOut(duration: duration)
-                : .timingCurve(0.18, 0.76, 0.22, 1, duration: duration)
-            ) {
-                inspectionProgress = 1
-            }
-            try? await Task.sleep(for: .seconds(duration))
-            guard !Task.isCancelled else { return }
-            inspectionTask = nil
-        }
-    }
-
-    private func closeInspection() {
-        guard inspectedPresentation != nil, inspectionProgress == 1, inspectionTask == nil else { return }
-
-        inspectionTask = Task { @MainActor in
-            let duration = reduceMotion ? 0.25 : 0.72
-            withAnimation(reduceMotion
-                ? .easeOut(duration: duration)
-                : .timingCurve(0.30, 0, 0.24, 1, duration: duration)
-            ) {
-                inspectionProgress = 0
-            }
-            try? await Task.sleep(for: .seconds(duration))
-            guard !Task.isCancelled else { return }
-            inspectedPresentation = nil
-            inspectionTask = nil
-        }
     }
 
     private func inspectionRequirement(_ presentation: AchievementPresentation) -> String {
@@ -433,6 +405,66 @@ struct AchievementJournalView: View {
         case .timeMark:
             let months = NSDecimalNumber(decimal: presentation.observedAmount ?? 0).intValue
             Text(String(format: String(localized: "achievement.timeMark.description", bundle: localization.bundle), months))
+        }
+    }
+}
+
+// MARK: - Medal inspection
+
+private extension AchievementJournalView {
+    func openInspection(_ presentation: AchievementPresentation) {
+        guard inspectedPresentation == nil, inspectionTask == nil else { return }
+        let matchedID = featuredMatchedID(presentation)
+        guard let sourceFrame = sourceFrames[matchedID] else { return }
+        inspectedSourceFrame = sourceFrame
+        inspectionProgress = 0
+        // The overlay animates itself once on screen (`startInspection`).
+        inspectionSourceRevealed = false
+        withTransaction(\.disablesAnimations, true) {
+            inspectedPresentation = presentation
+        }
+    }
+
+    func startInspection() {
+        guard inspectedPresentation != nil, inspectionTask == nil, inspectionProgress == 0 else { return }
+        inspectionTask = Task { @MainActor in
+            await Task.yield()
+            guard !Task.isCancelled else { return }
+            let duration = reduceMotion ? 0.25 : 0.78
+            withAnimation(reduceMotion
+                ? .easeOut(duration: duration)
+                : .timingCurve(0.18, 0.76, 0.22, 1, duration: duration)
+            ) {
+                inspectionProgress = 1
+            }
+            try? await Task.sleep(for: .seconds(duration))
+            guard !Task.isCancelled else { return }
+            inspectionTask = nil
+        }
+    }
+
+    func closeInspection() {
+        guard inspectedPresentation != nil, inspectionProgress == 1, inspectionTask == nil else { return }
+
+        inspectionTask = Task { @MainActor in
+            let duration = reduceMotion ? 0.25 : 0.72
+            withAnimation(reduceMotion
+                ? .easeOut(duration: duration)
+                : .timingCurve(0.30, 0, 0.24, 1, duration: duration)
+            ) {
+                inspectionProgress = 0
+            }
+            try? await Task.sleep(for: .seconds(duration))
+            guard !Task.isCancelled else { return }
+            // Swap the landed copy for the real item, then dismiss the now
+            // empty cover. Anything drawn while the cover dismisses animates
+            // in from the screen's corner.
+            inspectionSourceRevealed = true
+            try? await Task.sleep(for: .milliseconds(34))
+            withTransaction(\.disablesAnimations, true) {
+                inspectedPresentation = nil
+            }
+            inspectionTask = nil
         }
     }
 }

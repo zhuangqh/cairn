@@ -9,6 +9,7 @@ struct AchievementFamilyDetailView: View {
     @Environment(\.locale) private var locale
     @Environment(LocalizationService.self) private var localization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
@@ -20,6 +21,7 @@ struct AchievementFamilyDetailView: View {
     @State private var inspectionProgress = 0.0
     @State private var sourceFrames: [String: CGRect] = [:]
     @State private var inspectionTask: Task<Void, Never>?
+    @State private var inspectionSourceRevealed = false
 
     private struct Stage: Identifiable {
         let id: String
@@ -80,7 +82,7 @@ struct AchievementFamilyDetailView: View {
     var body: some View {
         ZStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 0) {
                     header
 
                     if family == .monthlyAscent, ascentCurrencies.count > 1 {
@@ -92,20 +94,23 @@ struct AchievementFamilyDetailView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    sectionHeader("achievement.detail.stages")
-
-                    LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 170, maximum: 240), spacing: 14)],
-                        spacing: 14
-                    ) {
-                        ForEach(stages) { stage in
-                            stageCard(stage)
+                    LedgerSection(Text("achievement.detail.stages", bundle: localization.bundle)) {
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 260 : 140), spacing: 16)],
+                            alignment: .leading,
+                            spacing: 20
+                        ) {
+                            ForEach(stages) { stage in
+                                stageCard(stage)
+                            }
                         }
+                        .padding(.vertical, 12)
                     }
 
                     if !familyPresentations.isEmpty {
-                        sectionHeader("achievement.detail.history")
-                        historyCard
+                        LedgerSection(Text("achievement.detail.history", bundle: localization.bundle)) {
+                            historyCard
+                        }
                     }
                 }
                 .pageHorizontalPadding()
@@ -117,19 +122,22 @@ struct AchievementFamilyDetailView: View {
             // brightness returns in step with the shrinking medal and backdrop.
             .opacity(1 - 0.78 * inspectionProgress)
             .allowsHitTesting(inspectedMedal == nil)
-
-            if let selection = inspectedMedal {
+            .accessibilityHidden(inspectedMedal != nil)
+        }
+        .inspectionPresentation(isPresented: inspectedMedal != nil, onPresented: startInspection) {
+            // Emptied when the real badge is revealed, so nothing is left in
+            // the cover to animate while it dismisses.
+            if let selection = inspectedMedal, !inspectionSourceRevealed {
                 AchievementMedalInspectionView(
                     presentation: selection.presentation,
                     badgeStageKey: selection.stageKey,
                     title: selection.title,
                     requirement: selection.requirement,
-                    sourceFrame: inspectedSourceFrame,
+                    sourceFrame: sourceFrames[selection.matchedID] ?? inspectedSourceFrame,
                     progress: inspectionProgress,
                     canClose: inspectionTask == nil && inspectionProgress == 1,
                     onClose: closeInspection
                 )
-                .zIndex(10)
             }
         }
         .background(AppBackground())
@@ -148,7 +156,10 @@ struct AchievementFamilyDetailView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 22) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 16))
+        return layout {
             if let featuredPresentation {
                 Button {
                     openInspection(
@@ -170,6 +181,7 @@ struct AchievementFamilyDetailView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(Text(LocalizedStringKey(featuredPresentation.titleKey), bundle: localization.bundle))
                 .accessibilityHint(Text("achievement.inspect.open", bundle: localization.bundle))
             } else {
                 AchievementBadgeView(
@@ -178,7 +190,7 @@ struct AchievementFamilyDetailView: View {
                     size: 88
                 )
                 .saturation(0)
-                .opacity(0.40)
+                .opacity(0.55)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -196,14 +208,13 @@ struct AchievementFamilyDetailView: View {
                     )
                 )
                 .font(.caption.monospacedDigit().weight(.semibold))
-                .foregroundStyle(Color.accent)
+                .foregroundStyle(Color.brass)
             }
 
             Spacer(minLength: 0)
         }
-        .padding(20)
+        .padding(.bottom, 24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(cornerRadius: 18, padding: 0)
     }
 
     @ViewBuilder
@@ -247,7 +258,7 @@ struct AchievementFamilyDetailView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isEarned ? Color.ink : Color.ink3)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(verbatim: stage.requirement)
                     .font(.caption.monospacedDigit())
@@ -257,7 +268,7 @@ struct AchievementFamilyDetailView: View {
                 if let earned = stage.earned {
                     Text(verbatim: AchievementFormatting.month(earned.logicalMonth, locale: locale))
                         .font(.caption2)
-                        .foregroundStyle(Color.accent)
+                        .foregroundStyle(Color.brass)
                 } else {
                     Text("achievement.detail.future", bundle: localization.bundle)
                         .font(.caption2.weight(.semibold))
@@ -265,16 +276,8 @@ struct AchievementFamilyDetailView: View {
                 }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 196)
-        .background {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(isEarned ? Color.notionSurface : Color.notionSurfaceAlt.opacity(0.62))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.line.opacity(isEarned ? 1 : 0.55), lineWidth: 0.8)
-                }
-        }
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, minHeight: 180, alignment: .top)
         .accessibilityElement(children: .combine)
     }
 
@@ -302,6 +305,7 @@ struct AchievementFamilyDetailView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(Text(LocalizedStringKey(presentation.titleKey), bundle: localization.bundle))
                     .accessibilityHint(Text("achievement.inspect.open", bundle: localization.bundle))
 
                     VStack(alignment: .leading, spacing: 3) {
@@ -324,12 +328,10 @@ struct AchievementFamilyDetailView: View {
                 .padding(.vertical, 11)
 
                 if index < familyPresentations.count - 1 {
-                    Divider().opacity(0.45).padding(.leading, 62)
+                    LedgerHairline().padding(.leading, 36 * 1.4 + 12)
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .glassCard(cornerRadius: 16, padding: 0)
     }
 
     private var wealthStages: [Stage] {
@@ -338,10 +340,7 @@ struct AchievementFamilyDetailView: View {
                 AchievementService.wealthStageIndex(from: presentation.stageKey).map { ($0, presentation) }
             }
         )
-        let highestEarned = byIndex.keys.max() ?? -1
-        let upperBound = max(6, highestEarned + 3)
-
-        return (0...upperBound).map { index in
+        return (0..<AchievementService.wealthStageCount).map { index in
             let stageKey = "wealth-\(index)"
             let presentation = byIndex[index]
             let currency = presentation?.currencyCode ?? homeCurrency
@@ -488,9 +487,12 @@ struct AchievementFamilyDetailView: View {
         matchedID: String,
         isEarned: Bool
     ) -> some View {
-        if inspectedMedal?.matchedID == matchedID {
+        if !inspectionSourceRevealed, inspectedMedal?.matchedID == matchedID {
+            // Keeps reporting its frame so the flight follows the slot when
+            // hiding the bars shifts the page.
             Color.clear
                 .frame(width: size * 1.4, height: size * 1.4)
+                .achievementInspectionSource(id: matchedID)
         } else {
             ZStack {
                 AchievementBadgeView(
@@ -502,7 +504,7 @@ struct AchievementFamilyDetailView: View {
             .frame(width: size * 1.4, height: size * 1.4)
             .achievementInspectionSource(id: matchedID)
             .saturation(isEarned ? 1 : 0)
-            .opacity(isEarned ? 1 : 0.34)
+            .opacity(isEarned ? 1 : 0.55)
         }
     }
 
@@ -511,8 +513,15 @@ struct AchievementFamilyDetailView: View {
         guard let sourceFrame = sourceFrames[selection.matchedID] else { return }
         inspectedSourceFrame = sourceFrame
         inspectionProgress = 0
-        inspectedMedal = selection
+        // The overlay animates itself once on screen (`startInspection`).
+        inspectionSourceRevealed = false
+        withTransaction(\.disablesAnimations, true) {
+            inspectedMedal = selection
+        }
+    }
 
+    private func startInspection() {
+        guard inspectedMedal != nil, inspectionTask == nil, inspectionProgress == 0 else { return }
         inspectionTask = Task { @MainActor in
             await Task.yield()
             guard !Task.isCancelled else { return }
@@ -542,20 +551,19 @@ struct AchievementFamilyDetailView: View {
             }
             try? await Task.sleep(for: .seconds(duration))
             guard !Task.isCancelled else { return }
-            inspectedMedal = nil
+            // Swap the landed copy for the real item, then dismiss the now
+            // empty cover. Anything drawn while the cover dismisses animates
+            // in from the screen's corner.
+            inspectionSourceRevealed = true
+            try? await Task.sleep(for: .milliseconds(34))
+            withTransaction(\.disablesAnimations, true) {
+                inspectedMedal = nil
+            }
             inspectionTask = nil
         }
     }
 
     private func localized(_ key: String) -> String {
         String(localized: String.LocalizationValue(key), bundle: localization.bundle)
-    }
-
-    private func sectionHeader(_ key: String) -> some View {
-        Text(LocalizedStringKey(key), bundle: localization.bundle)
-            .font(.caption.weight(.bold))
-            .tracking(0.65)
-            .textCase(.uppercase)
-            .foregroundStyle(Color.ink2)
     }
 }

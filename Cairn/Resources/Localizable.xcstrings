@@ -546,15 +546,32 @@
     "achievement.inspect.eyebrow" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Medal detail" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "奖牌细节" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Achievement detail" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "成就详情" } }
+      }
+    },
+    "achievement.inspect.month" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Achieved in"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "达成月份"
+          }
+        }
       }
     },
     "achievement.inspect.open" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Opens the interactive medal" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "打开可旋转奖牌" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "View medal details" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "查看奖牌详情" } }
       }
     },
     "achievement.empty.message" : {
@@ -774,6 +791,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的旅程已恢复"
+          }
+        }
+      }
+    },
+    "achievement.inspect.privacy" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared images include only the medal, name and month."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分享图片仅包含奖牌、名称和月份。"
+          }
+        }
+      }
+    },
+    "achievement.inspect.record" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Achievement record"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "达成记录"
+          }
+        }
+      }
+    },
+    "achievement.inspect.requirement" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requirement"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "达成条件"
+          }
+        }
+      }
+    },
+    "achievement.inspect.value" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded value"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "达成时记录"
           }
         }
       }
@@ -4754,6 +4839,23 @@
         }
       }
     },
+    "possession.inspect.eyebrow" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asset detail"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "资产详情"
+          }
+        }
+      }
+    },
     "possession.inspect.held" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4767,6 +4869,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已持有 {duration}"
+          }
+        }
+      }
+    },
+    "possession.inspect.record" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asset record"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "资产档案"
           }
         }
       }

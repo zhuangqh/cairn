@@ -1,6 +1,12 @@
 import SwiftUI
 import SwiftData
 
+/// Pages Settings pushes. Value-based so the macOS sidebar can reset them
+/// (see `RootView`).
+enum SettingsRoute: Hashable {
+    case homeCurrency
+}
+
 struct SettingsView: View {
     fileprivate static let repositoryURL = externalURL("https://github.com/zhuangqh/cairn")
     fileprivate static let starURL = externalURL("https://github.com/zhuangqh/cairn/stargazers")
@@ -59,9 +65,7 @@ struct SettingsView: View {
                     )
                 }
 
-                NavigationLink {
-                    CurrencyPickerView(selection: $homeCurrency)
-                } label: {
+                NavigationLink(value: SettingsRoute.homeCurrency) {
                     HStack {
                         settingsRowLabel(
                             titleKey: "settings.homeCurrency.title",
@@ -255,6 +259,11 @@ struct SettingsView: View {
             }
         }
         .navigationTitle(Text("settings.title", bundle: localization.bundle))
+        .navigationDestination(for: SettingsRoute.self) { route in
+            switch route {
+            case .homeCurrency: CurrencyPickerView(selection: $homeCurrency)
+            }
+        }
         .fileExporter(
             isPresented: $isExporting,
             document: exportDocument,

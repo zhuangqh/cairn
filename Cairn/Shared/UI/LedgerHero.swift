@@ -37,12 +37,13 @@ struct LedgerHeroAmount: View {
     let amount: Decimal
     let code: String
     let locale: Locale
+    var fractionDigits: Int = 0
 
     @ScaledMetric(relativeTo: .largeTitle) private var digitSize: CGFloat = 46
     @ScaledMetric(relativeTo: .title3) private var symbolSize: CGFloat = 19
 
     var body: some View {
-        let parts = CurrencyAmountParts(amount, code: code, locale: locale)
+        let parts = CurrencyAmountParts(amount, code: code, locale: locale, fractionDigits: fractionDigits)
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             if parts.symbolLeads {
                 symbolText(parts.sign + parts.symbol)
@@ -56,7 +57,7 @@ struct LedgerHeroAmount: View {
         .lineLimit(1)
         .minimumScaleFactor(0.6)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(amount, format: .currency(code: code).precision(.fractionLength(0)).locale(locale)))
+        .accessibilityLabel(Text(amount, format: .currency(code: code).precision(.fractionLength(fractionDigits)).locale(locale)))
     }
 
     private func symbolText(_ value: String) -> some View {

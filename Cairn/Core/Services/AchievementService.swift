@@ -5,6 +5,9 @@ import SwiftData
 public enum AchievementService {
     public static let definitionVersion = 1
     public static let timeMarkThresholds = [3, 6, 12, 24, 60]
+    /// Wealth milestones run 100K → 200K → 500K → 1M → 2M → 5M → 10M and
+    /// stop there; recomputation removes any stored stage beyond 10M.
+    public static let wealthStageCount = 7
 
     public struct EvaluationResult: Sendable {
         public var created: [AchievementPresentation]
@@ -94,12 +97,10 @@ public enum AchievementService {
             .map(AchievementPresentation.init)
     }
 
-    public static func nextWealthThreshold(after amount: Decimal) -> Decimal {
-        for index in 0..<60 {
-            let threshold = wealthThreshold(at: index)
-            if threshold > amount { return threshold }
-        }
-        return amount
+    /// The next stage after the highest earned one, or `nil` once 10M is earned.
+    public static func nextWealthStageIndex(afterEarned latest: Int?) -> Int? {
+        let next = (latest ?? -1) + 1
+        return next < wealthStageCount ? next : nil
     }
 
     public static func wealthThreshold(at index: Int) -> Decimal {
@@ -154,7 +155,7 @@ public enum AchievementService {
         guard maximum >= wealthThreshold(at: 0) else { return [] }
 
         var thresholdCount = 0
-        while thresholdCount < 60, wealthThreshold(at: thresholdCount) <= maximum {
+        while thresholdCount < wealthStageCount, wealthThreshold(at: thresholdCount) <= maximum {
             thresholdCount += 1
         }
 

@@ -57,6 +57,9 @@ struct RootView: View {
     #if os(macOS)
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var hoveredSidebarItem: SidebarItem?
+    /// Bumped when the selected sidebar item is clicked again, returning its
+    /// stack to the top level.
+    @State private var detailResetCount = 0
 
     private let primarySidebarItems: [SidebarItem] = [
         .dashboard,
@@ -69,7 +72,15 @@ struct RootView: View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             sidebar
         } detail: {
+            // A fresh stack per item (and per reset), so switching items or
+            // clicking the current one returns to the top level. Every push in
+            // these stacks must be value-based (`NavigationLink(value:)` plus
+            // `navigationDestination`): on macOS a `NavigationLink(destination:)`
+            // page lands in the split view's own column, outside this stack,
+            // and stays on screen after the sidebar selection changes.
             detail(for: selection)
+                .id(DetailIdentity(item: selection, resetCount: detailResetCount))
+                .cairnTransparentToolbar()
         }
         .navigationSplitViewStyle(.balanced)
     }
@@ -134,8 +145,12 @@ struct RootView: View {
         let isHovered = hoveredSidebarItem == item
 
         return Button {
-            withAnimation(.snappy(duration: 0.22)) {
-                selection = item
+            if selection == item {
+                detailResetCount += 1
+            } else {
+                withAnimation(.snappy(duration: 0.22)) {
+                    selection = item
+                }
             }
         } label: {
             HStack(spacing: 11) {
@@ -165,6 +180,11 @@ struct RootView: View {
             }
         }
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private struct DetailIdentity: Hashable {
+        let item: SidebarItem
+        let resetCount: Int
     }
 
     @ViewBuilder
@@ -215,6 +235,17 @@ struct RootView: View {
         }
     }
 }
+
+#if os(macOS)
+private extension View {
+    /// The window toolbar otherwise paints the window's white behind the
+    /// title, a band above the ivory page. Hiding it lets the page ground run
+    /// up to the window edge (DESIGN.md: no hard rule at the top).
+    func cairnTransparentToolbar() -> some View {
+        toolbarBackground(.hidden, for: .windowToolbar)
+    }
+}
+#endif
 
 #if os(iOS)
 private extension View {

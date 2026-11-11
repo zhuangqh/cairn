@@ -45,26 +45,41 @@ private struct PossessionInspectionHost: ViewModifier {
     @State private var sourceFrames: [String: CGRect] = [:]
     @State private var progress = 0.0
     @State private var task: Task<Void, Never>?
+    @State private var sourceRevealed = false
     @State private var editing: Possession?
+    /// Opened in the editor once the overlay has fully dismissed.
+    @State private var pendingEdit: Possession?
 
     func body(content: Content) -> some View {
         ZStack {
             content
                 .opacity(1 - 0.78 * progress)
                 .allowsHitTesting(inspected == nil)
-                .environment(\.possessionInspector, PossessionInspector(inspectedID: inspected?.id, open: open))
-            if let inspected {
+                .accessibilityHidden(inspected != nil)
+                .environment(\.possessionInspector, PossessionInspector(inspectedID: sourceRevealed ? nil : inspected?.id, open: open))
+        }
+        .inspectionPresentation(
+            isPresented: inspected != nil,
+            onPresented: start,
+            onDismissed: {
+                editing = pendingEdit
+                pendingEdit = nil
+            }
+        ) {
+            // Emptied when the shelf item is revealed, so nothing is left in
+            // the cover to animate while it dismisses.
+            if let inspected, !sourceRevealed {
                 PossessionInspectionView(
                     possession: inspected,
                     homeCurrency: homeCurrency,
                     homeEquivalent: homeEquivalent,
-                    sourceFrame: sourceFrame,
+                    // Live frame, in case the shelf moves under the flight.
+                    sourceFrame: sourceFrames[inspected.id.uuidString] ?? sourceFrame,
                     progress: progress,
                     canClose: task == nil && progress == 1,
                     onClose: { close(thenEdit: false) },
                     onEdit: { close(thenEdit: true) }
                 )
-                .zIndex(10)
             }
         }
         .onPreferenceChange(AchievementInspectionSourceFramesKey.self) { sourceFrames = $0 }
@@ -95,7 +110,15 @@ private struct PossessionInspectionHost: ViewModifier {
                 to: homeCurrency
             )
         progress = 0
-        inspected = possession
+        // The overlay animates itself once on screen (`start`).
+        sourceRevealed = false
+        withTransaction(\.disablesAnimations, true) {
+            inspected = possession
+        }
+    }
+
+    private func start() {
+        guard inspected != nil, task == nil, progress == 0 else { return }
         task = Task { @MainActor in
             await Task.yield()
             guard !Task.isCancelled else { return }
@@ -124,15 +147,22 @@ private struct PossessionInspectionHost: ViewModifier {
             }
             try? await Task.sleep(for: .seconds(duration))
             guard !Task.isCancelled else { return }
-            inspected = nil
+            if thenEdit { pendingEdit = possession }
+            // Swap the landed copy for the real item, then dismiss the now
+            // empty cover. Anything drawn while the cover dismisses animates
+            // in from the screen's corner.
+            sourceRevealed = true
+            try? await Task.sleep(for: .milliseconds(34))
+            withTransaction(\.disablesAnimations, true) {
+                inspected = nil
+            }
             task = nil
-            if thenEdit { editing = possession }
         }
     }
 }
 
-/// Spotlit close-up of one showcase item: the artwork lifted from its shelf,
-/// then a quiet card with what the household knows about it.
+/// A possession displayed like an entry in the family asset register, with
+/// its photograph above the purchase amount and ruled, scrollable details.
 struct PossessionInspectionView: View {
     let possession: Possession
     let homeCurrency: String
@@ -144,167 +174,207 @@ struct PossessionInspectionView: View {
     let onEdit: () -> Void
 
     @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(LocalizationService.self) private var localization
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 32
+    @State private var artworkFrame: CGRect = .zero
 
     var body: some View {
         ZStack {
-            Rectangle()
-                .fill(.regularMaterial)
-                .overlay { Color(white: 0.04).opacity(0.86) }
+            AppBackground()
                 .modifier(AchievementInspectionReveal(progress: progress, start: 0, end: 0.44))
-                .ignoresSafeArea()
 
-            spotlight
-
-            Button(action: onClose) {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .ignoresSafeArea()
-            }
-            .buttonStyle(.plain)
-            .disabled(!canClose)
-            .accessibilityLabel(Text("common.action.done"))
-            .keyboardShortcut(.cancelAction)
-
-            VStack(spacing: 24) {
-                Spacer(minLength: 0)
-                // Same aspect as the shelf box, so the flight lands exactly on
-                // the shelf figure. It yields height first so the card's copy
-                // wraps instead of truncating on short screens.
-                GeometryReader { proxy in
-                    PossessionArtwork(possession: possession, size: proxy.size)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                        // Fades with the flight; the shelf has its own floor shadow.
-                        .shadow(color: .black.opacity(0.45 * progress), radius: 18, y: 12)
-                        .modifier(
-                            AchievementInspectionMotion(
-                                progress: reduceMotion ? 1 : progress,
-                                sourceFrame: sourceFrame,
-                                targetFrame: proxy.frame(in: .global)
-                            )
-                        )
-                        .opacity(reduceMotion ? progress : 1)
+            VStack(spacing: 0) {
+                HStack {
+                    Text("possession.inspect.eyebrow", bundle: localization.bundle)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.ink2)
+                    Spacer(minLength: 12)
+                    InspectionCloseButton(canClose: canClose, action: onClose)
                 }
-                .aspectRatio(PossessionArtwork.shelfSize, contentMode: .fit)
-                .frame(maxWidth: 260, minHeight: 96, maxHeight: 200)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+                .inspectionColumn()
+                .modifier(copyReveal)
 
-                infoCard
-                    .frame(maxWidth: 440)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .modifier(AchievementInspectionReveal(progress: progress, start: 0.62, end: 0.92, distance: 10))
-                Spacer(minLength: 0)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        artwork
+                            .padding(.top, 12)
+                            .padding(.bottom, 24)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(verbatim: possession.name)
+                                .font(.system(size: titleSize, weight: .bold))
+                                .tracking(-0.6)
+                                .foregroundStyle(Color.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityAddTraits(.isHeader)
+                            subtitle
+                                .font(.subheadline)
+                                .foregroundStyle(Color.ink2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .modifier(copyReveal)
+
+                        purchaseSummary
+                            .modifier(copyReveal)
+                        record
+                            .modifier(copyReveal)
+
+                        if let note = possession.note, !note.isEmpty {
+                            LedgerSection(Text("possession.form.note", bundle: localization.bundle)) {
+                                Text(verbatim: note)
+                                    .font(.callout)
+                                    .foregroundStyle(Color.ink2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .textSelection(.enabled)
+                                    .padding(.vertical, 8)
+                            }
+                            .modifier(copyReveal)
+                        }
+
+                        Button(action: onEdit) {
+                            Label {
+                                Text("common.action.edit", bundle: localization.bundle)
+                            } icon: {
+                                Image(systemName: "pencil")
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 28)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.capsule)
+                        .controlSize(.large)
+                        .tint(Color.accent)
+                        .foregroundStyle(colorScheme == .dark ? Color.pageBackground : .white)
+                        .allowsHitTesting(canClose)
+                        .padding(.top, 28)
+                        .padding(.bottom, 24)
+                        .modifier(copyReveal)
+                    }
+                    .inspectionColumn()
+                }
+                .scrollIndicators(.hidden)
             }
-            .padding(24)
-            .frame(maxWidth: 680, maxHeight: 760)
+
+            InspectionFlightLayer(
+                sourceFrame: sourceFrame,
+                targetFrame: artworkFrame,
+                progress: progress,
+                isSettled: canClose
+            ) { size in
+                figure(size)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // A tap anywhere outside a control closes, so the small close glyph
+        // is not the only way back. The host ignores taps mid-flight.
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onClose)
         .accessibilityAddTraits(.isModal)
     }
 
-    private var spotlight: some View {
-        RadialGradient(
-            colors: [Color(red: 1, green: 0.88, blue: 0.70).opacity(0.22), .clear],
-            center: UnitPoint(x: 0.5, y: 0.22),
-            startRadius: 0,
-            endRadius: 380
-        )
-        .ignoresSafeArea()
-        .modifier(AchievementInspectionReveal(progress: progress, start: 0.10, end: 0.58))
+    private var artwork: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            InspectionFlightSlot(isSettled: canClose, targetFrame: $artworkFrame) { size in
+                figure(size)
+            }
+            .aspectRatio(PossessionArtwork.shelfSize, contentMode: .fit)
+            .frame(maxWidth: 260)
+            Spacer(minLength: 0)
+        }
+        .frame(height: 200)
+        .padding(.vertical, 14)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.thumb)
+                .modifier(AchievementInspectionReveal(progress: progress, start: 0.10, end: 0.58))
+        }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
-    // MARK: - Card
+    private func figure(_ size: CGSize) -> some View {
+        PossessionArtwork(possession: possession, size: size)
+            .frame(width: size.width, height: size.height, alignment: .bottom)
+            .blendMode(colorScheme == .dark ? .normal : .multiply)
+    }
 
-    private var infoCard: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 6) {
-                Text(verbatim: possession.name)
-                    .font(.system(.title, design: .rounded, weight: .bold))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                subtitle
+    private var purchaseSummary: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("possession.form.purchasePrice", bundle: localization.bundle)
                     .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.6))
-                    .multilineTextAlignment(.center)
-                Text(verbatim: money(possession.purchasePrice, possession.purchaseCurrency))
-                    .font(.title3.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Color.white.opacity(0.92))
-                    .padding(.top, 4)
-                if let homeEquivalent {
-                    Text(verbatim: "≈ " + money(homeEquivalent, homeCurrency))
-                        .font(.subheadline)
-                        .monospacedDigit()
-                        .foregroundStyle(Color.white.opacity(0.55))
-                }
+                    .foregroundStyle(Color.ink2)
+                Spacer(minLength: 12)
+                CurrencyChip(code: possession.purchaseCurrency)
             }
-            .accessibilityElement(children: .combine)
+            LedgerHeroAmount(
+                amount: possession.purchasePrice,
+                code: possession.purchaseCurrency,
+                locale: locale,
+                fractionDigits: purchaseFractionDigits
+            )
+            if let homeEquivalent {
+                Text(verbatim: "≈ " + money(homeEquivalent, homeCurrency))
+                    .font(.footnote)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.ink2)
+            }
+        }
+        .padding(.vertical, 24)
+    }
 
-            Divider().overlay(Color.white.opacity(0.12))
-
-            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 16, verticalSpacing: 10) {
+    private var record: some View {
+        LedgerSection(Text("possession.inspect.record", bundle: localization.bundle)) {
+            VStack(spacing: 0) {
                 detailRow("possession.form.purchaseDate", value: purchaseDateText, secondary: heldText)
-                if let note = possession.note, !note.isEmpty {
-                    // Capped so the actions stay reachable; the editor shows all of it.
-                    detailRow("possession.form.note", value: note, valueLineLimit: 6)
-                }
                 if let current = possession.currentValue {
+                    LedgerHairline()
                     detailRow("possession.form.currentValue", value: money(current, possession.purchaseCurrency))
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            actions
-                .padding(.top, 4)
-        }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 20)
-        .background {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.065))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8)
-                }
         }
     }
 
-    private func detailRow(
-        _ label: LocalizedStringKey,
-        value: String,
-        secondary: String? = nil,
-        valueLineLimit: Int? = nil
-    ) -> some View {
-        GridRow {
-            Text(label)
-                .foregroundStyle(Color.white.opacity(0.5))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: value)
-                    .foregroundStyle(Color.white.opacity(0.88))
-                    .lineLimit(valueLineLimit)
+    private func detailRow(_ label: LocalizedStringKey, value: String, secondary: String? = nil) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 20) {
+                Text(label, bundle: localization.bundle).foregroundStyle(Color.ink2).fixedSize()
+                Spacer(minLength: 0)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(verbatim: value).foregroundStyle(Color.ink)
+                    if let secondary {
+                        Text(verbatim: secondary).font(.footnote).foregroundStyle(Color.ink2)
+                    }
+                }
+                .fixedSize()
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(label, bundle: localization.bundle).foregroundStyle(Color.ink2)
+                Text(verbatim: value).foregroundStyle(Color.ink)
                 if let secondary {
-                    Text(verbatim: secondary)
-                        .foregroundStyle(Color.white.opacity(0.55))
+                    Text(verbatim: secondary).font(.footnote).foregroundStyle(Color.ink2)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .font(.subheadline)
+        .monospacedDigit()
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 
-    /// Adding or replacing a photo happens in the editor, so Edit is the
-    /// only action.
-    private var actions: some View {
-        Button(action: onEdit) {
-            Label { Text("common.action.edit") } icon: { Image(systemName: "pencil") }
-        }
-        .buttonStyle(InspectionActionButtonStyle())
-        .frame(maxWidth: 180)
-        .allowsHitTesting(canClose)
+    private var purchaseFractionDigits: Int {
+        var whole = Decimal()
+        var copy = possession.purchasePrice
+        NSDecimalRound(&whole, &copy, 0, .plain)
+        return whole == possession.purchasePrice
+            ? 0
+            : LedgerAmountFormat.minorUnits(for: possession.purchaseCurrency, locale: locale)
+    }
+
+    private var copyReveal: AchievementInspectionReveal {
+        AchievementInspectionReveal(progress: progress, start: 0.62, end: 0.92)
     }
 
     // MARK: - Formatting
@@ -350,26 +420,5 @@ struct PossessionInspectionView: View {
         guard let duration = formatter.string(from: components), !duration.isEmpty else { return nil }
         return String(localized: "possession.inspect.held", bundle: localization.bundle)
             .replacingOccurrences(of: "{duration}", with: duration)
-    }
-}
-
-/// Translucent capsule action for the dark inspection backdrop.
-private struct InspectionActionButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .lineLimit(1)
-            .foregroundStyle(Color.white.opacity(0.92))
-            .padding(.horizontal, 18)
-            .padding(.vertical, 11)
-            .frame(maxWidth: .infinity)
-            .background {
-                Capsule()
-                    .fill(Color.white.opacity(0.12))
-                    .overlay { Capsule().strokeBorder(Color.white.opacity(0.16), lineWidth: 0.8) }
-            }
-            .contentShape(Capsule())
-            .opacity(configuration.isPressed ? 0.7 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }

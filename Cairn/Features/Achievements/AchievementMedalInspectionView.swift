@@ -1,12 +1,10 @@
 import SwiftUI
 
-/// Overlay content for a Fitness-style inspection transition. One continuous
-/// progress value controls travel, scale, rotation and the supporting chrome,
-/// so the medal never pauses at its back face while another animation catches up.
+/// A medal and its original record, presented on the same quiet ledger ground
+/// as the journal. The medal flies above the scrollable copy, so the scroll
+/// view never clips it, and drops into its slot once settled.
 struct AchievementMedalInspectionView: View {
     let presentation: AchievementPresentation
-    /// Overrides the medal artwork when the source shows a tier rather than
-    /// the earned record, e.g. a Monthly Ascent tier unlocked by a larger record.
     var badgeStageKey: String?
     let title: String
     let requirement: String
@@ -16,128 +14,281 @@ struct AchievementMedalInspectionView: View {
     let onClose: () -> Void
 
     @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(LocalizationService.self) private var localization
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 32
+    @State private var medalFrame: CGRect = .zero
 
     var body: some View {
         ZStack {
-            Rectangle()
-                .fill(.regularMaterial)
-                .overlay {
-                    Color(hex: 0x03110F)
-                        .opacity(0.84)
-                }
+            AppBackground()
                 .modifier(AchievementInspectionReveal(progress: progress, start: 0, end: 0.44))
-                .ignoresSafeArea()
 
-            ambientGlow
-
-            Button {
-                guard canClose else { return }
-                onClose()
-            } label: {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .ignoresSafeArea()
-            }
-            .buttonStyle(.plain)
-            .disabled(!canClose)
-            .accessibilityLabel(Text("common.action.done", bundle: localization.bundle))
-
-            VStack(spacing: 16) {
-                Spacer(minLength: 0)
-
-                GeometryReader { proxy in
-                    ZStack {
-                        AchievementBadgeView(
-                            family: presentation.family,
-                            stageKey: badgeStageKey ?? presentation.stageKey,
-                            size: 190,
-                            rotationY: reduceMotion ? 0 : progress * 360
-                        )
-                        .modifier(
-                            AchievementInspectionMotion(
-                                progress: reduceMotion ? 1 : progress,
-                                sourceFrame: sourceFrame,
-                                targetFrame: proxy.frame(in: .global)
-                            )
-                        )
-                        .opacity(reduceMotion ? progress : 1)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: 0) {
+                HStack {
+                    Text("achievement.inspect.eyebrow", bundle: localization.bundle)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.brass)
+                    Spacer(minLength: 12)
+                    InspectionCloseButton(canClose: canClose, action: onClose)
                 }
-                .frame(width: 266, height: 266)
-                .allowsHitTesting(false)
-                .accessibilityLabel(Text(verbatim: title))
+                .inspectionColumn()
+                .modifier(AchievementInspectionReveal(progress: progress, start: 0.62, end: 0.92))
 
-                Spacer(minLength: 0)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        medal
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
 
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.white.opacity(0.065))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8)
-                        }
-                        .allowsHitTesting(false)
+                        Text(verbatim: title)
+                            .font(.system(size: titleSize, weight: .bold))
+                            .tracking(-0.6)
+                            .foregroundStyle(Color.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+                            .padding(.bottom, 24)
+                            .modifier(copyReveal)
 
-                    VStack(spacing: 10) {
-                        VStack(spacing: 10) {
-                            Text(verbatim: title)
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundStyle(.white)
+                        record
+                            .modifier(copyReveal)
+
+                        VStack(spacing: 12) {
+                            AchievementShareButton(presentation: presentation, fillsWidth: true)
+                                .buttonStyle(.borderedProminent)
+                                .buttonBorderShape(.capsule)
+                                .controlSize(.large)
+                                .tint(Color.accent)
+                                .foregroundStyle(colorScheme == .dark ? Color.pageBackground : .white)
+                                .allowsHitTesting(canClose)
+                            Text("achievement.inspect.privacy", bundle: localization.bundle)
+                                .font(.caption)
+                                .foregroundStyle(Color.ink2)
                                 .multilineTextAlignment(.center)
-
-                            Text(verbatim: requirement)
-                                .font(.subheadline)
-                                .foregroundStyle(Color.white.opacity(0.68))
-                                .multilineTextAlignment(.center)
-
-                            HStack(spacing: 8) {
-                                Image(systemName: "calendar")
-                                Text(verbatim: AchievementFormatting.month(presentation.logicalMonth, locale: locale))
-                                if let amount = AchievementFormatting.amount(presentation, locale: locale) {
-                                    Text(verbatim: "·")
-                                    Text(verbatim: amount).monospacedDigit()
-                                }
-                            }
-                            .font(.caption)
-                            .foregroundStyle(Color.white.opacity(0.54))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .allowsHitTesting(false)
-
-                        AchievementShareButton(presentation: presentation)
-                            .buttonStyle(.bordered)
-                            .tint(.white)
-                            .padding(.top, 4)
-                            .allowsHitTesting(canClose)
+                        .padding(.top, 28)
+                        .padding(.bottom, 24)
+                        .modifier(copyReveal)
                     }
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 18)
+                    .inspectionColumn()
                 }
-                .frame(maxWidth: 460)
-                .modifier(AchievementInspectionReveal(progress: progress, start: 0.70, end: 0.92, distance: 10))
+                .scrollIndicators(.hidden)
             }
-            .padding(24)
-            .frame(maxWidth: 680, maxHeight: 760)
+
+            InspectionFlightLayer(
+                sourceFrame: sourceFrame,
+                targetFrame: medalFrame,
+                progress: progress,
+                isSettled: canClose
+            ) { _ in
+                badge
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // A tap anywhere outside a control closes, so the small close glyph
+        // is not the only way back. The host ignores taps mid-flight.
         .contentShape(Rectangle())
+        .onTapGesture(perform: onClose)
         .accessibilityAddTraits(.isModal)
     }
 
-    private var ambientGlow: some View {
-        ZStack {
-            Circle()
-                .fill(Color(hex: 0x42E2D0).opacity(0.095))
-                .frame(width: 340, height: 340)
-                .blur(radius: 58)
-            Circle()
-                .stroke(Color.white.opacity(0.065), lineWidth: 1)
-                .frame(width: 300, height: 300)
+    private var medal: some View {
+        InspectionFlightSlot(isSettled: canClose, targetFrame: $medalFrame) { _ in
+            badge
         }
-        .modifier(AchievementInspectionReveal(progress: progress, start: 0.10, end: 0.58))
+        .frame(width: 252, height: 252)
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private var badge: some View {
+        AchievementBadgeView(
+            family: presentation.family,
+            stageKey: badgeStageKey ?? presentation.stageKey,
+            size: 180,
+            rotationY: reduceMotion ? 0 : progress * 360
+        )
+    }
+
+    private var record: some View {
+        LedgerSection(Text("achievement.inspect.record", bundle: localization.bundle)) {
+            VStack(spacing: 0) {
+                detailRow("achievement.inspect.requirement", value: requirement)
+                LedgerHairline()
+                detailRow(
+                    "achievement.inspect.month",
+                    value: AchievementFormatting.month(presentation.logicalMonth, locale: locale)
+                )
+                if let value = recordedValue {
+                    LedgerHairline()
+                    detailRow("achievement.inspect.value", value: value)
+                }
+            }
+        }
+    }
+
+    private func detailRow(_ label: LocalizedStringKey, value: String) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 20) {
+                Text(label, bundle: localization.bundle).foregroundStyle(Color.ink2).fixedSize()
+                Spacer(minLength: 0)
+                Text(verbatim: value).foregroundStyle(Color.ink).fixedSize()
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(label, bundle: localization.bundle).foregroundStyle(Color.ink2)
+                Text(verbatim: value).foregroundStyle(Color.ink)
+            }
+        }
+        .font(.subheadline)
+        .monospacedDigit()
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var recordedValue: String? {
+        if presentation.family == .timeMark, let amount = presentation.observedAmount {
+            return String(
+                format: String(localized: "achievement.timeMark.description", bundle: localization.bundle),
+                NSDecimalNumber(decimal: amount).intValue
+            )
+        }
+        return AchievementFormatting.amount(presentation, locale: locale)
+    }
+
+    private var copyReveal: AchievementInspectionReveal {
+        AchievementInspectionReveal(progress: progress, start: 0.62, end: 0.92)
+    }
+}
+
+extension View {
+    /// Shows an inspection overlay above this view. On iOS it is a clear
+    /// full-screen cover, so it covers the navigation and tab bars instead of
+    /// hiding them; hiding them shrinks the safe area and shifts the page
+    /// underneath. Present and dismiss inside a transaction with
+    /// `disablesAnimations` so the cover skips the system slide; the overlay
+    /// animates itself, starting from `onPresented` once it is on screen.
+    /// `onDismissed` runs once the overlay is fully gone, the earliest point
+    /// another sheet can be presented.
+    @ViewBuilder
+    func inspectionPresentation<Overlay: View>(
+        isPresented: Bool,
+        onPresented: @escaping () -> Void,
+        onDismissed: (() -> Void)? = nil,
+        @ViewBuilder overlay: @escaping () -> Overlay
+    ) -> some View {
+        #if os(iOS)
+        fullScreenCover(isPresented: .init(get: { isPresented }, set: { _ in }), onDismiss: onDismissed) {
+            overlay()
+                .presentationBackground(.clear)
+                .onAppear(perform: onPresented)
+        }
+        #else
+        self.overlay {
+            if isPresented {
+                overlay()
+                    .onAppear(perform: onPresented)
+                    .onDisappear { onDismissed?() }
+            }
+        }
+        #endif
+    }
+
+    /// The overlays' shared content column: page margins and a 640pt cap,
+    /// centred. Applied to the header and to the scroll content rather than
+    /// around the scroll view, so the scroll view spans the window and its
+    /// bar sits at the window edge instead of beside the content.
+    func inspectionColumn() -> some View {
+        pageHorizontalPadding()
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity)
+    }
+}
+
+/// Close control for the inspection overlays. The 44pt hit area sits inside
+/// the trailing page guide, and the glyph's ink, not its symbol box, ends on
+/// that guide, flush with the content edges below it.
+struct InspectionCloseButton: View {
+    let canClose: Bool
+    let action: () -> Void
+
+    @Environment(LocalizationService.self) private var localization
+    /// Side bearing of `xmark` at body size, measured from the rendered glyph.
+    @ScaledMetric(relativeTo: .body) private var opticalInset: CGFloat = 2.3
+
+    var body: some View {
+        Button(action: action) {
+            Label {
+                Text("common.action.done", bundle: localization.bundle)
+            } icon: {
+                Image(systemName: "xmark")
+                    .alignmentGuide(.trailing) { $0[.trailing] - opticalInset }
+            }
+            .labelStyle(.iconOnly)
+            .font(.body.weight(.medium))
+            .frame(width: 44, height: 44, alignment: .trailing)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Color.accent)
+        // Not `.disabled`: that restyles the control mid-flight.
+        .allowsHitTesting(canClose)
+        .keyboardShortcut(.cancelAction)
+    }
+}
+
+/// The slot a flying figure lands in, inside the overlay's scroll view. It
+/// reports its frame for `InspectionFlightLayer` and only draws the figure
+/// once the flight has settled, so the figure then scrolls with the copy.
+struct InspectionFlightSlot<Figure: View>: View {
+    let isSettled: Bool
+    @Binding var targetFrame: CGRect
+    @ViewBuilder let figure: (CGSize) -> Figure
+
+    var body: some View {
+        GeometryReader { proxy in
+            if isSettled {
+                figure(proxy.size)
+            }
+        }
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { targetFrame = $0 }
+    }
+}
+
+/// Carries a figure between its source and its slot above the overlay's
+/// scroll view, which would otherwise clip it at the page margins and under
+/// the header row. Hands the figure to the slot once settled.
+struct InspectionFlightLayer<Figure: View>: View {
+    let sourceFrame: CGRect
+    let targetFrame: CGRect
+    let progress: Double
+    let isSettled: Bool
+    @ViewBuilder let figure: (CGSize) -> Figure
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { proxy in
+            if !isSettled, !targetFrame.isEmpty {
+                let origin = proxy.frame(in: .global).origin
+                figure(targetFrame.size)
+                    .frame(width: targetFrame.width, height: targetFrame.height)
+                    .modifier(
+                        AchievementInspectionMotion(
+                            progress: reduceMotion ? 1 : progress,
+                            sourceFrame: sourceFrame,
+                            targetFrame: targetFrame
+                        )
+                    )
+                    .opacity(reduceMotion ? progress : 1)
+                    .position(x: targetFrame.midX - origin.x, y: targetFrame.midY - origin.y)
+            }
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

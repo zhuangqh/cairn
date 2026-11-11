@@ -1,10 +1,18 @@
 import SwiftUI
 
+/// Pages the dashboard pushes by value. Value-based pushes stay inside the
+/// dashboard's stack on macOS, so the sidebar can reset them.
+enum DashboardRoute: Hashable {
+    case achievementJournal
+}
+
 /// Latest journal entry plus progress toward the next wealth milestone
-/// (financial assets only), derived by `DashboardView`.
+/// (financial assets only), derived by `DashboardView`. Progress is hidden
+/// once the last milestone is earned.
 struct DashboardJournalSummary {
     let latest: AchievementPresentation?
-    let nextThreshold: Decimal
+    /// `nil` once the last wealth milestone (10M) is earned.
+    let nextThreshold: Decimal?
     let homeCurrency: String
     let progress: Double
 }
@@ -19,9 +27,7 @@ struct DashboardJournalRow: View {
     let showsMilestone: Bool
 
     var body: some View {
-        NavigationLink {
-            AchievementJournalView()
-        } label: {
+        NavigationLink(value: DashboardRoute.achievementJournal) {
             HStack(spacing: LedgerMetrics.columnSpacing) {
                 DashboardJournalBadge(latest: summary.latest, size: 44)
 
@@ -32,7 +38,7 @@ struct DashboardJournalRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if showsMilestone {
+                if showsMilestone, summary.nextThreshold != nil {
                     VStack(alignment: .trailing, spacing: 4) {
                         DashboardMilestoneLine(summary: summary, spread: false)
                         LedgerMeter(progress: summary.progress)
@@ -62,9 +68,7 @@ struct DashboardJournalPanel: View {
     let summary: DashboardJournalSummary
 
     var body: some View {
-        NavigationLink {
-            AchievementJournalView()
-        } label: {
+        NavigationLink(value: DashboardRoute.achievementJournal) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center) {
                     DashboardJournalEyebrow(latest: summary.latest)
@@ -81,12 +85,14 @@ struct DashboardJournalPanel: View {
                 }
                 .padding(.top, 10)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    DashboardMilestoneLine(summary: summary, spread: true)
-                    LedgerMeter(progress: summary.progress)
-                    DashboardMilestoneFootnote()
+                if summary.nextThreshold != nil {
+                    VStack(alignment: .leading, spacing: 6) {
+                        DashboardMilestoneLine(summary: summary, spread: true)
+                        LedgerMeter(progress: summary.progress)
+                        DashboardMilestoneFootnote()
+                    }
+                    .padding(.top, 12)
                 }
-                .padding(.top, 12)
             }
             .padding(.top, 18)
             .padding(.bottom, 20)
@@ -172,14 +178,16 @@ private struct DashboardMilestoneLine: View {
             if spread {
                 Spacer(minLength: 0)
             }
-            Text(
-                summary.nextThreshold,
-                format: .currency(code: summary.homeCurrency)
-                    .precision(.fractionLength(0))
-                    .locale(locale)
-            )
-            .monospacedDigit()
-            .foregroundStyle(Color.ink)
+            if let nextThreshold = summary.nextThreshold {
+                Text(
+                    nextThreshold,
+                    format: .currency(code: summary.homeCurrency)
+                        .precision(.fractionLength(0))
+                        .locale(locale)
+                )
+                .monospacedDigit()
+                .foregroundStyle(Color.ink)
+            }
         }
         .font(.footnote)
     }

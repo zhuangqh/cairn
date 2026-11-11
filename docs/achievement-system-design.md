@@ -94,10 +94,10 @@ Display helper: `Calculated from financial assets` / `按金融资产总额计�
 
 The source value is the frozen financial total from a monthly `PortfolioSnapshot`. Physical possessions are excluded.
 
-Thresholds follow an unbounded `1–2–5` ladder:
+Thresholds follow a `1–2–5` ladder that ends at 10m:
 
 ```text
-100k → 200k → 500k → 1m → 2m → 5m → 10m → 20m → 50m → 100m → …
+100k → 200k → 500k → 1m → 2m → 5m → 10m
 ```
 
 Rules:
@@ -121,7 +121,7 @@ Naming can be evocative, but the amount remains the primary truth:
 | 5m | 极光之巅 | Aurora Summit | Aurora crystal |
 | 10m | 天际冠冕 | Horizon Crown | Crowned aurora crystal |
 
-After the six base materials are exhausted, retain aurora crystal and add one, two, then five orbiting facets for each new order-of-magnitude ladder.
+Horizon Crown is the final stage. There are no stages beyond 10m; recomputation removes any stored stage above it, and the dashboard drops its next-milestone progress once it is earned.
 
 ### 4.3 Monthly Ascent
 

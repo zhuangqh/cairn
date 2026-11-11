@@ -99,6 +99,30 @@ final class AchievementServiceTests: XCTestCase {
         XCTAssertGreaterThan(correction.removedCount, 0)
     }
 
+    func testWealthMilestonesStopAtTenMillionAndDropStoredHigherStages() throws {
+        let context = container.mainContext
+        context.insert(snapshot("2026-01-01", total: 120_000_000, currency: "USD"))
+        // A stage earned under the old unbounded ladder.
+        context.insert(AchievementEvent(
+            eventKey: "wealth-7",
+            family: .wealthMilestone,
+            stageKey: "wealth-7",
+            logicalMonth: try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-01-01T00:00:00Z")),
+            observedAmount: 20_000_000
+        ))
+        try context.save()
+
+        let result = try AchievementService.recompute(in: context)
+        let stages = try context.fetch(FetchDescriptor<AchievementEvent>())
+            .filter { $0.family == .wealthMilestone }
+            .map(\.stageKey)
+
+        XCTAssertEqual(Set(stages), Set((0..<7).map { "wealth-\($0)" }))
+        XCTAssertEqual(result.removedCount, 1)
+        XCTAssertNil(AchievementService.nextWealthStageIndex(afterEarned: 6))
+        XCTAssertEqual(AchievementService.nextWealthStageIndex(afterEarned: 5), 6)
+    }
+
     private func event(_ key: String, in context: ModelContext) throws -> AchievementEvent? {
         let all = try context.fetch(FetchDescriptor<AchievementEvent>())
         return all.first { $0.eventKey == key }

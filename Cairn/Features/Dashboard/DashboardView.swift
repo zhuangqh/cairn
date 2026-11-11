@@ -263,6 +263,11 @@ struct DashboardView: View {
         .navigationDestination(for: Account.self) { account in
             AccountDetailView(account: account)
         }
+        .navigationDestination(for: DashboardRoute.self) { route in
+            switch route {
+            case .achievementJournal: AchievementJournalView()
+            }
+        }
     }
 
     // MARK: - Hero
@@ -380,10 +385,16 @@ struct DashboardView: View {
             .filter { $0.family == .wealthMilestone }
             .compactMap { AchievementService.wealthStageIndex(from: $0.stageKey) }
             .max()
-        let nextThreshold = AchievementService.wealthThreshold(at: (latestWealthIndex ?? -1) + 1)
+        let nextThreshold = AchievementService.nextWealthStageIndex(afterEarned: latestWealthIndex)
+            .map(AchievementService.wealthThreshold(at:))
         let previousThreshold = latestWealthIndex.map { AchievementService.wealthThreshold(at: $0) } ?? 0
-        let progressRange = max(nextThreshold - previousThreshold, 1)
-        let progressValue = min(max((financialTotal - previousThreshold) / progressRange, 0), 1)
+        let progressValue: Decimal
+        if let nextThreshold {
+            let progressRange = max(nextThreshold - previousThreshold, 1)
+            progressValue = min(max((financialTotal - previousThreshold) / progressRange, 0), 1)
+        } else {
+            progressValue = 1
+        }
         return DashboardJournalSummary(
             latest: orderedAchievementEvents.first.map(AchievementPresentation.init),
             nextThreshold: nextThreshold,

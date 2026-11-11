@@ -8,6 +8,13 @@ import SwiftData
 /// Hosts a segmented tab at the top so the user can flip between the
 /// financial view and a dedicated "Possessions" tab that manages physical
 /// possessions (PRD §4.7, v1.1).
+/// Pages the Assets screen pushes. Pushes in the sidebar stacks must be
+/// value-based: on macOS a `NavigationLink(destination:)` page lands in the
+/// split view's own column and outlives sidebar switches (see `RootView`).
+enum AssetsRoute: Hashable {
+    case snapshot(PortfolioSnapshot, previous: PortfolioSnapshot?)
+}
+
 struct AssetsView: View {
     enum Tab: Hashable, CaseIterable {
         case financial
@@ -246,6 +253,12 @@ struct AssetsView: View {
         }
         .sheet(isPresented: $isUpdating) {
             BatchEntryView()
+        }
+        .navigationDestination(for: AssetsRoute.self) { route in
+            switch route {
+            case let .snapshot(snapshot, previous):
+                PortfolioSnapshotDetailView(snapshot: snapshot, previous: previous)
+            }
         }
         .onAppear {
             if selectedYear == nil, let latest = availableYears.first {
@@ -557,9 +570,7 @@ struct AssetsView: View {
             } else {
                 LedgerRows(data: filteredSnapshots) { snapshot in
                     let previous = previousSnapshot(for: snapshot)
-                    NavigationLink {
-                        PortfolioSnapshotDetailView(snapshot: snapshot, previous: previous)
-                    } label: {
+                    NavigationLink(value: AssetsRoute.snapshot(snapshot, previous: previous)) {
                         AssetsSnapshotRow(
                             snapshot: snapshot,
                             previous: previous,
