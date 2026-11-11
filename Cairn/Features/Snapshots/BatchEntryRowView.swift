@@ -21,6 +21,7 @@ struct BatchEntryRowView: View {
     @Binding var amount: Decimal?
 
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
     @FocusState private var isFieldFocused: Bool
 
     var body: some View {
@@ -205,9 +206,9 @@ struct BatchEntryRowView: View {
 
     private var tooltipText: String {
         guard let previous = previousAmount else {
-            return String(localized: "batch.row.firstEntry")
+            return String(localized: "batch.row.firstEntry", bundle: localization.bundle)
         }
-        let template = String(localized: "batch.previousHint")
+        let template = String(localized: "batch.previousHint", bundle: localization.bundle)
         let formatted = previous.formatted(
             .currency(code: currency)
                 .precision(.fractionLength(0))
@@ -360,4 +361,5 @@ struct BatchEntryRowView: View {
         }
     }
     return Harness()
+        .environment(LocalizationService())
 }

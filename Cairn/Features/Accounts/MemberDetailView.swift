@@ -8,6 +8,7 @@ struct MemberDetailView: View {
     @Bindable var member: Member
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
 
     @State private var editingMember = false
     @State private var newAccountDraft: Account?
@@ -128,7 +129,7 @@ struct MemberDetailView: View {
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(Color.ink)
                     .lineLimit(1)
-                Text(verbatim: String(localized: "assets.member.accountCount \((member.accounts ?? []).count)"))
+                Text(verbatim: String(localized: "assets.member.accountCount \((member.accounts ?? []).count)", bundle: localization.bundle))
                     .font(.subheadline)
                     .foregroundStyle(Color.ink3)
             }
@@ -177,6 +178,7 @@ struct MemberDetailView: View {
 }
 
 struct MemberAccountRow: View {
+    @Environment(LocalizationService.self) private var localization
     @Bindable var account: Account
     let tint: Color
     let locale: Locale
@@ -243,12 +245,12 @@ struct MemberAccountRow: View {
 
     /// "Cash · USD, EUR" (plus "Archived" when relevant).
     private var captionLine: String {
-        var parts = [String(localized: String.LocalizationValue(account.kind.localizationKey))]
+        var parts = [String(localized: String.LocalizationValue(account.kind.localizationKey), bundle: localization.bundle)]
         if !activeCurrencies.isEmpty {
             parts.append(activeCurrencies.formatted(.list(type: .and).locale(locale)))
         }
         if account.isArchived {
-            parts.append(String(localized: "common.label.archived"))
+            parts.append(String(localized: "common.label.archived", bundle: localization.bundle))
         }
         return parts.joined(separator: " · ")
     }
@@ -261,5 +263,6 @@ struct MemberAccountRow: View {
         MemberDetailView(member: env.seed.alice)
     }
     .modelContainer(env.container)
+    .environment(LocalizationService())
 }
 #endif

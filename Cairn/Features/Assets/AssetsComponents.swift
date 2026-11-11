@@ -80,6 +80,7 @@ struct AssetsBreakdownAmount: View {
 /// A member's contribution to household net worth: avatar, name with account
 /// count, amount, share, and meter.
 struct AssetsMemberRow: View {
+    @Environment(LocalizationService.self) private var localization
     let memberId: UUID
     let memberName: String
     let avatarData: Data?
@@ -103,7 +104,7 @@ struct AssetsMemberRow: View {
                 )
             },
             title: memberName,
-            caption: accountCount.map { String(localized: "assets.member.accountCount \($0)") },
+            caption: accountCount.map { String(localized: "assets.member.accountCount \($0)", bundle: localization.bundle) },
             trailing: {
                 AssetsBreakdownAmount(amount: amount, currencyCode: currencyCode, locale: locale)
             },
@@ -166,7 +167,7 @@ struct AssetsSnapshotRow: View {
 
     private var monthLabel: String {
         snapshot.periodMonth.formatted(
-            .dateTime.year().month(.wide).locale(locale)
+            .dateTime.year().month(.wide).locale(locale).inUTC
         )
     }
 

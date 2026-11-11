@@ -9,6 +9,7 @@ struct AccountDetailView: View {
     @Bindable var account: Account
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var editingSnapshot: Snapshot?
@@ -169,7 +170,7 @@ struct AccountDetailView: View {
                     )
                     .padding(.top, 10)
                 }
-                Text(latest.periodMonth, format: .dateTime.year().month(.wide).locale(locale))
+                Text(verbatim: latest.periodMonth.formatted(.dateTime.year().month(.wide).locale(locale).inUTC))
                     .font(.footnote)
                     .foregroundStyle(Color.ink3)
                     .padding(.top, 3)
@@ -193,7 +194,7 @@ struct AccountDetailView: View {
         if let owner = account.member?.name, !owner.isEmpty { parts.append(owner) }
         if !activeCurrencies.isEmpty {
             let list = activeCurrencies.formatted(.list(type: .and).locale(locale))
-            parts.append(String(localized: "account.detail.holds \(list)"))
+            parts.append(String(localized: "account.detail.holds \(list)", bundle: localization.bundle))
         }
         return parts.joined(separator: " · ")
     }
@@ -244,7 +245,7 @@ struct AccountDetailView: View {
                 HStack(spacing: 16) {
                     Text("account.detail.column.month")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(verbatim: String(localized: "account.detail.column.balance \(symbol)"))
+                    Text(verbatim: String(localized: "account.detail.column.balance \(symbol)", bundle: localization.bundle))
                         .frame(minWidth: balanceColumn, alignment: .trailing)
                     Text("account.detail.column.change")
                         .frame(minWidth: changeColumn, alignment: .trailing)
@@ -272,12 +273,12 @@ struct AccountDetailView: View {
         return HStack(spacing: 16) {
             // Abbreviated month at large text sizes so the column wraps on
             // a word boundary instead of hyphenating the month name.
-            Text(
-                snapshot.periodMonth,
-                format: .dateTime.year()
+            Text(verbatim: snapshot.periodMonth.formatted(
+                .dateTime.year()
                     .month(dynamicTypeSize >= .xxLarge ? .abbreviated : .wide)
                     .locale(locale)
-            )
+                    .inUTC
+            ))
                 .font(.callout)
                 .foregroundStyle(Color.ink)
                 .lineLimit(2)
@@ -421,5 +422,6 @@ extension AccountDetailView {
         AccountDetailView(account: account)
     }
     .modelContainer(env.container)
+    .environment(LocalizationService())
 }
 #endif

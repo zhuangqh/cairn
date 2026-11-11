@@ -61,7 +61,7 @@ struct MembersListView: View {
                             locale: locale,
                             showsDelta: false
                         ) {
-                            Text(verbatim: String(localized: "assets.member.accountCount \(members.reduce(0) { $0 + ($1.accounts ?? []).count })"))
+                            Text(verbatim: String(localized: "assets.member.accountCount \(members.reduce(0) { $0 + ($1.accounts ?? []).count })", bundle: localization.bundle))
                         }
                         ForEach(members) { member in
                             MemberSection(
@@ -152,6 +152,7 @@ struct MembersListView: View {
 /// One member (§4): a hairline-ruled header row — avatar, name, account
 /// count, total — followed by the member's accounts as ledger rows.
 private struct MemberSection: View {
+    @Environment(LocalizationService.self) private var localization
     @Bindable var member: Member
     let total: Decimal
     let homeCurrency: String
@@ -219,7 +220,7 @@ private struct MemberSection: View {
                 Text(verbatim: member.name.isEmpty ? " " : member.name)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Color.ink)
-                Text(verbatim: String(localized: "assets.member.accountCount \((member.accounts ?? []).count)"))
+                Text(verbatim: String(localized: "assets.member.accountCount \((member.accounts ?? []).count)", bundle: localization.bundle))
                     .font(.caption)
                     .foregroundStyle(Color.ink3)
             }

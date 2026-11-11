@@ -306,7 +306,7 @@ private struct DashboardContent: View {
             deltaAmount: deltaPercent == nil ? nil : derivation.combined - derivation.combinedPrev,
             deltaPercent: deltaPercent
         ) {
-            Text(effectiveAsOf, format: .dateTime.year().month(.wide).locale(locale))
+            Text(verbatim: effectiveAsOf.formatted(.dateTime.year().month(.wide).locale(locale).inUTC))
         }
         .animation(.easeOut(duration: 0.2), value: derivation.combined)
     }

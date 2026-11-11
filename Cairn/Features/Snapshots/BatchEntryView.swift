@@ -7,6 +7,7 @@ struct BatchEntryView: View {
     @Environment(\.modelContext) var context
     @Environment(\.dismiss) var dismiss
     @Environment(\.locale) var locale
+    @Environment(LocalizationService.self) private var localization
 
     @AppStorage(AppSettingsKeys.homeCurrency)
     var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
@@ -168,11 +169,11 @@ struct BatchEntryView: View {
 
     private var navTitle: String {
         if isMonthLocked {
-            let template = String(localized: "batch.title")
-            let formatted = periodMonth.formatted(.dateTime.year().month(.wide).locale(locale))
+            let template = String(localized: "batch.title", bundle: localization.bundle)
+            let formatted = periodMonth.formatted(.dateTime.year().month(.wide).locale(locale).inUTC)
             return template.replacingOccurrences(of: "{month}", with: formatted)
         } else {
-            return String(localized: "batch.title.add")
+            return String(localized: "batch.title.add", bundle: localization.bundle)
         }
     }
 
@@ -401,11 +402,13 @@ struct BatchEntryView: View {
     PreviewDefaults.primeOnboarded()
     return BatchEntryView()
         .modelContainer(PreviewSampleData.container())
+        .environment(LocalizationService())
 }
 
 #Preview("BatchEntry · empty") {
     PreviewDefaults.primeOnboarded()
     return BatchEntryView()
         .modelContainer(PreviewSampleData.emptyContainer())
+        .environment(LocalizationService())
 }
 #endif

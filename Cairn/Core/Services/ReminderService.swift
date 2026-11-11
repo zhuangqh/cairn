@@ -20,14 +20,15 @@ enum ReminderService {
     /// Schedules (or re-schedules) the monthly reminder at `hour:minute` local
     /// time, on the given `day` of each month. `day` is clamped to 1...28 so
     /// the reminder fires reliably every month (including February). Any
-    /// previously scheduled Cairn reminder is removed first.
-    static func schedule(day: Int, hour: Int, minute: Int) async {
+    /// previously scheduled Cairn reminder is removed first. `bundle` is the
+    /// language bundle from `LocalizationService` for the notification text.
+    static func schedule(day: Int, hour: Int, minute: Int, bundle: Bundle) async {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
 
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "reminder.title")
-        content.body = String(localized: "reminder.body")
+        content.title = String(localized: "reminder.title", bundle: bundle)
+        content.body = String(localized: "reminder.body", bundle: bundle)
 
         var components = DateComponents()
         components.day = max(1, min(28, day))

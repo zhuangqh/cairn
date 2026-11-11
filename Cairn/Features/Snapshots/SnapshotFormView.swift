@@ -113,6 +113,9 @@ struct SnapshotFormView: View {
                 selection: $periodDate,
                 displayedComponents: [.date]
             )
+            // The day key is UTC midnight; pick it in UTC so it isn't shown
+            // as the previous day west of UTC.
+            .environment(\.timeZone, Snapshot.utcCalendar.timeZone)
             .labelsHidden()
             .datePickerStyle(.compact)
             .disabled(existing != nil)

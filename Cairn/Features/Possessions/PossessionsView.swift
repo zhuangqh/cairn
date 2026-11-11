@@ -13,6 +13,7 @@ struct PossessionsView: View {
 
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
     @Environment(\.possessionInspector) private var inspector
 
     @AppStorage(AppSettingsKeys.homeCurrency)
@@ -168,7 +169,7 @@ struct PossessionsView: View {
                 Text(verbatim: countsLine(derivation: derivation))
                 if !derivation.missingCurrencies.isEmpty {
                     Label {
-                        Text(MissingRatesMessage.text(for: derivation.missingCurrencies))
+                        Text(MissingRatesMessage.text(for: derivation.missingCurrencies, bundle: localization.bundle))
                     } icon: {
                         Image(systemName: "exclamationmark.triangle.fill")
                     }
@@ -184,10 +185,10 @@ struct PossessionsView: View {
 
     /// "9 active · 1 sold".
     private func countsLine(derivation: Derivation) -> String {
-        var parts = [String(localized: "possession.count.active")
+        var parts = [String(localized: "possession.count.active", bundle: localization.bundle)
             .replacingOccurrences(of: "{count}", with: String(derivation.active.count))]
         if !derivation.sold.isEmpty {
-            parts.append(String(localized: "possession.count.sold")
+            parts.append(String(localized: "possession.count.sold", bundle: localization.bundle)
                 .replacingOccurrences(of: "{count}", with: String(derivation.sold.count)))
         }
         return parts.joined(separator: " · ")
@@ -393,7 +394,7 @@ struct PossessionsView: View {
     }
 
     private func itemCountFootnote(count: Int) -> String {
-        let template = String(localized: "possession.section.itemCount")
+        let template = String(localized: "possession.section.itemCount", bundle: localization.bundle)
         return template.replacingOccurrences(of: "{count}", with: String(count))
     }
 
@@ -453,6 +454,7 @@ extension PossessionsView {
         .ambientBackground()
     }
     .modelContainer(PreviewSampleData.container())
+    .environment(LocalizationService())
 }
 
 #Preview("Possessions · empty") {
@@ -465,5 +467,6 @@ extension PossessionsView {
         .ambientBackground()
     }
     .modelContainer(PreviewSampleData.container())
+    .environment(LocalizationService())
 }
 #endif

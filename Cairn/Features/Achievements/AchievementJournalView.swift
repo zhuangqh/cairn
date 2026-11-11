@@ -167,7 +167,7 @@ struct AchievementJournalView: View {
         ]
         let lit = families.compactMap { $0 }.count
         return LedgerSection(Text("achievement.journal.families", bundle: localization.bundle)) {
-            Text(verbatim: "\(String(localized: "achievement.journal.lit")) \(lit) / \(families.count)")
+            Text(verbatim: "\(String(localized: "achievement.journal.lit", bundle: localization.bundle)) \(lit) / \(families.count)")
                 .font(.footnote)
                 .monospacedDigit()
                 .foregroundStyle(Color.ink3)

@@ -42,7 +42,10 @@ struct AssetsView: View {
     @AppStorage(AppSettingsKeys.homeCurrency)
     private var homeCurrency: String = AppSettingsKeys.defaultHomeCurrency
 
-    @Query private var members: [Member]
+    // Creation order like the other member lists; name breaks ties (e.g.
+    // members restored with the same timestamp) so the order is stable.
+    @Query(sort: [SortDescriptor(\Member.createdAt), SortDescriptor(\Member.name)])
+    private var members: [Member]
     @Query private var holdings: [Holding]
     @Query private var snapshots: [Snapshot]
     @Query private var rates: [FXRate]
@@ -334,13 +337,13 @@ struct AssetsView: View {
     private func heroMeta(derivation: AssetsSummaryService.Summary) -> some View {
         if !derivation.totals.missingCurrencies.isEmpty {
             Label {
-                Text(MissingRatesMessage.text(for: derivation.totals.missingCurrencies))
+                Text(MissingRatesMessage.text(for: derivation.totals.missingCurrencies, bundle: localization.bundle))
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
             }
             .foregroundStyle(Color.red)
         } else if let snapshot = derivation.sourceSnapshot {
-            Text(snapshot.periodMonth, format: .dateTime.year().month(.wide).locale(locale))
+            Text(verbatim: snapshot.periodMonth.formatted(.dateTime.year().month(.wide).locale(locale).inUTC))
         } else if let latest = rates.map(\.date).max() {
             Text(latestRatesFootnote(date: latest))
         }
@@ -463,8 +466,8 @@ struct AssetsView: View {
     }
 
     private func latestRatesFootnote(date: Date) -> String {
-        let template = String(localized: "assets.ratesAsOf")
-        let formatted = date.formatted(.dateTime.year().month().day().locale(locale))
+        let template = String(localized: "assets.ratesAsOf", bundle: localization.bundle)
+        let formatted = date.formatted(.dateTime.year().month().day().locale(locale).inUTC)
         return template.replacingOccurrences(of: "{date}", with: formatted)
     }
 }

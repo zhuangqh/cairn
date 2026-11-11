@@ -206,10 +206,10 @@ private struct SnapshotCard: View {
     var body: some View {
         HStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(snapshot.periodMonth, format: .dateTime.year().locale(locale))
+                Text(verbatim: snapshot.periodMonth.formatted(.dateTime.year().locale(locale).inUTC))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                Text(snapshot.periodMonth, format: .dateTime.month(.wide).locale(locale))
+                Text(verbatim: snapshot.periodMonth.formatted(.dateTime.month(.wide).locale(locale).inUTC))
                     .font(.callout.weight(.semibold))
             }
             .frame(width: 96, alignment: .leading)

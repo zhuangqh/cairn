@@ -14,6 +14,7 @@ struct PossessionFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
 
     @Query(sort: \Member.createdAt) private var members: [Member]
 
@@ -301,7 +302,7 @@ struct PossessionFormView: View {
     }
 
     private func updatedAtFootnote(_ date: Date) -> String {
-        let template = String(localized: "possession.form.revalue.updatedAt")
+        let template = String(localized: "possession.form.revalue.updatedAt", bundle: localization.bundle)
         let formatted = date.formatted(.dateTime.year().month().day().locale(locale))
         return template.replacingOccurrences(of: "{date}", with: formatted)
     }
@@ -366,5 +367,6 @@ private struct PossessionCurrencyRow: View {
     env.container.mainContext.insert(draft)
     return PossessionFormView(possession: draft, isNew: true)
         .modelContainer(env.container)
+        .environment(LocalizationService())
 }
 #endif

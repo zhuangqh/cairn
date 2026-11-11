@@ -33,7 +33,7 @@ struct TrendChartPlot: View {
             Text(verbatim: compactAxisLabel(scale.upper))
             Spacer(minLength: 8)
             if let selection = hoverSelection {
-                Text(selection.period, format: .dateTime.year().month(.wide).locale(locale))
+                Text(verbatim: selection.period.formatted(.dateTime.year().month(.wide).locale(locale).inUTC))
             } else {
                 HStack(spacing: 10) {
                     if !markers.isEmpty {
@@ -166,7 +166,7 @@ struct TrendChartPlot: View {
     @ViewBuilder
     private func hoverCallout(for selection: TrendSelection, possessionAmount: Decimal?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(selection.period, format: .dateTime.year().month(.wide).locale(locale))
+            Text(verbatim: selection.period.formatted(.dateTime.year().month(.wide).locale(locale).inUTC))
                 .font(.caption2)
                 .foregroundStyle(Color.ink3)
             calloutRow(

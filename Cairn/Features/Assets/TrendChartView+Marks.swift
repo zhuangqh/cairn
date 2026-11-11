@@ -36,7 +36,7 @@ extension TrendChartPlot {
                     SnapshotDot()
                 }
             }
-            .accessibilityLabel(Text(point.period, format: .dateTime.year().month(.wide).locale(locale)))
+            .accessibilityLabel(Text(verbatim: point.period.formatted(.dateTime.year().month(.wide).locale(locale).inUTC)))
             .accessibilityValue(Text(
                 point.amount,
                 format: .currency(code: currencyCode).precision(.fractionLength(0)).locale(locale)
@@ -80,13 +80,13 @@ extension TrendChartPlot {
     /// Year + month for the first tick and whenever the year changes from
     /// the previous tick; month alone otherwise.
     func tickLabel(_ date: Date, ticks: [Date], locale: Locale) -> String {
-        let calendar = Calendar.current
+        let calendar = Snapshot.utcCalendar
         let index = ticks.firstIndex(of: date) ?? 0
         let showYear = index == 0
             || calendar.component(.year, from: ticks[index - 1]) != calendar.component(.year, from: date)
         return showYear
-            ? date.formatted(.dateTime.year().month(.abbreviated).locale(locale))
-            : date.formatted(.dateTime.month(.abbreviated).locale(locale))
+            ? date.formatted(.dateTime.year().month(.abbreviated).locale(locale).inUTC)
+            : date.formatted(.dateTime.month(.abbreviated).locale(locale).inUTC)
     }
 }
 

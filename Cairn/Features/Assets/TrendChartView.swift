@@ -204,7 +204,6 @@ struct TrendChartView: View, Equatable {
 
         // Pre-convert every possession to the home currency and bucket by the
         // first-of-month anchor so we can compare against TrendPoint.period.
-        let cal = Calendar.current
         let converted: [(month: Date, amount: Decimal)] = possessions.compactMap { possession in
             let value: Decimal
             if possession.purchaseCurrency == homeCurrency {
@@ -218,12 +217,19 @@ struct TrendChartView: View, Equatable {
             } else {
                 return nil
             }
-            let comps = cal.dateComponents([.year, .month], from: possession.purchaseDate)
-            guard let anchor = cal.date(from: comps) else { return nil }
+            guard let anchor = Self.monthAnchor(of: possession.purchaseDate) else { return nil }
             return (anchor, value)
         }
 
         return Self.cumulativeSeries(periods: points.map(\.period), entries: converted)
+    }
+
+    /// UTC month key (the time zone of `TrendPoint.period`) for the month
+    /// `purchaseDate` falls in on the user's `calendar`: purchase dates are
+    /// picked in local time, so a January 1 purchase stays in January.
+    static func monthAnchor(of purchaseDate: Date, calendar: Calendar = .current) -> Date? {
+        let comps = calendar.dateComponents([.year, .month], from: purchaseDate)
+        return Snapshot.utcCalendar.date(from: DateComponents(year: comps.year, month: comps.month))
     }
 
     /// Running total of `entries` at each period: the sum of every entry

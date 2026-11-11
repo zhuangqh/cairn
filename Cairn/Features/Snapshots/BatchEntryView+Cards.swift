@@ -39,7 +39,7 @@ extension BatchEntryView {
             Text("batch.monthCard.title")
                 .font(.subheadline)
                 .foregroundStyle(Color.ink2)
-            Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale)))
+            Text(verbatim: periodMonth.formatted(.dateTime.year().month(.wide).locale(locale).inUTC))
                 .font(.title.bold())
                 .monospacedDigit()
                 .foregroundStyle(Color.ink)
@@ -52,6 +52,9 @@ extension BatchEntryView {
             selection: $periodMonth,
             displayedComponents: [.date]
         )
+        // The day key is UTC midnight; pick it in UTC so it isn't shown as
+        // the previous day west of UTC.
+        .environment(\.timeZone, Snapshot.utcCalendar.timeZone)
         .labelsHidden()
         .font(.subheadline.weight(.medium))
         .controlSize(.small)
@@ -124,7 +127,7 @@ extension BatchEntryView {
                 ProgressView().controlSize(.mini)
             }
             if let asOf = historicalRatesAsOf {
-                Text(asOf, format: .dateTime.year().month().day().locale(locale))
+                Text(verbatim: asOf.formatted(.dateTime.year().month().day().locale(locale).inUTC))
                     .monospacedDigit()
             }
         }

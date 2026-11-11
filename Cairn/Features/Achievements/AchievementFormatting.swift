@@ -13,7 +13,7 @@ enum AchievementFormatting {
     }
 
     static func month(_ date: Date, locale: Locale) -> String {
-        date.formatted(.dateTime.year().month(.wide).locale(locale))
+        date.formatted(.dateTime.year().month(.wide).locale(locale).inUTC)
     }
 
 }

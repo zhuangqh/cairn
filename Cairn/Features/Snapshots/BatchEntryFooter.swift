@@ -74,6 +74,7 @@ struct BatchEntryMacFooter: View {
 /// warning when some entered currencies have no rate.
 struct BatchEntryFloatingTotal: View {
     @Environment(\.locale) private var locale
+    @Environment(LocalizationService.self) private var localization
 
     let totalInHome: Decimal
     let homeCurrency: String
@@ -104,7 +105,7 @@ struct BatchEntryFloatingTotal: View {
 
             if !unresolvedCurrencies.isEmpty {
                 Label {
-                    Text(MissingRatesMessage.text(for: unresolvedCurrencies))
+                    Text(MissingRatesMessage.text(for: unresolvedCurrencies, bundle: localization.bundle))
                 } icon: {
                     Image(systemName: "exclamationmark.triangle.fill")
                 }

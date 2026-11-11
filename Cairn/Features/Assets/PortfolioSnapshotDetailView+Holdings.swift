@@ -5,6 +5,7 @@ extension PortfolioSnapshotDetailView {
     /// and a single divided list elsewhere.
     struct HoldingsCard: View {
         @Environment(\.locale) private var locale
+        @Environment(LocalizationService.self) private var localization
 
         let groups: [MemberGroup]
         let homeCurrency: String
@@ -79,7 +80,7 @@ extension PortfolioSnapshotDetailView {
         @ViewBuilder
         private func memberGroupSection(_ group: MemberGroup) -> some View {
             let displayName = group.member.isEmpty
-                ? String(localized: "portfolioSnapshot.detail.member.unassigned")
+                ? String(localized: "portfolioSnapshot.detail.member.unassigned", bundle: localization.bundle)
                 : group.member
             let resolvedMember = group.member.isEmpty ? nil : memberByName[group.member]
             VStack(alignment: .leading, spacing: 12) {

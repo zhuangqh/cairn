@@ -81,3 +81,16 @@ extension Snapshot {
         adding(months: 1, to: normalize(date))?.addingTimeInterval(-1)
     }
 }
+
+extension Date.FormatStyle {
+    /// This style rendered in UTC, the time zone of snapshot day/month keys
+    /// (`Snapshot.periodMonth`, `PortfolioSnapshot.periodMonth`) and FX rate
+    /// dates. Formatting those keys in local time shifts them a day — or a
+    /// month — back west of UTC. Use it via `formatted(_:)`:
+    /// `Text(_:format:)` re-applies the environment time zone.
+    var inUTC: Self {
+        var style = self
+        style.timeZone = Snapshot.utcCalendar.timeZone
+        return style
+    }
+}

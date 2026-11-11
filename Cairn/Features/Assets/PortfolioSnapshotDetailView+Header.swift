@@ -4,6 +4,7 @@ extension PortfolioSnapshotDetailView {
     /// Total, signed delta vs the previous snapshot, capture dates, and note.
     struct HeaderCard: View {
         @Environment(\.locale) private var locale
+        @Environment(LocalizationService.self) private var localization
 
         let snapshot: PortfolioSnapshot
         let capturedDate: Date
@@ -37,7 +38,7 @@ extension PortfolioSnapshotDetailView {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(LocalizedStringKey(
-                        "portfolioSnapshot.detail.batchDate \(capturedDate, format: footnoteDateFormat)"
+                        "portfolioSnapshot.detail.batchDate \(capturedDate.formatted(footnoteDateFormat.inUTC))"
                     ))
                     Text(LocalizedStringKey(
                         "portfolioSnapshot.detail.capturedAt \(snapshot.recordedAt, format: footnoteDateFormat)"
@@ -80,14 +81,14 @@ extension PortfolioSnapshotDetailView {
         private func signedPercent(_ value: Double) -> String {
             let isPositive = value >= 0
             let abs = Swift.abs(value)
-            let formatted = abs.formatted(.percent.precision(.fractionLength(1)))
+            let formatted = abs.formatted(.percent.precision(.fractionLength(1)).locale(locale))
             return (isPositive ? "+" : "−") + formatted
         }
 
         private func vsPreviousLabel(_ previousMonth: Date) -> String {
-            let template = String(localized: "portfolioSnapshot.detail.change.vs")
+            let template = String(localized: "portfolioSnapshot.detail.change.vs", bundle: localization.bundle)
             let label = previousMonth.formatted(
-                .dateTime.year().month(.abbreviated).locale(locale)
+                .dateTime.year().month(.abbreviated).locale(locale).inUTC
             )
             return template.replacingOccurrences(of: "{month}", with: label)
         }

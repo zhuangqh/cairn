@@ -130,7 +130,7 @@ struct PortfolioSnapshotDetailView: View {
     }
 
     private var titleText: String {
-        snapshot.periodMonth.formatted(.dateTime.year().month(.wide).locale(locale))
+        snapshot.periodMonth.formatted(.dateTime.year().month(.wide).locale(locale).inUTC)
     }
 
     private var capturedDate: Date {
@@ -200,4 +200,5 @@ struct PortfolioSnapshotDetailView: View {
         PortfolioSnapshotDetailView(snapshot: env.seed.latestPortfolioSnapshot)
     }
     .modelContainer(env.container)
+    .environment(LocalizationService())
 }

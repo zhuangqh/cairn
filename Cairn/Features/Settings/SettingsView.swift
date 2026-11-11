@@ -57,10 +57,13 @@ struct SettingsView: View {
         let day: Int
         let hour: Int
         let minute: Int
+        /// Rescheduling on a language change keeps the notification text current.
+        let language: LocalizationService.LanguageOverride
     }
 
     private var reminderConfig: ReminderConfig {
-        ReminderConfig(enabled: reminderEnabled, day: reminderDay, hour: reminderHour, minute: reminderMinute)
+        ReminderConfig(enabled: reminderEnabled, day: reminderDay, hour: reminderHour, minute: reminderMinute,
+                       language: localization.override)
     }
 
     var body: some View {
@@ -434,7 +437,8 @@ struct SettingsView: View {
             // A newer configuration replaced this task; let it apply instead.
             guard !Task.isCancelled else { return }
             if granted {
-                await ReminderService.schedule(day: reminderDay, hour: reminderHour, minute: reminderMinute)
+                let bundle = localization.bundle
+                await ReminderService.schedule(day: reminderDay, hour: reminderHour, minute: reminderMinute, bundle: bundle)
             } else {
                 reminderEnabled = false
                 resultMessage = "settings.reminder.denied"
