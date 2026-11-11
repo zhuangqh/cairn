@@ -6,11 +6,11 @@ import SwiftData
 final class BatchUpsertServiceTests: XCTestCase {
     private var container: ModelContainer!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         container = try PersistenceController.makeContainer(.inMemory)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         container = nil
     }
 
@@ -84,9 +84,9 @@ final class BatchUpsertServiceTests: XCTestCase {
 
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
-        let monthStart = calendar.date(from: DateComponents(year: 2026, month: 4, day: 1))!
-        let laterInMonth = calendar.date(from: DateComponents(year: 2026, month: 4, day: 20))!
-        let nextMonth = calendar.date(from: DateComponents(year: 2026, month: 5, day: 1))!
+        let monthStart = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 4, day: 1)))
+        let laterInMonth = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 4, day: 20)))
+        let nextMonth = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 5, day: 1)))
 
         context.insert(Snapshot(periodMonth: monthStart, amount: 100, holding: holding))
         context.insert(Snapshot(periodMonth: laterInMonth, amount: 200, holding: holding))

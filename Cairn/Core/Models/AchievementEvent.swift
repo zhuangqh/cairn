@@ -1,14 +1,14 @@
 import Foundation
 import SwiftData
 
-public enum AchievementFamily: String, Codable, CaseIterable, Sendable {
+enum AchievementFamily: String, Codable, CaseIterable, Sendable {
     case prologue
     case wealthMilestone
     case monthlyAscent
     case timeMark
 }
 
-public enum AchievementSource: String, Codable, Sendable {
+enum AchievementSource: String, Codable, Sendable {
     case live
     case imported
     case confirmedEstimate
@@ -18,21 +18,21 @@ public enum AchievementSource: String, Codable, Sendable {
 /// replayed from `PortfolioSnapshot` rows; these records preserve the original
 /// unlock time and make the UI inexpensive to render.
 @Model
-public final class AchievementEvent {
-    public var id: UUID = UUID()
+final class AchievementEvent {
+    var id: UUID = UUID()
     /// Stable identity produced by the deterministic evaluator.
-    public var eventKey: String = ""
-    public var familyRawValue: String = AchievementFamily.prologue.rawValue
-    public var stageKey: String = ""
-    public var logicalMonth: Date = Date()
-    public var unlockedAt: Date = Date()
-    public var currencyCode: String?
-    public var observedAmount: Decimal?
-    public var sourceRawValue: String = AchievementSource.live.rawValue
-    public var sourceSnapshotIDsData: Data = Data()
-    public var definitionVersion: Int = 1
+    var eventKey: String = ""
+    var familyRawValue: String = AchievementFamily.prologue.rawValue
+    var stageKey: String = ""
+    var logicalMonth: Date = Date()
+    var unlockedAt: Date = Date()
+    var currencyCode: String?
+    var observedAmount: Decimal?
+    var sourceRawValue: String = AchievementSource.live.rawValue
+    var sourceSnapshotIDsData: Data = Data()
+    var definitionVersion: Int = 1
 
-    public init(
+    init(
         eventKey: String,
         family: AchievementFamily,
         stageKey: String,
@@ -57,33 +57,33 @@ public final class AchievementEvent {
         self.definitionVersion = definitionVersion
     }
 
-    public var family: AchievementFamily {
+    var family: AchievementFamily {
         get { AchievementFamily(rawValue: familyRawValue) ?? .prologue }
         set { familyRawValue = newValue.rawValue }
     }
 
-    public var source: AchievementSource {
+    var source: AchievementSource {
         get { AchievementSource(rawValue: sourceRawValue) ?? .live }
         set { sourceRawValue = newValue.rawValue }
     }
 
-    public var sourceSnapshotIDs: [UUID] {
+    var sourceSnapshotIDs: [UUID] {
         get { (try? JSONDecoder().decode([UUID].self, from: sourceSnapshotIDsData)) ?? [] }
         set { sourceSnapshotIDsData = (try? JSONEncoder().encode(newValue)) ?? Data() }
     }
 }
 
-public struct AchievementPresentation: Identifiable, Hashable, Sendable {
-    public let id: String
-    public let family: AchievementFamily
-    public let stageKey: String
-    public let logicalMonth: Date
-    public let unlockedAt: Date
-    public let currencyCode: String?
-    public let observedAmount: Decimal?
-    public let source: AchievementSource
+struct AchievementPresentation: Identifiable, Hashable, Sendable {
+    let id: String
+    let family: AchievementFamily
+    let stageKey: String
+    let logicalMonth: Date
+    let unlockedAt: Date
+    let currencyCode: String?
+    let observedAmount: Decimal?
+    let source: AchievementSource
 
-    public init(_ event: AchievementEvent) {
+    init(_ event: AchievementEvent) {
         self.id = event.eventKey
         self.family = event.family
         self.stageKey = event.stageKey
@@ -94,7 +94,7 @@ public struct AchievementPresentation: Identifiable, Hashable, Sendable {
         self.source = event.source
     }
 
-    public var titleKey: String {
+    var titleKey: String {
         switch family {
         case .prologue:
             return "achievement.firstStone.title"
@@ -116,7 +116,7 @@ public struct AchievementPresentation: Identifiable, Hashable, Sendable {
         }
     }
 
-    public var systemImage: String {
+    var systemImage: String {
         switch family {
         case .prologue: return "seal.fill"
         case .wealthMilestone: return "mountain.2.fill"

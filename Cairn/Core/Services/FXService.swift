@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// Abstraction over the network fetch so tests can inject a stub.
-public protocol FXRateFetching: Sendable {
+protocol FXRateFetching: Sendable {
     /// Returns rates keyed by quote currency: `1 unit of base == rate × quote`.
     func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse
 
@@ -12,7 +12,7 @@ public protocol FXRateFetching: Sendable {
     func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse
 }
 
-public extension FXRateFetching {
+extension FXRateFetching {
     /// Default: fall back to `fetchLatest` for fetchers that don't care
     /// about dates (e.g. test stubs).
     func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse {
@@ -20,28 +20,20 @@ public extension FXRateFetching {
     }
 }
 
-public struct FXRateResponse: Sendable {
-    public let base: String
-    public let date: Date
-    public let rates: [String: Decimal]
-
-    public init(base: String, date: Date, rates: [String: Decimal]) {
-        self.base = base
-        self.date = date
-        self.rates = rates
-    }
+struct FXRateResponse: Sendable {
+    let base: String
+    let date: Date
+    let rates: [String: Decimal]
 }
 
 /// Default fetcher backed by the free [Frankfurter](https://frankfurter.dev) API.
 /// Used only at refresh time; the rest of the app reads cached `FXRate` rows.
-public struct FrankfurterFetcher: FXRateFetching {
-    public init() {}
-
-    public func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse {
+struct FrankfurterFetcher: FXRateFetching {
+    func fetchLatest(base: String, quotes: [String]) async throws -> FXRateResponse {
         try await fetch(base: base, quotes: quotes, endpoint: "latest")
     }
 
-    public func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse {
+    func fetch(base: String, quotes: [String], on date: Date) async throws -> FXRateResponse {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .iso8601)
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -105,12 +97,12 @@ public struct FrankfurterFetcher: FXRateFetching {
 
 /// FX cache + conversion helpers built on top of the `FXRate` SwiftData model.
 @MainActor
-public enum FXService {
+enum FXService {
     /// Refreshes the cache for `base -> quotes` using `fetcher` and persists the
     /// results as `FXRate` rows. An existing row with the same `(base, quote)`
     /// is updated in place.
     @discardableResult
-    public static func refresh(
+    static func refresh(
         base: String,
         quotes: [String],
         fetcher: any FXRateFetching = FrankfurterFetcher(),
@@ -135,7 +127,7 @@ public enum FXService {
     }
 
     /// Latest cached rate for the pair, or `nil` if not yet fetched.
-    public static func latestRate(base: String, quote: String, in context: ModelContext) -> FXRate? {
+    static func latestRate(base: String, quote: String, in context: ModelContext) -> FXRate? {
         if base == quote {
             return nil // caller handles identity conversion
         }
@@ -144,7 +136,7 @@ public enum FXService {
 
     /// Converts `amount` from `from` to `to` using cached rates.
     /// Returns `nil` if no rate is available and the currencies differ.
-    public static func convert(
+    static func convert(
         amount: Decimal,
         from: String,
         to: String,
@@ -166,18 +158,18 @@ public enum FXService {
     /// every `convert(...)` call within an aggregation pass — replaces the
     /// per-conversion SwiftData `#Predicate` fetch which is the dominant
     /// hotspot when computing trends across many holdings × months.
-    public struct RateCache: Sendable {
+    struct RateCache: Sendable {
         // [base: [quote: rate]]
-        @usableFromInline var pairs: [String: [String: Decimal]]
+        var pairs: [String: [String: Decimal]]
 
-        @usableFromInline init(pairs: [String: [String: Decimal]]) {
+        init(pairs: [String: [String: Decimal]]) {
             self.pairs = pairs
         }
 
-        public static let empty = RateCache(pairs: [:])
+        static let empty = RateCache(pairs: [:])
 
         /// Eagerly load every `FXRate` from `context` into a memory map.
-        public static func load(in context: ModelContext) -> RateCache {
+        static func load(in context: ModelContext) -> RateCache {
             let rows = (try? context.fetch(FetchDescriptor<FXRate>())) ?? []
             var pairs: [String: [String: Decimal]] = [:]
             for row in rows {
@@ -186,15 +178,13 @@ public enum FXService {
             return RateCache(pairs: pairs)
         }
 
-        @inlinable
-        public func rate(from base: String, to quote: String) -> Decimal? {
+        func rate(from base: String, to quote: String) -> Decimal? {
             pairs[base]?[quote]
         }
 
         /// Convert with the same fallback rules as `FXService.convert`,
         /// but purely in-memory.
-        @inlinable
-        public func convert(amount: Decimal, from: String, to: String) -> Decimal? {
+        func convert(amount: Decimal, from: String, to: String) -> Decimal? {
             if from == to { return amount }
             if let direct = pairs[from]?[to] {
                 return amount * direct
@@ -209,8 +199,7 @@ public enum FXService {
     /// Convenience overload that goes through a precomputed `RateCache`,
     /// avoiding per-conversion SwiftData fetches. Prefer this in tight
     /// loops (aggregation, trends).
-    @inlinable
-    public static func convert(
+    static func convert(
         amount: Decimal,
         from: String,
         to: String,

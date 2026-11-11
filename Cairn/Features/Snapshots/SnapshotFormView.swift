@@ -85,7 +85,7 @@ struct SnapshotFormView: View {
                 size: 38
             )
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: holding.account?.name.isEmpty == false ? holding.account!.name : holding.currency)
+                Text(verbatim: (holding.account?.name).flatMap { $0.isEmpty ? nil : $0 } ?? holding.currency)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Color.ink)
                     .lineLimit(1)

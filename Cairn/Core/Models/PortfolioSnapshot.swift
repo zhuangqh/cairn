@@ -12,24 +12,24 @@ import SwiftData
 /// `periodMonth` is normalized to the first day of the month at UTC —
 /// see `Snapshot.normalize(_:)`.
 @Model
-public final class PortfolioSnapshot {
-    public var id: UUID = UUID()
+final class PortfolioSnapshot {
+    var id: UUID = UUID()
     /// Normalized month for this snapshot (month-granular key).
-    public var periodMonth: Date = Date()
+    var periodMonth: Date = Date()
     /// Wall-clock time the snapshot was saved.
-    public var recordedAt: Date = Date()
+    var recordedAt: Date = Date()
     /// Home currency at capture time (ISO 4217).
-    public var homeCurrency: String = "USD"
+    var homeCurrency: String = "USD"
     /// Net worth total in `homeCurrency`, precomputed at capture time.
-    public var totalAmount: Decimal = 0
-    public var note: String?
+    var totalAmount: Decimal = 0
+    var note: String?
 
     /// JSON-encoded `[Entry]`; prefer the `entries` computed accessor.
-    public var entriesData: Data = Data()
+    var entriesData: Data = Data()
     /// JSON-encoded `[Rate]`; prefer the `rates` computed accessor.
-    public var ratesData: Data = Data()
+    var ratesData: Data = Data()
 
-    public init(
+    init(
         periodMonth: Date,
         homeCurrency: String,
         totalAmount: Decimal,
@@ -50,25 +50,25 @@ public final class PortfolioSnapshot {
 
     // MARK: - Nested value types
 
-    public struct Entry: Codable, Sendable, Identifiable, Hashable {
-        public var id: UUID
+    struct Entry: Codable, Sendable, Identifiable, Hashable {
+        var id: UUID
         /// Original holding id (may no longer resolve if deleted).
-        public var holdingId: UUID?
-        public var memberName: String
-        public var accountName: String
+        var holdingId: UUID?
+        var memberName: String
+        var accountName: String
         /// Captured `AccountKind` raw value at the time of snapshot. Optional
         /// so older snapshots written before this field existed still decode.
         /// Read via the `accountKind` accessor which falls back to `.cash`.
-        public var accountKindRawValue: String?
-        public var holdingLabel: String?
-        public var currency: String
+        var accountKindRawValue: String?
+        var holdingLabel: String?
+        var currency: String
         /// Amount in the holding's native currency.
-        public var amount: Decimal
+        var amount: Decimal
         /// Amount converted to the snapshot's home currency. `nil` when
         /// no FX rate was available at capture time.
-        public var convertedAmount: Decimal?
+        var convertedAmount: Decimal?
 
-        public init(
+        init(
             id: UUID = UUID(),
             holdingId: UUID?,
             memberName: String,
@@ -93,18 +93,18 @@ public final class PortfolioSnapshot {
         /// Resolved `AccountKind`. Returns `nil` for snapshots written
         /// before the field was captured, so callers can choose their own
         /// fallback strategy (e.g. live lookup or `.cash`).
-        public var accountKind: AccountKind? {
+        var accountKind: AccountKind? {
             accountKindRawValue.flatMap(AccountKind.init(rawValue:))
         }
     }
 
-    public struct Rate: Codable, Sendable, Hashable, Identifiable {
-        public var base: String
-        public var quote: String
-        public var rate: Decimal
-        public var id: String { "\(base)->\(quote)" }
+    struct Rate: Codable, Sendable, Hashable, Identifiable {
+        var base: String
+        var quote: String
+        var rate: Decimal
+        var id: String { "\(base)->\(quote)" }
 
-        public init(base: String, quote: String, rate: Decimal) {
+        init(base: String, quote: String, rate: Decimal) {
             self.base = base
             self.quote = quote
             self.rate = rate
@@ -113,12 +113,12 @@ public final class PortfolioSnapshot {
 
     // MARK: - Computed accessors
 
-    public var entries: [Entry] {
+    var entries: [Entry] {
         get { Self.decode([Entry].self, from: entriesData) ?? [] }
         set { entriesData = Self.encode(newValue) }
     }
 
-    public var rates: [Rate] {
+    var rates: [Rate] {
         get { Self.decode([Rate].self, from: ratesData) ?? [] }
         set { ratesData = Self.encode(newValue) }
     }

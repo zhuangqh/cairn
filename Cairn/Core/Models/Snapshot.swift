@@ -14,15 +14,15 @@ import SwiftData
 /// month UTC) and is used by `PortfolioSnapshot` and other monthly
 /// aggregations. Use `Snapshot.normalizeDay(_:)` to get the day key.
 @Model
-public final class Snapshot {
-    public var id: UUID = UUID()
-    public var periodMonth: Date = Snapshot.defaultPeriod
-    public var amount: Decimal = 0
-    public var recordedAt: Date = Date()
+final class Snapshot {
+    var id: UUID = UUID()
+    var periodMonth: Date = Snapshot.defaultPeriod
+    var amount: Decimal = 0
+    var recordedAt: Date = Date()
 
-    @Relationship public var holding: Holding?
+    @Relationship var holding: Holding?
 
-    public init(
+    init(
         periodMonth: Date,
         amount: Decimal,
         holding: Holding? = nil,
@@ -38,7 +38,7 @@ public final class Snapshot {
     /// Truncate any date to the first instant of its calendar month in UTC.
     /// Used as the month bucket key by `PortfolioSnapshot` and monthly
     /// aggregations.
-    public static func normalize(_ date: Date) -> Date {
+    static func normalize(_ date: Date) -> Date {
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
         let components = calendar.dateComponents([.year, .month], from: date)
@@ -47,7 +47,7 @@ public final class Snapshot {
 
     /// Truncate any date to the start of its calendar day in UTC. Used as
     /// the uniqueness key for per-holding snapshots.
-    public static func normalizeDay(_ date: Date) -> Date {
+    static func normalizeDay(_ date: Date) -> Date {
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
         return calendar.startOfDay(for: date)

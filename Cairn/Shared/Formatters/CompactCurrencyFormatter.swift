@@ -31,9 +31,13 @@ enum CompactCurrencyFormatter {
         let absValue = abs(value)
 
         let signPrefix: String
-        if value < 0 { signPrefix = "−" }
-        else if alwaysSigned && value > 0 { signPrefix = "+" }
-        else { signPrefix = "" }
+        if value < 0 {
+            signPrefix = "−"
+        } else if alwaysSigned && value > 0 {
+            signPrefix = "+"
+        } else {
+            signPrefix = ""
+        }
 
         let body: String
         switch absValue {

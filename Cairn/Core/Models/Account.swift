@@ -6,25 +6,25 @@ import SwiftData
 /// An `Account` is **not** bound to a currency. Multi-currency is modeled via multiple `Holding`s.
 /// Persisted as a stable `kindRawValue` token; expose `kind` as the typed accessor.
 @Model
-public final class Account {
-    public var id: UUID = UUID()
-    public var name: String = ""
-    public var kindRawValue: String = AccountKind.cash.rawValue
-    public var note: String?
-    public var isArchived: Bool = false
-    public var createdAt: Date = Date()
+final class Account {
+    var id: UUID = UUID()
+    var name: String = ""
+    var kindRawValue: String = AccountKind.cash.rawValue
+    var note: String?
+    var isArchived: Bool = false
+    var createdAt: Date = Date()
 
-    @Relationship public var member: Member?
+    @Relationship var member: Member?
 
     @Relationship(deleteRule: .cascade, inverse: \Holding.account)
-    public var holdings: [Holding]? = []
+    var holdings: [Holding]? = []
 
-    public var kind: AccountKind {
+    var kind: AccountKind {
         get { AccountKind(rawValue: kindRawValue) ?? .cash }
         set { kindRawValue = newValue.rawValue }
     }
 
-    public init(
+    init(
         name: String,
         kind: AccountKind,
         member: Member? = nil,

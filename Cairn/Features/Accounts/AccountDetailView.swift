@@ -15,7 +15,7 @@ struct AccountDetailView: View {
     @State private var snapshotPendingDeletion: Snapshot?
     @State private var editingAccount = false
     @State private var editingHolding = false
-    @State private var selectedYear: Int? = nil
+    @State private var selectedYear: Int?
     @State private var didInitFilter = false
 
     /// Shared ledger column widths (§5.5), scaled with Dynamic Type.

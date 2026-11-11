@@ -28,13 +28,14 @@ struct MemberFormView: View {
                             size: 72
                         )
                         VStack(alignment: .leading, spacing: 8) {
+                            let hasNoAvatar = member.avatarData == nil
                             PhotosPicker(
                                 selection: $photoItem,
                                 matching: .images,
                                 photoLibrary: .shared()
                             ) {
                                 Label {
-                                    Text(member.avatarData == nil
+                                    Text(hasNoAvatar
                                          ? "member.form.avatar.choose"
                                          : "member.form.avatar.change")
                                 } icon: {
@@ -129,7 +130,7 @@ struct MemberFormView: View {
 
     private func importPhoto(_ item: PhotosPickerItem) {
         isImportingPhoto = true
-        Task { @MainActor in
+        Task {
             defer { isImportingPhoto = false }
             guard let data = try? await item.loadTransferable(type: Data.self) else {
                 return

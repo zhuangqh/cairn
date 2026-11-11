@@ -6,7 +6,7 @@ import SwiftData
 /// sync / transfer mechanism (drop the file in iCloud Drive, Dropbox,
 /// email, etc.) — the open-source build does not use CloudKit.
 @MainActor
-public enum BackupService {
+enum BackupService {
     /// Backup format version. Bump when the on-disk schema changes in a
     /// way older builds cannot safely round-trip. Newer files are rejected
     /// by `parse` with `DomainError.backupTooNew` so the user is asked to
@@ -20,15 +20,15 @@ public enum BackupService {
     /// - 4: added auditable achievement events. Later gained the optional
     ///   `homeCurrency` setting, which older v4 readers ignore.
     /// - 5: added `Possession.photoData`.
-    public static let currentVersion: Int = 5
-    public static let fileExtension: String = "cairn"
-    public static let csvFileExtension: String = "csv"
+    static let currentVersion: Int = 5
+    static let fileExtension: String = "cairn"
+    static let csvFileExtension: String = "csv"
 
     // MARK: - Export
 
     /// Serializes everything currently in `context`, plus the user's home
     /// currency setting, to a JSON backup payload.
-    public static func makeBackup(in context: ModelContext, homeCurrency: String) throws -> Data {
+    static func makeBackup(in context: ModelContext, homeCurrency: String) throws -> Data {
         let members = (try? context.fetch(FetchDescriptor<Member>())) ?? []
         let accounts = (try? context.fetch(FetchDescriptor<Account>())) ?? []
         let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
@@ -62,7 +62,7 @@ public enum BackupService {
     /// `PortfolioSnapshot`; holding columns are ordered by member, account,
     /// label, then currency, and values remain in each holding's native
     /// currency instead of using `convertedAmount`.
-    public static func makeSnapshotCSV(in context: ModelContext) throws -> Data {
+    static func makeSnapshotCSV(in context: ModelContext) throws -> Data {
         let snapshots = ((try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? [])
             .sorted { lhs, rhs in
                 if lhs.periodMonth == rhs.periodMonth {
@@ -136,7 +136,7 @@ public enum BackupService {
     /// Throws `DomainError.backupUnreadable` when the bytes are not valid
     /// Cairn backup JSON, and `DomainError.backupTooNew` when the file was
     /// produced by a newer build than this one supports.
-    public static func parse(_ data: Data) throws -> BackupPayload {
+    static func parse(_ data: Data) throws -> BackupPayload {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let payload: BackupPayload
@@ -162,7 +162,7 @@ public enum BackupService {
     /// transaction so a failure mid-import rolls back to the prior state
     /// instead of leaving the user with an empty store.
     @discardableResult
-    public static func restoreReplacing(from data: Data, context: ModelContext) throws -> BackupPayload {
+    static func restoreReplacing(from data: Data, context: ModelContext) throws -> BackupPayload {
         let payload = try parse(data)
         do {
             try context.transaction {
@@ -191,7 +191,7 @@ public enum BackupService {
     /// The backup's home currency when it is a known ISO 4217 code, or
     /// `nil` for older backups and unrecognized values so restore keeps
     /// the current setting.
-    public static func restorableHomeCurrency(in payload: BackupPayload) -> String? {
+    static func restorableHomeCurrency(in payload: BackupPayload) -> String? {
         guard let code = payload.homeCurrency?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
               CurrencyCatalog.all.contains(code) else { return nil }
         return code

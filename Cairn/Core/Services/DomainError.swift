@@ -3,7 +3,7 @@ import Foundation
 /// Errors raised by the app's service layer when a user action would violate a
 /// business invariant. Each case carries a localization key so the UI can
 /// render a helpful message via the String Catalog.
-public enum DomainError: LocalizedError, Equatable {
+enum DomainError: LocalizedError, Equatable {
     /// A Holding with the same currency already exists in the target Account.
     case duplicateCurrencyInAccount(currency: String)
 
@@ -25,7 +25,7 @@ public enum DomainError: LocalizedError, Equatable {
     /// store has been rolled back to its prior state.
     case backupWriteFailed
 
-    public var localizationKey: String {
+    var localizationKey: String {
         switch self {
         case .duplicateCurrencyInAccount: return "error.holding.duplicateCurrency"
         case .holdingCurrencyIsImmutable: return "error.holding.currencyImmutable"
@@ -36,7 +36,7 @@ public enum DomainError: LocalizedError, Equatable {
         }
     }
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         String(localized: String.LocalizationValue(localizationKey))
     }
 }

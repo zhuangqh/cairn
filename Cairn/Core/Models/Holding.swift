@@ -8,20 +8,20 @@ import SwiftData
 /// - Within one `Account`, no two `Holding`s may share the same `currency`.
 ///   Enforced in UI + validated on save (no CloudKit-compatible unique constraint).
 @Model
-public final class Holding {
-    public var id: UUID = UUID()
+final class Holding {
+    var id: UUID = UUID()
     /// ISO 4217 code, e.g. `"CNY"`, `"AUD"`, `"USD"`.
-    public var currency: String = "USD"
-    public var label: String?
-    public var isArchived: Bool = false
-    public var createdAt: Date = Date()
+    var currency: String = "USD"
+    var label: String?
+    var isArchived: Bool = false
+    var createdAt: Date = Date()
 
-    @Relationship public var account: Account?
+    @Relationship var account: Account?
 
     @Relationship(deleteRule: .cascade, inverse: \Snapshot.holding)
-    public var snapshots: [Snapshot]? = []
+    var snapshots: [Snapshot]? = []
 
-    public init(
+    init(
         currency: String,
         label: String? = nil,
         account: Account? = nil,

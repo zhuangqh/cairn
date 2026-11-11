@@ -6,11 +6,11 @@ import SwiftData
 final class PortfolioSnapshotServiceTests: XCTestCase {
     private var container: ModelContainer!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         container = try PersistenceController.makeContainer(.inMemory)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         container = nil
     }
 
@@ -202,7 +202,7 @@ final class PortfolioSnapshotServiceTests: XCTestCase {
         context.insert(account)
         context.insert(holding)
 
-        let pickedDay = Snapshot.normalizeDay(date("2026-02-15T00:00:00Z"))
+        let pickedDay = Snapshot.normalizeDay(try date("2026-02-15T00:00:00Z"))
         context.insert(Snapshot(periodMonth: pickedDay, amount: 100, holding: holding))
         try context.save()
 
@@ -216,7 +216,7 @@ final class PortfolioSnapshotServiceTests: XCTestCase {
             homeCurrency: "USD",
             fetcher: fetcher,
             context: context,
-            now: date("2026-04-01T00:00:00Z")
+            now: try date("2026-04-01T00:00:00Z")
         )
 
         XCTAssertEqual(portfolio.rates.first?.rate, 0.9)
@@ -249,8 +249,8 @@ final class PortfolioSnapshotServiceTests: XCTestCase {
         XCTAssertNil(updated.note)
     }
 
-    private func date(_ iso8601: String) -> Date {
-        ISO8601DateFormatter().date(from: iso8601)!
+    private func date(_ iso8601: String) throws -> Date {
+        try XCTUnwrap(ISO8601DateFormatter().date(from: iso8601))
     }
 }
 

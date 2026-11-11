@@ -3,13 +3,13 @@ import SwiftData
 
 /// Atomic batch-upsert for the spreadsheet-style entry screen.
 @MainActor
-public enum BatchUpsertService {
+enum BatchUpsertService {
     /// A single pending edit from the grid.
-    public struct Row: Sendable {
-        public let holdingId: UUID
-        public let amount: Decimal?  // nil means "leave blank — no snapshot"
+    struct Row: Sendable {
+        let holdingId: UUID
+        let amount: Decimal?  // nil means "leave blank — no snapshot"
 
-        public init(holdingId: UUID, amount: Decimal?) {
+        init(holdingId: UUID, amount: Decimal?) {
             self.holdingId = holdingId
             self.amount = amount
         }
@@ -18,7 +18,7 @@ public enum BatchUpsertService {
     /// Upserts every non-nil row for `periodMonth`. Behaves atomically: on
     /// failure we discard the staged changes by rolling back to the last
     /// saved state.
-    public static func apply(
+    static func apply(
         _ rows: [Row],
         periodMonth: Date,
         context: ModelContext
@@ -55,7 +55,7 @@ public enum BatchUpsertService {
     /// rewriting the captured state for that month, so older day-granular
     /// rows in the same month must not survive and win the "latest value"
     /// lookup during recapture.
-    public static func replaceMonth(
+    static func replaceMonth(
         _ rows: [Row],
         periodMonth: Date,
         context: ModelContext

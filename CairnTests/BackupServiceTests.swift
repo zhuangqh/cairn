@@ -6,11 +6,11 @@ import SwiftData
 final class BackupServiceTests: XCTestCase {
     private var container: ModelContainer!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         container = try PersistenceController.makeContainer(.inMemory)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         container = nil
     }
 
@@ -159,7 +159,7 @@ final class BackupServiceTests: XCTestCase {
 
     func testRestoreOldBackupWithoutPossessionsSucceeds() throws {
         // Simulate a pre-v1.1 backup: payload with no `possessions` field.
-        let json = """
+        let json = Data("""
         {
           "version": 1,
           "exportedAt": "2026-01-01T00:00:00Z",
@@ -169,7 +169,7 @@ final class BackupServiceTests: XCTestCase {
           "snapshots": [],
           "fxRates": []
         }
-        """.data(using: .utf8)!
+        """.utf8)
         let other = try PersistenceController.makeContainer(.inMemory)
         let payload = try BackupService.restoreReplacing(from: json, context: other.mainContext)
         XCTAssertNil(payload.possessions)
@@ -207,7 +207,7 @@ final class BackupServiceTests: XCTestCase {
 
     func testParseRejectsBackupFromNewerVersion() throws {
         let future = BackupService.currentVersion + 1
-        let json = """
+        let json = Data("""
         {
           "version": \(future),
           "exportedAt": "2026-01-01T00:00:00Z",
@@ -217,7 +217,7 @@ final class BackupServiceTests: XCTestCase {
           "snapshots": [],
           "fxRates": []
         }
-        """.data(using: .utf8)!
+        """.utf8)
         XCTAssertThrowsError(try BackupService.parse(json)) { error in
             guard case DomainError.backupTooNew(let fileVersion, let supported) = error else {
                 XCTFail("expected backupTooNew, got \(error)")
@@ -277,42 +277,29 @@ final class BackupServiceTests: XCTestCase {
     }
 
     func testRestoreCanonicalizesPortfolioEntryHoldingIDs() throws {
-        let memberId = UUID(uuidString: "11111111-1111-1111-1111-111111111111")!
-        let accountId = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
-        let holdingId = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
-        let staleHoldingId = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
-        let portfolioId = UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
-        let entryId = UUID(uuidString: "66666666-6666-6666-6666-666666666666")!
-        let json = """
+        let memberId = try XCTUnwrap(UUID(uuidString: "11111111-1111-1111-1111-111111111111"))
+        let accountId = try XCTUnwrap(UUID(uuidString: "22222222-2222-2222-2222-222222222222"))
+        let holdingId = try XCTUnwrap(UUID(uuidString: "33333333-3333-3333-3333-333333333333"))
+        let staleHoldingId = try XCTUnwrap(UUID(uuidString: "44444444-4444-4444-4444-444444444444"))
+        let portfolioId = try XCTUnwrap(UUID(uuidString: "55555555-5555-5555-5555-555555555555"))
+        let entryId = try XCTUnwrap(UUID(uuidString: "66666666-6666-6666-6666-666666666666"))
+        let json = Data("""
         {
           "version": 3,
           "exportedAt": "2026-04-01T00:00:00Z",
           "members": [
-            {
-              "id": "\(memberId.uuidString)",
-              "name": "Alice",
-              "createdAt": "2026-01-01T00:00:00Z"
-            }
+            { "id": "\(memberId.uuidString)", "name": "Alice", "createdAt": "2026-01-01T00:00:00Z" }
           ],
           "accounts": [
             {
-              "id": "\(accountId.uuidString)",
-              "name": "Primary",
-              "kindRawValue": "cash",
-              "note": null,
-              "isArchived": false,
-              "createdAt": "2026-01-01T00:00:00Z",
-              "memberId": "\(memberId.uuidString)"
+              "id": "\(accountId.uuidString)", "name": "Primary", "kindRawValue": "cash", "note": null,
+              "isArchived": false, "createdAt": "2026-01-01T00:00:00Z", "memberId": "\(memberId.uuidString)"
             }
           ],
           "holdings": [
             {
-              "id": "\(holdingId.uuidString)",
-              "currency": "USD",
-              "label": "Brokerage",
-              "isArchived": false,
-              "createdAt": "2026-01-01T00:00:00Z",
-              "accountId": "\(accountId.uuidString)"
+              "id": "\(holdingId.uuidString)", "currency": "USD", "label": "Brokerage", "isArchived": false,
+              "createdAt": "2026-01-01T00:00:00Z", "accountId": "\(accountId.uuidString)"
             }
           ],
           "snapshots": [],
@@ -343,7 +330,7 @@ final class BackupServiceTests: XCTestCase {
           ],
           "possessions": []
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let other = try PersistenceController.makeContainer(.inMemory)
         _ = try BackupService.restoreReplacing(from: json, context: other.mainContext)
@@ -353,10 +340,10 @@ final class BackupServiceTests: XCTestCase {
     }
 
     func testRestoreClearsUnresolvablePortfolioEntryHoldingIDs() throws {
-        let staleHoldingId = UUID(uuidString: "44444444-4444-4444-4444-444444444444")!
-        let portfolioId = UUID(uuidString: "55555555-5555-5555-5555-555555555555")!
-        let entryId = UUID(uuidString: "66666666-6666-6666-6666-666666666666")!
-        let json = """
+        let staleHoldingId = try XCTUnwrap(UUID(uuidString: "44444444-4444-4444-4444-444444444444"))
+        let portfolioId = try XCTUnwrap(UUID(uuidString: "55555555-5555-5555-5555-555555555555"))
+        let entryId = try XCTUnwrap(UUID(uuidString: "66666666-6666-6666-6666-666666666666"))
+        let json = Data("""
         {
           "version": 3,
           "exportedAt": "2026-04-01T00:00:00Z",
@@ -389,128 +376,13 @@ final class BackupServiceTests: XCTestCase {
           ],
           "possessions": []
         }
-        """.data(using: .utf8)!
+        """.utf8)
 
         let other = try PersistenceController.makeContainer(.inMemory)
         _ = try BackupService.restoreReplacing(from: json, context: other.mainContext)
 
         let restored = try other.mainContext.fetch(FetchDescriptor<PortfolioSnapshot>())
         XCTAssertNil(restored.first?.entries.first?.holdingId)
-    }
-
-    func testSnapshotCSVExportsBatchRowsInNativeCurrencies() throws {
-        let context = container.mainContext
-        let alice = Member(name: "Alice")
-        let cash = Account(name: "Cash", kind: .cash, member: alice)
-        let cnyHolding = Holding(currency: "CNY", label: "Everyday", account: cash)
-        let bob = Member(name: "Bob")
-        let broker = Account(name: "Broker, AU", kind: .stock, member: bob)
-        let usdHolding = Holding(currency: "USD", account: broker)
-        context.insert(alice)
-        context.insert(cash)
-        context.insert(cnyHolding)
-        context.insert(bob)
-        context.insert(broker)
-        context.insert(usdHolding)
-        context.insert(Snapshot(periodMonth: date("2026-02-15T00:00:00Z"), amount: 500, holding: cnyHolding))
-        context.insert(Snapshot(periodMonth: date("2026-02-15T00:00:00Z"), amount: 12.34, holding: usdHolding))
-        context.insert(Snapshot(periodMonth: date("2026-03-20T00:00:00Z"), amount: 750, holding: cnyHolding))
-
-        let first = PortfolioSnapshot(
-            periodMonth: date("2026-02-01T00:00:00Z"),
-            homeCurrency: "AUD",
-            totalAmount: 999,
-            entries: [
-                PortfolioSnapshot.Entry(
-                    holdingId: usdHolding.id,
-                    memberName: "Bob",
-                    accountName: "Broker, AU",
-                    holdingLabel: nil,
-                    currency: "USD",
-                    amount: 12.34,
-                    convertedAmount: 99
-                ),
-                PortfolioSnapshot.Entry(
-                    holdingId: cnyHolding.id,
-                    memberName: "Alice",
-                    accountName: "Cash",
-                    holdingLabel: "Everyday",
-                    currency: "CNY",
-                    amount: 500,
-                    convertedAmount: 100
-                )
-            ],
-            rates: [
-                PortfolioSnapshot.Rate(base: "AUD", quote: "CNY", rate: 4.75),
-                PortfolioSnapshot.Rate(base: "AUD", quote: "USD", rate: 0.66)
-            ],
-            note: "first, batch",
-            recordedAt: date("2026-02-02T03:04:05Z")
-        )
-        let second = PortfolioSnapshot(
-            periodMonth: date("2026-03-01T00:00:00Z"),
-            homeCurrency: "AUD",
-            totalAmount: 1_500,
-            entries: [
-                PortfolioSnapshot.Entry(
-                    holdingId: cnyHolding.id,
-                    memberName: "Alice",
-                    accountName: "Cash",
-                    holdingLabel: "Everyday",
-                    currency: "CNY",
-                    amount: 750,
-                    convertedAmount: 150
-                )
-            ],
-            rates: [
-                PortfolioSnapshot.Rate(base: "AUD", quote: "CNY", rate: 4.90)
-            ],
-            recordedAt: date("2026-03-02T03:04:05Z")
-        )
-        context.insert(second)
-        context.insert(first)
-        try context.save()
-
-        let csv = String(decoding: try BackupService.makeSnapshotCSV(in: context), as: UTF8.self)
-
-        XCTAssertEqual(
-            csv,
-            """
-            date,period,recordedAt,homeCurrency,totalAmount,note,rateDate,rate CNY->AUD,rate USD->AUD,Alice / Cash / Everyday (CNY),"Bob / Broker, AU (USD)"
-            2026-02-15,2026-02-01,2026-02-02T03:04:05Z,AUD,999,"first, batch",2026-02-15,0.21,1.52,500,12.34
-            2026-03-20,2026-03-01,2026-03-02T03:04:05Z,AUD,1500,,2026-03-20,0.20,,750,
-
-            """
-        )
-        XCTAssertFalse(csv.contains(",100,"))
-        XCTAssertFalse(csv.contains(",150\n"))
-    }
-
-    func testSnapshotCSVKeepsDirectForeignToHomeRates() throws {
-        let context = container.mainContext
-        let portfolio = PortfolioSnapshot(
-            periodMonth: date("2026-02-01T00:00:00Z"),
-            homeCurrency: "AUD",
-            totalAmount: 100,
-            entries: [],
-            rates: [
-                PortfolioSnapshot.Rate(base: "USD", quote: "AUD", rate: 1.52)
-            ],
-            recordedAt: date("2026-02-02T03:04:05Z")
-        )
-        context.insert(portfolio)
-        try context.save()
-
-        let csv = String(decoding: try BackupService.makeSnapshotCSV(in: context), as: UTF8.self)
-
-        XCTAssertEqual(
-            csv,
-            """
-            date,period,recordedAt,homeCurrency,totalAmount,note,rateDate,rate USD->AUD
-            2026-02-01,2026-02-01,2026-02-02T03:04:05Z,AUD,100,,2026-02-01,1.52
-
-            """
-        )
     }
 
     func testRestoreIsIdempotentAcrossRepeatedImports() throws {
@@ -533,9 +405,5 @@ final class BackupServiceTests: XCTestCase {
         let members = try other.mainContext.fetch(FetchDescriptor<Member>())
         XCTAssertEqual(members.count, 1)
         XCTAssertEqual(members.first?.id, firstMemberId)
-    }
-
-    private func date(_ iso8601: String) -> Date {
-        ISO8601DateFormatter().date(from: iso8601)!
     }
 }

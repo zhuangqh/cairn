@@ -8,7 +8,7 @@ import SwiftUI
 // counterpart (warm near-black ground, lifted ink-green so the accent keeps
 // its identity and contrast) pending a dedicated dark design (§9).
 
-public extension Color {
+extension Color {
     /// Page ground — warm ivory.
     static let pageBackground = Color(light: Color(hex: 0xF7F6F2), dark: Color(hex: 0x131614))
     /// Primary text, amounts, titles.
@@ -109,19 +109,19 @@ enum ChangeTone {
 /// Stable content surface. Liquid Glass is intentionally reserved for floating
 /// navigation and controls; data cards stay visually quiet and readable.
 /// The type name remains stable to avoid churning every feature call site.
-public struct NotionCardStyle: ViewModifier {
-    public var cornerRadius: CGFloat
-    public var padding: CGFloat
-    public var surface: Color
+struct NotionCardStyle: ViewModifier {
+    var cornerRadius: CGFloat
+    var padding: CGFloat
+    var surface: Color
 
-    public init(cornerRadius: CGFloat = 12, padding: CGFloat = 20, surface: Color = .notionSurface) {
+    init(cornerRadius: CGFloat = 12, padding: CGFloat = 20, surface: Color = .notionSurface) {
         self.cornerRadius = cornerRadius
         self.padding = padding
         self.surface = surface
     }
 
     @ViewBuilder
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         content
             .padding(padding)
@@ -130,7 +130,7 @@ public struct NotionCardStyle: ViewModifier {
     }
 }
 
-public extension View {
+extension View {
     /// Wraps content in Cairn's adaptive translucent surface.
     func glassCard(cornerRadius: CGFloat = 12, padding: CGFloat = 20) -> some View {
         modifier(NotionCardStyle(cornerRadius: cornerRadius, padding: padding))
@@ -167,15 +167,15 @@ public extension View {
 
 /// Solid warm-ivory page ground. Data surfaces carry no gradient or glow;
 /// hierarchy comes from type, whitespace, and hairlines (DESIGN.md §1).
-public struct AppBackground: View {
-    public init() {}
+struct AppBackground: View {
+    init() {}
 
-    public var body: some View {
+    var body: some View {
         Color.pageBackground.ignoresSafeArea()
     }
 }
 
-public extension View {
+extension View {
     /// Places an `AppBackground` behind the view, filling safe-area edges.
     func ambientBackground() -> some View {
         background(AppBackground())
@@ -203,20 +203,20 @@ public extension View {
 
 /// Tinted leading accessory used for row icons. In Notion style the fill is
 /// very light (`tint` at 10% opacity) with the icon in the full tint.
-public struct GlyphBadge: View {
-    public let systemName: String
-    public let tint: Color
-    public let size: CGFloat
-    public let isCircle: Bool
+struct GlyphBadge: View {
+    let systemName: String
+    let tint: Color
+    let size: CGFloat
+    let isCircle: Bool
 
-    public init(systemName: String, tint: Color, size: CGFloat = 34, isCircle: Bool = false) {
+    init(systemName: String, tint: Color, size: CGFloat = 34, isCircle: Bool = false) {
         self.systemName = systemName
         self.tint = tint
         self.size = size
         self.isCircle = isCircle
     }
 
-    public var body: some View {
+    var body: some View {
         ZStack {
             Group {
                 if isCircle {
@@ -238,12 +238,12 @@ public struct GlyphBadge: View {
 
 /// Notion-style pill: fully-rounded, tinted background, 12pt semibold label
 /// with the signature `+0.125` letter spacing.
-public struct NotionPillBadge: View {
-    public let text: LocalizedStringKey
-    public let textColor: Color
-    public let background: Color
+struct NotionPillBadge: View {
+    let text: LocalizedStringKey
+    let textColor: Color
+    let background: Color
 
-    public init(
+    init(
         _ text: LocalizedStringKey,
         textColor: Color = .notionBadgeBlueText,
         background: Color = .notionBadgeBlueBg
@@ -253,7 +253,7 @@ public struct NotionPillBadge: View {
         self.background = background
     }
 
-    public var body: some View {
+    var body: some View {
         Text(text)
             .font(.system(size: 12, weight: .semibold))
             .tracking(0.125)
@@ -266,12 +266,12 @@ public struct NotionPillBadge: View {
 
 /// Pill badge initialized with a raw (non-localized) string. Useful for
 /// currency codes / member initials where the source is data, not a catalog.
-public struct NotionPillRaw: View {
-    public let text: String
-    public let textColor: Color
-    public let background: Color
+struct NotionPillRaw: View {
+    let text: String
+    let textColor: Color
+    let background: Color
 
-    public init(
+    init(
         _ text: String,
         textColor: Color = .notionBadgeBlueText,
         background: Color = .notionBadgeBlueBg
@@ -281,7 +281,7 @@ public struct NotionPillRaw: View {
         self.background = background
     }
 
-    public var body: some View {
+    var body: some View {
         Text(verbatim: text)
             .font(.system(size: 12, weight: .semibold, design: .default).monospaced())
             .tracking(0.125)
@@ -295,14 +295,14 @@ public struct NotionPillRaw: View {
 // MARK: - Primary button style
 
 /// `#0075de` bg, white text, 4pt radius — the only saturated CTA per §4.
-public struct NotionPrimaryButtonStyle: ButtonStyle {
-    public var size: Size
+struct NotionPrimaryButtonStyle: ButtonStyle {
+    var size: Size
 
-    public enum Size { case regular, large }
+    enum Size { case regular, large }
 
-    public init(size: Size = .regular) { self.size = size }
+    init(size: Size = .regular) { self.size = size }
 
-    public func makeBody(configuration: Configuration) -> some View {
+    func makeBody(configuration: Configuration) -> some View {
         let vPad: CGFloat = size == .large ? 10 : 8
         let hPad: CGFloat = size == .large ? 18 : 14
         let weight: Font.Weight = .semibold
@@ -322,10 +322,8 @@ public struct NotionPrimaryButtonStyle: ButtonStyle {
 }
 
 /// Translucent warm-gray secondary button (§4 Secondary/Tertiary).
-public struct NotionSecondaryButtonStyle: ButtonStyle {
-    public init() {}
-
-    public func makeBody(configuration: Configuration) -> some View {
+struct NotionSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(Color.ink)
@@ -343,18 +341,18 @@ public struct NotionSecondaryButtonStyle: ButtonStyle {
 
 /// "Feature sub-section" header per §3: all-caps 12pt semibold label with a
 /// tinted glyph to its left. Used above card groupings.
-public struct NotionSectionHeader: View {
-    public let titleKey: LocalizedStringKey
-    public let systemImage: String?
-    public let tint: Color
+struct NotionSectionHeader: View {
+    let titleKey: LocalizedStringKey
+    let systemImage: String?
+    let tint: Color
 
-    public init(_ titleKey: LocalizedStringKey, systemImage: String? = nil, tint: Color = .ink2) {
+    init(_ titleKey: LocalizedStringKey, systemImage: String? = nil, tint: Color = .ink2) {
         self.titleKey = titleKey
         self.systemImage = systemImage
         self.tint = tint
     }
 
-    public var body: some View {
+    var body: some View {
         HStack(spacing: 8) {
             if let systemImage {
                 Image(systemName: systemImage)
@@ -373,7 +371,7 @@ public struct NotionSectionHeader: View {
 
 // MARK: - Typography helpers
 
-public extension Font {
+extension Font {
     /// Display hero (64 / 700 / tight). For landing-style moments.
     static let notionDisplay = Font.system(size: 44, weight: .bold, design: .default)
     /// Sub-heading used in card titles (22 / 700).

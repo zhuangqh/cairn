@@ -119,7 +119,7 @@ private struct PossessionInspectionHost: ViewModifier {
 
     private func start() {
         guard inspected != nil, task == nil, progress == 0 else { return }
-        task = Task { @MainActor in
+        task = Task {
             await Task.yield()
             guard !Task.isCancelled else { return }
             let duration = reduceMotion ? 0.25 : 0.7
@@ -137,7 +137,7 @@ private struct PossessionInspectionHost: ViewModifier {
 
     private func close(thenEdit: Bool) {
         guard let possession = inspected, progress == 1, task == nil else { return }
-        task = Task { @MainActor in
+        task = Task {
             let duration = reduceMotion ? 0.25 : 0.6
             withAnimation(reduceMotion
                 ? .easeOut(duration: duration)

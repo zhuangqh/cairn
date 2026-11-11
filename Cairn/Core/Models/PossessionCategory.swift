@@ -5,14 +5,14 @@ import SwiftUI
 ///
 /// Raw values are written to the store and MUST NOT be changed without a migration.
 /// User-facing labels come from the String Catalog (`possession.category.*`).
-public enum PossessionCategory: String, Codable, CaseIterable, Sendable {
+enum PossessionCategory: String, Codable, CaseIterable, Sendable {
     case realEstate
     case vehicle
     case electronics
     case other
 
     /// Localization key for the user-facing name of the category.
-    public var localizationKey: String {
+    var localizationKey: String {
         switch self {
         case .realEstate: return "possession.category.realEstate"
         case .vehicle: return "possession.category.vehicle"
@@ -22,7 +22,7 @@ public enum PossessionCategory: String, Codable, CaseIterable, Sendable {
     }
 
     /// Default SF Symbol used to represent the category.
-    public var iconName: String {
+    var iconName: String {
         switch self {
         case .realEstate: return "house.fill"
         case .vehicle: return "car.fill"
@@ -32,7 +32,7 @@ public enum PossessionCategory: String, Codable, CaseIterable, Sendable {
     }
 
     /// Category hue for badges and icon tiles, from `Color.categoryPalette`.
-    public var tint: Color {
+    var tint: Color {
         switch self {
         case .realEstate: return .accent
         case .vehicle: return .mist

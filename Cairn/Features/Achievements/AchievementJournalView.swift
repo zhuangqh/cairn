@@ -427,7 +427,7 @@ private extension AchievementJournalView {
 
     func startInspection() {
         guard inspectedPresentation != nil, inspectionTask == nil, inspectionProgress == 0 else { return }
-        inspectionTask = Task { @MainActor in
+        inspectionTask = Task {
             await Task.yield()
             guard !Task.isCancelled else { return }
             let duration = reduceMotion ? 0.25 : 0.78
@@ -446,7 +446,7 @@ private extension AchievementJournalView {
     func closeInspection() {
         guard inspectedPresentation != nil, inspectionProgress == 1, inspectionTask == nil else { return }
 
-        inspectionTask = Task { @MainActor in
+        inspectionTask = Task {
             let duration = reduceMotion ? 0.25 : 0.72
             withAnimation(reduceMotion
                 ? .easeOut(duration: duration)

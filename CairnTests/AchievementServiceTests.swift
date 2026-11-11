@@ -6,17 +6,17 @@ import SwiftData
 final class AchievementServiceTests: XCTestCase {
     private var container: ModelContainer!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         container = try PersistenceController.makeContainer(.inMemory)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         container = nil
     }
 
     func testFirstSnapshotBackfillsFirstStoneAndWealthLadder() throws {
         let context = container.mainContext
-        context.insert(snapshot("2026-01-01", total: 1_100_000, currency: "AUD"))
+        context.insert(try snapshot("2026-01-01", total: 1_100_000, currency: "AUD"))
         try context.save()
 
         let result = try AchievementService.recompute(in: context)
@@ -32,10 +32,10 @@ final class AchievementServiceTests: XCTestCase {
 
     func testMonthlyAscentRequiresAdjacentMonthsAndTracksPersonalBests() throws {
         let context = container.mainContext
-        context.insert(snapshot("2026-01-01", total: 100_000, currency: "AUD"))
-        context.insert(snapshot("2026-02-01", total: 125_000, currency: "AUD"))
-        context.insert(snapshot("2026-03-01", total: 140_000, currency: "AUD"))
-        context.insert(snapshot("2026-04-01", total: 190_000, currency: "AUD"))
+        context.insert(try snapshot("2026-01-01", total: 100_000, currency: "AUD"))
+        context.insert(try snapshot("2026-02-01", total: 125_000, currency: "AUD"))
+        context.insert(try snapshot("2026-03-01", total: 140_000, currency: "AUD"))
+        context.insert(try snapshot("2026-04-01", total: 190_000, currency: "AUD"))
         try context.save()
 
         _ = try AchievementService.recompute(in: context)
@@ -49,9 +49,9 @@ final class AchievementServiceTests: XCTestCase {
 
     func testMonthlyAscentDoesNotCompareAcrossGapOrCurrency() throws {
         let context = container.mainContext
-        context.insert(snapshot("2026-01-01", total: 100_000, currency: "AUD"))
-        context.insert(snapshot("2026-03-01", total: 400_000, currency: "AUD"))
-        context.insert(snapshot("2026-04-01", total: 800_000, currency: "CNY"))
+        context.insert(try snapshot("2026-01-01", total: 100_000, currency: "AUD"))
+        context.insert(try snapshot("2026-03-01", total: 400_000, currency: "AUD"))
+        context.insert(try snapshot("2026-04-01", total: 800_000, currency: "CNY"))
         try context.save()
 
         _ = try AchievementService.recompute(in: context)
@@ -64,7 +64,7 @@ final class AchievementServiceTests: XCTestCase {
         let context = container.mainContext
         for month in 1...6 {
             let value = 10_000 + Decimal(month)
-            context.insert(snapshot(String(format: "2026-%02d-01", month), total: value, currency: "AUD"))
+            context.insert(try snapshot(String(format: "2026-%02d-01", month), total: value, currency: "AUD"))
         }
         try context.save()
 
@@ -77,8 +77,8 @@ final class AchievementServiceTests: XCTestCase {
 
     func testCorrectionRemovesInvalidMilestoneButMarketDeclineDoesNot() throws {
         let context = container.mainContext
-        let january = snapshot("2026-01-01", total: 1_100_000, currency: "AUD")
-        let february = snapshot("2026-02-01", total: 800_000, currency: "AUD")
+        let january = try snapshot("2026-01-01", total: 1_100_000, currency: "AUD")
+        let february = try snapshot("2026-02-01", total: 800_000, currency: "AUD")
         context.insert(january)
         context.insert(february)
         try context.save()
@@ -101,7 +101,7 @@ final class AchievementServiceTests: XCTestCase {
 
     func testWealthMilestonesStopAtTenMillionAndDropStoredHigherStages() throws {
         let context = container.mainContext
-        context.insert(snapshot("2026-01-01", total: 120_000_000, currency: "USD"))
+        context.insert(try snapshot("2026-01-01", total: 120_000_000, currency: "USD"))
         // A stage earned under the old unbounded ladder.
         context.insert(AchievementEvent(
             eventKey: "wealth-7",
@@ -128,9 +128,9 @@ final class AchievementServiceTests: XCTestCase {
         return all.first { $0.eventKey == key }
     }
 
-    private func snapshot(_ date: String, total: Decimal, currency: String) -> PortfolioSnapshot {
+    private func snapshot(_ date: String, total: Decimal, currency: String) throws -> PortfolioSnapshot {
         PortfolioSnapshot(
-            periodMonth: ISO8601DateFormatter().date(from: "\(date)T00:00:00Z")!,
+            periodMonth: try XCTUnwrap(ISO8601DateFormatter().date(from: "\(date)T00:00:00Z")),
             homeCurrency: currency,
             totalAmount: total,
             entries: [],

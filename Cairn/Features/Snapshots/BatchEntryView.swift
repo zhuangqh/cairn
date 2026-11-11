@@ -551,7 +551,7 @@ struct BatchEntryView: View {
             return
         }
         isSaving = true
-        Task { @MainActor in
+        Task {
             defer { isSaving = false }
             do {
                 let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)

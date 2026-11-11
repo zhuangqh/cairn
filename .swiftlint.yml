@@ -21,6 +21,10 @@ identifier_name:
   excluded:
     - to
     - id
+    - fx
+    - cg
+    - ui
+    - ns
 
 type_body_length:
   warning: 400

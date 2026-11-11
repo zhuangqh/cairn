@@ -3,12 +3,12 @@ import UserNotifications
 
 /// Local notification on the 1st of each month reminding the user to record
 /// their snapshot. Single repeating notification (PRD F-SNAP-4).
-public enum ReminderService {
-    public static let identifier: String = "cairn.monthlyReminder"
+enum ReminderService {
+    static let identifier: String = "cairn.monthlyReminder"
 
     /// Requests notification permission if not already granted.
     @discardableResult
-    public static func requestAuthorization() async -> Bool {
+    static func requestAuthorization() async -> Bool {
         let center = UNUserNotificationCenter.current()
         do {
             return try await center.requestAuthorization(options: [.alert, .sound, .badge])
@@ -21,7 +21,7 @@ public enum ReminderService {
     /// time, on the given `day` of each month. `day` is clamped to 1...28 so
     /// the reminder fires reliably every month (including February). Any
     /// previously scheduled Cairn reminder is removed first.
-    public static func schedule(day: Int, hour: Int, minute: Int) async {
+    static func schedule(day: Int, hour: Int, minute: Int) async {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
 
@@ -44,7 +44,7 @@ public enum ReminderService {
     }
 
     /// Cancels the monthly reminder, if any.
-    public static func cancel() {
+    static func cancel() {
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: [identifier])
     }

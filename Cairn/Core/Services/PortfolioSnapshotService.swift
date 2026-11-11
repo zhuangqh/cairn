@@ -10,7 +10,7 @@ import SwiftData
 /// The total is precomputed so historical trend points stay stable even
 /// if individual rates or values are edited later.
 @MainActor
-public enum PortfolioSnapshotService {
+enum PortfolioSnapshotService {
 
     /// Creates or updates the `PortfolioSnapshot` for the given snapshot date
     /// using whatever `Snapshot` rows are currently saved.
@@ -23,7 +23,7 @@ public enum PortfolioSnapshotService {
     ///
     /// Intended to be called right after `BatchUpsertService.apply(...)`.
     @discardableResult
-    public static func captureForMonth(
+    static func captureForMonth(
         _ periodMonth: Date,
         homeCurrency: String,
         note: String? = nil,
@@ -70,7 +70,7 @@ public enum PortfolioSnapshotService {
     /// per-holding `Snapshot` rows that fed into it. Per-holding snapshots
     /// are day-granular, so we clear every `Snapshot` that falls inside
     /// the portfolio snapshot's month for any of the captured holdings.
-    public static func delete(_ snapshot: PortfolioSnapshot, context: ModelContext) throws {
+    static func delete(_ snapshot: PortfolioSnapshot, context: ModelContext) throws {
         let monthStart = snapshot.periodMonth
         let monthEnd = Self.nextMonthStart(after: monthStart)
         let holdingIds = Set(snapshot.entries.compactMap(\.holdingId))
@@ -97,11 +97,9 @@ public enum PortfolioSnapshotService {
     }
 
     /// All portfolio snapshots, ordered by `periodMonth` descending.
-    public static func all(context: ModelContext) -> [PortfolioSnapshot] {
-        let descriptor = FetchDescriptor<PortfolioSnapshot>(
-            sortBy: [SortDescriptor(\.periodMonth, order: .reverse)]
-        )
-        return (try? context.fetch(descriptor)) ?? []
+    static func all(context: ModelContext) -> [PortfolioSnapshot] {
+        let snapshots = (try? context.fetch(FetchDescriptor<PortfolioSnapshot>())) ?? []
+        return snapshots.sorted { $0.periodMonth > $1.periodMonth }
     }
 
     /// Best-effort reconstruction of the concrete day the user picked when
@@ -109,7 +107,7 @@ public enum PortfolioSnapshotService {
     /// by month, while the underlying per-holding `Snapshot` rows are
     /// day-granular, so we choose the day in that month with the most matching
     /// captured holding amounts.
-    public static func capturedDate(for snapshot: PortfolioSnapshot, context: ModelContext) -> Date {
+    static func capturedDate(for snapshot: PortfolioSnapshot, context: ModelContext) -> Date {
         let holdingSnapshots = (try? context.fetch(FetchDescriptor<Snapshot>())) ?? []
         return capturedDate(for: snapshot, holdingSnapshots: holdingSnapshots)
     }

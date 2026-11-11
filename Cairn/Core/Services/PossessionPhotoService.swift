@@ -11,25 +11,25 @@ import Vision
 ///
 /// Not main-actor isolated: callers `await` it from the UI so decoding and
 /// segmentation run off the main thread. Only `Data` crosses the boundary.
-public enum PossessionPhotoService {
+enum PossessionPhotoService {
     /// Longest edge, in pixels, of every stored photo.
-    public static let maxPixelSize = 1024
+    static let maxPixelSize = 1024
 
-    public struct Prepared: Sendable, Equatable {
+    struct Prepared: Sendable, Equatable {
         /// Oriented, downscaled original encoded as JPEG.
-        public let original: Data
+        let original: Data
         /// Transparent PNG of the detected subject cropped to its extent, or
         /// `nil` when Vision found no foreground subject (or can't run, as
         /// on some simulators).
-        public let cutout: Data?
+        let cutout: Data?
     }
 
-    public enum PhotoError: Error, Equatable {
+    enum PhotoError: Error, Equatable {
         /// The data isn't an image ImageIO can decode.
         case unreadableImage
     }
 
-    public static func prepare(_ data: Data) async throws -> Prepared {
+    static func prepare(_ data: Data) async throws -> Prepared {
         let image = try downscaledImage(from: data)
         guard let original = encode(image, as: .jpeg) else { throw PhotoError.unreadableImage }
         return Prepared(original: original, cutout: subjectCutout(of: image))

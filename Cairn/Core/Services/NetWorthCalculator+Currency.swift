@@ -7,16 +7,16 @@ extension NetWorthCalculator {
     /// Holdings of one currency, summed in their own currency and in the
     /// home currency. `convertedAmount` is `nil` when any contributing
     /// balance lacks an FX rate, so the currency is excluded from totals.
-    public struct CurrencyTotal: Sendable, Equatable, Identifiable {
-        public let currency: String
-        public let nativeAmount: Decimal
-        public let convertedAmount: Decimal?
-        public var id: String { currency }
+    struct CurrencyTotal: Sendable, Equatable, Identifiable {
+        let currency: String
+        let nativeAmount: Decimal
+        let convertedAmount: Decimal?
+        var id: String { currency }
     }
 
     /// Per-currency breakdown of live holdings as of `periodMonth`, ordered
     /// like `sortedCurrencyTotals`.
-    public static func totalsByCurrency(
+    static func totalsByCurrency(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
         context: ModelContext
@@ -34,7 +34,7 @@ extension NetWorthCalculator {
 
     /// Per-currency breakdown of a captured portfolio snapshot, using the
     /// converted amounts frozen at capture time.
-    public static func currencyTotals(in entries: [PortfolioSnapshot.Entry]) -> [CurrencyTotal] {
+    static func currencyTotals(in entries: [PortfolioSnapshot.Entry]) -> [CurrencyTotal] {
         var sums: [String: CurrencySum] = [:]
         for entry in entries {
             sums[entry.currency, default: CurrencySum()].add(native: entry.amount, converted: entry.convertedAmount)
@@ -44,7 +44,6 @@ extension NetWorthCalculator {
 
     /// Running native + converted sum for one currency. A single missing
     /// conversion marks the whole currency as unconverted.
-    @usableFromInline
     struct CurrencySum {
         var native: Decimal = 0
         var converted: Decimal? = 0

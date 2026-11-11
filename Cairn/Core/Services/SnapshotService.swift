@@ -6,7 +6,7 @@ import SwiftData
 /// Snapshots are day-granular — a given `(holding, day)` pair must be
 /// unique. Uniqueness is enforced here instead of via a
 /// CloudKit-incompatible unique attribute.
-public enum SnapshotService {
+enum SnapshotService {
     /// Upsert a snapshot for `(holding, day)`:
     /// - If one already exists for that day: update its `amount` and `recordedAt`.
     /// - Otherwise: insert a new snapshot on that day.
@@ -14,7 +14,7 @@ public enum SnapshotService {
     /// Returns the effective snapshot.
     @MainActor
     @discardableResult
-    public static func upsert(
+    static func upsert(
         amount: Decimal,
         periodMonth: Date,
         for holding: Holding,
@@ -33,7 +33,7 @@ public enum SnapshotService {
     }
 
     /// Returns the snapshot for the given day if one exists, else nil.
-    public static func snapshot(
+    static func snapshot(
         for holding: Holding,
         in periodMonth: Date
     ) -> Snapshot? {

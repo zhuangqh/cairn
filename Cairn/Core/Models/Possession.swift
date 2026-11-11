@@ -12,54 +12,54 @@ import SwiftData
 /// Note: CloudKit-backed SwiftData requires every stored property to have a
 /// default value and every to-many relationship to be an optional array.
 @Model
-public final class Possession {
-    public var id: UUID = UUID()
-    public var name: String = ""
-    public var categoryRawValue: String = PossessionCategory.realEstate.rawValue
+final class Possession {
+    var id: UUID = UUID()
+    var name: String = ""
+    var categoryRawValue: String = PossessionCategory.realEstate.rawValue
 
     /// Native acquisition price in `purchaseCurrency`.
-    public var purchasePrice: Decimal = 0
-    public var purchaseCurrency: String = "USD"
-    public var purchaseDate: Date = Date()
+    var purchasePrice: Decimal = 0
+    var purchaseCurrency: String = "USD"
+    var purchaseDate: Date = Date()
 
     /// Manual revaluation in `purchaseCurrency`. When `nil`, callers should
     /// fall back to `purchasePrice` for "current value" reporting.
-    public var currentValue: Decimal?
-    public var currentValueUpdatedAt: Date?
+    var currentValue: Decimal?
+    var currentValueUpdatedAt: Date?
 
     /// Non-nil marks the possession as disposed of.
-    public var saleDate: Date?
-    public var salePrice: Decimal?
+    var saleDate: Date?
+    var salePrice: Decimal?
 
     /// Optional custom SF Symbol override (reserved for a future icon library).
-    public var iconName: String?
+    var iconName: String?
     /// User photo shown in the Possessions showcase: an on-device subject
     /// cutout (transparent PNG), or the downscaled original when no subject
     /// was found. Kept out of the store file by external storage.
-    @Attribute(.externalStorage) public var photoData: Data?
-    public var note: String?
-    public var createdAt: Date = Date()
+    @Attribute(.externalStorage) var photoData: Data?
+    var note: String?
+    var createdAt: Date = Date()
 
-    @Relationship public var member: Member?
+    @Relationship var member: Member?
 
     /// Typed accessor over the persisted `categoryRawValue` token.
-    public var category: PossessionCategory {
+    var category: PossessionCategory {
         get { PossessionCategory(rawValue: categoryRawValue) ?? .other }
         set { categoryRawValue = newValue.rawValue }
     }
 
     /// Whether the possession has been disposed of (i.e. has a sale date).
-    public var isSold: Bool { saleDate != nil }
+    var isSold: Bool { saleDate != nil }
 
     /// Effective value for "what it's worth today" reporting.
     /// Falls back to `purchasePrice` when no manual revaluation has been made.
     /// Returns `nil` for sold possessions (they are excluded from current net worth).
-    public var effectiveValue: Decimal? {
+    var effectiveValue: Decimal? {
         guard !isSold else { return nil }
         return currentValue ?? purchasePrice
     }
 
-    public init(
+    init(
         name: String,
         category: PossessionCategory,
         purchasePrice: Decimal,

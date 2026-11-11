@@ -8,36 +8,36 @@ import SwiftData
 /// `FXRate` rows via `FXService.convert(...)`. Holdings whose currency
 /// has no cached rate are reported separately as `missingCurrencies`.
 @MainActor
-public enum NetWorthCalculator {
-    public struct Totals: Sendable, Equatable {
-        public var amount: Decimal
+enum NetWorthCalculator {
+    struct Totals: Sendable, Equatable {
+        var amount: Decimal
         /// Currencies encountered that could not be converted to the home
         /// currency. The UI uses this to prompt for a rate refresh.
-        public var missingCurrencies: [String]
+        var missingCurrencies: [String]
     }
 
-    public struct MemberTotal: Sendable, Equatable, Identifiable {
-        public let memberId: UUID
-        public let memberName: String
-        public let amount: Decimal
-        public var id: UUID { memberId }
+    struct MemberTotal: Sendable, Equatable, Identifiable {
+        let memberId: UUID
+        let memberName: String
+        let amount: Decimal
+        var id: UUID { memberId }
     }
 
-    public struct KindTotal: Sendable, Equatable, Identifiable {
-        public let kind: AccountKind
-        public let amount: Decimal
-        public var id: AccountKind { kind }
+    struct KindTotal: Sendable, Equatable, Identifiable {
+        let kind: AccountKind
+        let amount: Decimal
+        var id: AccountKind { kind }
     }
 
-    public struct Activity: Sendable, Identifiable {
-        public let id: UUID
-        public let recordedAt: Date
-        public let periodMonth: Date
-        public let memberName: String
-        public let accountName: String
-        public let holdingLabel: String?
-        public let currency: String
-        public let amount: Decimal
+    struct Activity: Sendable, Identifiable {
+        let id: UUID
+        let recordedAt: Date
+        let periodMonth: Date
+        let memberName: String
+        let accountName: String
+        let holdingLabel: String?
+        let currency: String
+        let amount: Decimal
     }
 
     /// One-shot bundle of every aggregate the UI typically asks for in the
@@ -45,20 +45,20 @@ public enum NetWorthCalculator {
     /// and the month-over-month delta — computed from a single holdings
     /// fetch + a single FX-rate cache. Designed to be the only entry point
     /// the dashboards / assets screens need.
-    public struct Bundle: Sendable, Equatable {
-        public var totals: Totals
-        public var byKind: [KindTotal]
-        public var byMember: [MemberTotal]
-        public var byCurrency: [CurrencyTotal]
+    struct Bundle: Sendable, Equatable {
+        var totals: Totals
+        var byKind: [KindTotal]
+        var byMember: [MemberTotal]
+        var byCurrency: [CurrencyTotal]
         /// Percentage change vs the previous month, or `nil` when the
         /// previous month was zero.
-        public var monthOverMonthDelta: Double?
+        var monthOverMonthDelta: Double?
     }
 
     /// Computes `Bundle` for a single `asOf` month. Optionally accepts a
     /// pre-loaded rate cache so multiple bundles (e.g. across a trend
     /// window) can share one cache.
-    public static func bundle(
+    static func bundle(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
         includeMemberBreakdown: Bool = true,
@@ -154,7 +154,7 @@ public enum NetWorthCalculator {
 
     /// Net worth across all holdings, valued at the latest snapshot on or
     /// before `periodMonth`.
-    public static func total(
+    static func total(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
         context: ModelContext
@@ -172,7 +172,7 @@ public enum NetWorthCalculator {
     }
 
     /// Per-member breakdown. Members with no holdings are omitted.
-    public static func totalsByMember(
+    static func totalsByMember(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
         context: ModelContext
@@ -204,7 +204,7 @@ public enum NetWorthCalculator {
     /// Monthly trend series. Each entry is `(periodMonth, totalInHomeCurrency)`.
     /// Returns the most recent `months` months up to and including the month
     /// containing `anchor`, sorted chronologically.
-    public static func trend(
+    static func trend(
         homeCurrency: String,
         months: Int,
         anchor: Date = .now,
@@ -235,7 +235,7 @@ public enum NetWorthCalculator {
     /// Net-worth totals broken down by account kind (cash/stock/realEstate/device),
     /// valued at the latest snapshot on or before `periodMonth`. Only kinds with
     /// non-zero totals are returned, sorted by amount descending.
-    public static func totalsByKind(
+    static func totalsByKind(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
         context: ModelContext
@@ -257,7 +257,7 @@ public enum NetWorthCalculator {
 
     /// Percentage change between `asOf` month total and the preceding month total.
     /// Returns `nil` when the previous month has zero net worth (no baseline).
-    public static func monthOverMonthDelta(
+    static func monthOverMonthDelta(
         homeCurrency: String,
         asOf periodMonth: Date = .now,
         context: ModelContext
@@ -290,15 +290,15 @@ public enum NetWorthCalculator {
 
     /// The most recently recorded snapshots across the whole store. Each entry
     /// carries resolved member / account / holding context for display.
-    public static func recentActivities(
+    static func recentActivities(
         limit: Int = 10,
         context: ModelContext
     ) -> [Activity] {
-        var descriptor = FetchDescriptor<Snapshot>(
-            sortBy: [SortDescriptor(\.recordedAt, order: .reverse)]
-        )
-        descriptor.fetchLimit = max(0, limit)
-        let rows = (try? context.fetch(descriptor)) ?? []
+        let sorted = ((try? context.fetch(FetchDescriptor<Snapshot>())) ?? [])
+            .sorted { $0.recordedAt > $1.recordedAt }
+        // A fetch limit of 0 means "no limit", matching the previous
+        // `fetchLimit = max(0, limit)` behaviour.
+        let rows = limit > 0 ? Array(sorted.prefix(limit)) : sorted
         return rows.map { snapshot in
             let holding = snapshot.holding
             let account = holding?.account
@@ -322,28 +322,27 @@ public enum NetWorthCalculator {
     /// Built once from a single SwiftData fetch so that repeated "latest
     /// snapshot at or before X" lookups across many `asOf` cutoffs share
     /// the same sorted arrays.
-    public struct SortedSnapshotIndex: Sendable {
+    @MainActor
+    struct SortedSnapshotIndex {
         /// All holdings present in the store. Includes archived rows so
         /// callers can apply their own filters; aggregation skips archived
         /// holdings / accounts.
-        public let holdings: [Holding]
+        let holdings: [Holding]
         /// Snapshots per holding `id`, sorted ascending by `periodMonth`.
-        @usableFromInline let byHoldingId: [UUID: [Snapshot]]
+        let byHoldingId: [UUID: [Snapshot]]
 
-        @usableFromInline
         init(holdings: [Holding], byHoldingId: [UUID: [Snapshot]]) {
             self.holdings = holdings
             self.byHoldingId = byHoldingId
         }
 
-        public static func load(in context: ModelContext) -> SortedSnapshotIndex {
+        static func load(in context: ModelContext) -> SortedSnapshotIndex {
             let holdings = (try? context.fetch(FetchDescriptor<Holding>())) ?? []
             // Fetch all snapshots in one query and bucket by holding id;
             // avoids N relationship round-trips through `holding.snapshots`
             // when we have many holdings.
-            let snapshots = (try? context.fetch(
-                FetchDescriptor<Snapshot>(sortBy: [SortDescriptor(\.periodMonth, order: .forward)])
-            )) ?? []
+            let snapshots = ((try? context.fetch(FetchDescriptor<Snapshot>())) ?? [])
+                .sorted { $0.periodMonth < $1.periodMonth }
             var byHolding: [UUID: [Snapshot]] = [:]
             byHolding.reserveCapacity(holdings.count)
             for snap in snapshots {
@@ -356,8 +355,7 @@ public enum NetWorthCalculator {
         /// Latest snapshot amount at or before `cutoff` for `holding`.
         /// Linear scan from the tail of the ascending array — typically a
         /// few comparisons because the cutoff is usually near "now".
-        @inlinable
-        public func latestAmount(for holding: Holding, asOf cutoff: Date) -> Decimal? {
+        func latestAmount(for holding: Holding, asOf cutoff: Date) -> Decimal? {
             guard let arr = byHoldingId[holding.id] else { return nil }
             // Walk from newest backwards; bail at first <= cutoff.
             var index = arr.count - 1
@@ -370,7 +368,6 @@ public enum NetWorthCalculator {
         }
     }
 
-    @usableFromInline
     struct AggregateResult {
         var total: Decimal
         var missing: Set<String>
@@ -383,7 +380,6 @@ public enum NetWorthCalculator {
     /// from the pre-sorted snapshot index and converting via the in-memory
     /// FX cache. Produces total, per-kind, per-member, and missing
     /// currencies in one go — callers pick what they need.
-    @usableFromInline
     static func aggregateFast(
         holdings: [Holding],
         homeCurrency: String,

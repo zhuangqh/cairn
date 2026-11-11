@@ -219,12 +219,13 @@ struct InspectionCloseButton: View {
     @ScaledMetric(relativeTo: .body) private var opticalInset: CGFloat = 2.3
 
     var body: some View {
+        let inset = opticalInset
         Button(action: action) {
             Label {
                 Text("common.action.done", bundle: localization.bundle)
             } icon: {
                 Image(systemName: "xmark")
-                    .alignmentGuide(.trailing) { $0[.trailing] - opticalInset }
+                    .alignmentGuide(.trailing) { $0[.trailing] - inset }
             }
             .labelStyle(.iconOnly)
             .font(.body.weight(.medium))

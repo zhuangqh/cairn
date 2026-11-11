@@ -10,21 +10,21 @@ import SwiftData
 /// portfolio snapshot, and in DEBUG builds possessions with bundled photos)
 /// without each call site re-building the same fixtures.
 @MainActor
-public enum PreviewSampleData {
+enum PreviewSampleData {
 
     // MARK: - Public entry points
 
     /// Fresh in-memory container pre-populated with the demo graph. A new
     /// container is returned on every call so individual previews cannot
     /// pollute each other's state.
-    public static func container(homeCurrency: String = "USD") -> ModelContainer {
+    static func container(homeCurrency: String = "USD") -> ModelContainer {
         seededContainer(homeCurrency: homeCurrency).container
     }
 
     /// Same as `container(_:)`, but also returns the seeded references so
     /// previews can pass specific members / accounts / holdings into the view
     /// under inspection without re-fetching them.
-    public static func seededContainer(homeCurrency: String = "USD") -> (container: ModelContainer, seed: Seeded) {
+    static func seededContainer(homeCurrency: String = "USD") -> (container: ModelContainer, seed: Seeded) {
         let container = PersistenceController.previewContainer()
         let seed = populate(container.mainContext, homeCurrency: homeCurrency)
         try? container.mainContext.save()
@@ -32,7 +32,7 @@ public enum PreviewSampleData {
     }
 
     /// Empty in-memory container — for previewing empty / zero-state UI.
-    public static func emptyContainer() -> ModelContainer {
+    static func emptyContainer() -> ModelContainer {
         PersistenceController.previewContainer()
     }
 
@@ -41,7 +41,7 @@ public enum PreviewSampleData {
     /// `-CairnMockData <path>` visual-review launch with the shared mock
     /// dataset (`example/cairn-mock-data.json`). The user's store is never
     /// opened; a missing or invalid file stops the debug launch.
-    public static func mockContainer(contentsOf url: URL) -> ModelContainer {
+    static func mockContainer(contentsOf url: URL) -> ModelContainer {
         let container = PersistenceController.previewContainer()
         do {
             let data = try Data(contentsOf: url)
@@ -55,26 +55,26 @@ public enum PreviewSampleData {
 
     // MARK: - Seeded references
 
-    public struct Seeded {
-        public let alice: Member
-        public let bob: Member
-        public let checking: Account
-        public let brokerage: Account
-        public let apartment: Account
-        public let bobCash: Account
-        public let emptyAccount: Account
-        public let checkingUSD: Holding
-        public let checkingEUR: Holding
-        public let brokerageUSD: Holding
-        public let apartmentCNY: Holding
-        public let bobCNY: Holding
-        public let latestPortfolioSnapshot: PortfolioSnapshot
+    struct Seeded {
+        let alice: Member
+        let bob: Member
+        let checking: Account
+        let brokerage: Account
+        let apartment: Account
+        let bobCash: Account
+        let emptyAccount: Account
+        let checkingUSD: Holding
+        let checkingEUR: Holding
+        let brokerageUSD: Holding
+        let apartmentCNY: Holding
+        let bobCNY: Holding
+        let latestPortfolioSnapshot: PortfolioSnapshot
     }
 
     // MARK: - Seeding
 
     @discardableResult
-    public static func populate(
+    static func populate(
         _ context: ModelContext,
         homeCurrency: String = "USD"
     ) -> Seeded {
@@ -103,84 +103,28 @@ public enum PreviewSampleData {
 
         // Snapshots — 6 months of steady growth per holding -------------
         let months = recentMonths(6)
-        let trajectories: [(Holding, Decimal, Decimal)] = [
-            (checkingUSD, 12_000, 300),
-            (checkingEUR, 3_500, 120),
-            (brokerageUSD, 58_000, 1_400),
-            (apartmentCNY, 3_200_000, 8_000),
-            (bobCNY, 120_000, 2_500),
-        ]
-        for (holding, start, step) in trajectories {
-            for (offset, month) in months.enumerated() {
-                let amount = start + step * Decimal(offset)
-                context.insert(Snapshot(periodMonth: month, amount: amount, holding: holding))
-            }
-        }
+        insertSnapshots(context, months: months, trajectories: [
+            Trajectory(holding: checkingUSD, start: 12_000, step: 300),
+            Trajectory(holding: checkingEUR, start: 3_500, step: 120),
+            Trajectory(holding: brokerageUSD, start: 58_000, step: 1_400),
+            Trajectory(holding: apartmentCNY, start: 3_200_000, step: 8_000),
+            Trajectory(holding: bobCNY, start: 120_000, step: 2_500)
+        ])
 
         // FX rates — both directions for the common pairs ---------------
         let today = Date()
-        let rates: [(String, String, Decimal)] = [
-            ("EUR", "USD", 1.08),
-            ("CNY", "USD", 0.14),
-            ("USD", "EUR", 0.93),
-            ("USD", "CNY", 7.15),
-        ]
-        for (base, quote, rate) in rates {
-            context.insert(FXRate(base: base, quote: quote, rate: rate, date: today))
-        }
+        insertFXRates(context, date: today)
 
         // One captured portfolio snapshot (latest month) ----------------
-        let latestMonth = months.last ?? today
-        let entries: [PortfolioSnapshot.Entry] = [
-            .init(
-                holdingId: checkingUSD.id,
-                memberName: alice.name,
-                accountName: checking.name,
-                holdingLabel: nil,
-                currency: "USD",
-                amount: 13_500,
-                convertedAmount: 13_500
-            ),
-            .init(
-                holdingId: brokerageUSD.id,
-                memberName: alice.name,
-                accountName: brokerage.name,
-                holdingLabel: "Index funds",
-                currency: "USD",
-                amount: 65_000,
-                convertedAmount: 65_000
-            ),
-            .init(
-                holdingId: apartmentCNY.id,
-                memberName: alice.name,
-                accountName: apartment.name,
-                holdingLabel: "Shanghai",
-                currency: "CNY",
-                amount: 3_240_000,
-                convertedAmount: 453_600
-            ),
-            .init(
-                holdingId: bobCNY.id,
-                memberName: bob.name,
-                accountName: bobCash.name,
-                holdingLabel: nil,
-                currency: "CNY",
-                amount: 132_500,
-                convertedAmount: 18_550
-            )
-        ]
-        let portfolioRates: [PortfolioSnapshot.Rate] = [
-            .init(base: "EUR", quote: homeCurrency, rate: 1.08),
-            .init(base: "CNY", quote: homeCurrency, rate: 0.14)
-        ]
-        let total = entries.compactMap(\.convertedAmount).reduce(Decimal(0), +)
-        let portfolio = PortfolioSnapshot(
-            periodMonth: latestMonth,
-            homeCurrency: homeCurrency,
-            totalAmount: total,
-            entries: entries,
-            rates: portfolioRates,
-            note: "Preview sample"
+        let portfolio = latestPortfolioSnapshot(
+            entries: [
+                portfolioEntry(checkingUSD, amount: 13_500, convertedAmount: 13_500),
+                portfolioEntry(brokerageUSD, amount: 65_000, convertedAmount: 65_000),
+                portfolioEntry(apartmentCNY, amount: 3_240_000, convertedAmount: 453_600),
+                portfolioEntry(bobCNY, amount: 132_500, convertedAmount: 18_550)
+            ],
+            periodMonth: months.last ?? today,
+            homeCurrency: homeCurrency
         )
         context.insert(portfolio)
 
@@ -207,6 +151,82 @@ public enum PreviewSampleData {
 
     // MARK: - Helpers
 
+    /// Linear monthly growth for one holding's sample snapshots.
+    private struct Trajectory {
+        let holding: Holding
+        let start: Decimal
+        let step: Decimal
+    }
+
+    private struct SampleRate {
+        let base: String
+        let quote: String
+        let rate: Decimal
+    }
+
+    private static func insertSnapshots(
+        _ context: ModelContext,
+        months: [Date],
+        trajectories: [Trajectory]
+    ) {
+        for trajectory in trajectories {
+            for (offset, month) in months.enumerated() {
+                let amount = trajectory.start + trajectory.step * Decimal(offset)
+                context.insert(Snapshot(periodMonth: month, amount: amount, holding: trajectory.holding))
+            }
+        }
+    }
+
+    private static func insertFXRates(_ context: ModelContext, date: Date) {
+        let rates = [
+            SampleRate(base: "EUR", quote: "USD", rate: 1.08),
+            SampleRate(base: "CNY", quote: "USD", rate: 0.14),
+            SampleRate(base: "USD", quote: "EUR", rate: 0.93),
+            SampleRate(base: "USD", quote: "CNY", rate: 7.15)
+        ]
+        for sample in rates {
+            context.insert(FXRate(base: sample.base, quote: sample.quote, rate: sample.rate, date: date))
+        }
+    }
+
+    /// Captured entry for `holding`, reading its member / account names,
+    /// label, and currency from the seeded relationships.
+    private static func portfolioEntry(
+        _ holding: Holding,
+        amount: Decimal,
+        convertedAmount: Decimal
+    ) -> PortfolioSnapshot.Entry {
+        .init(
+            holdingId: holding.id,
+            memberName: holding.account?.member?.name ?? "",
+            accountName: holding.account?.name ?? "",
+            holdingLabel: holding.label,
+            currency: holding.currency,
+            amount: amount,
+            convertedAmount: convertedAmount
+        )
+    }
+
+    private static func latestPortfolioSnapshot(
+        entries: [PortfolioSnapshot.Entry],
+        periodMonth: Date,
+        homeCurrency: String
+    ) -> PortfolioSnapshot {
+        let portfolioRates: [PortfolioSnapshot.Rate] = [
+            .init(base: "EUR", quote: homeCurrency, rate: 1.08),
+            .init(base: "CNY", quote: homeCurrency, rate: 0.14)
+        ]
+        let total = entries.compactMap(\.convertedAmount).reduce(Decimal(0), +)
+        return PortfolioSnapshot(
+            periodMonth: periodMonth,
+            homeCurrency: homeCurrency,
+            totalAmount: total,
+            entries: entries,
+            rates: portfolioRates,
+            note: "Preview sample"
+        )
+    }
+
     private static func recentMonths(_ count: Int) -> [Date] {
         var calendar = Calendar(identifier: .iso8601)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
@@ -222,8 +242,8 @@ public enum PreviewSampleData {
 /// for previews that render the full app shell. Call once from a preview
 /// closure before instantiating the view.
 @MainActor
-public enum PreviewDefaults {
-    public static func primeOnboarded(homeCurrency: String = "USD") {
+enum PreviewDefaults {
+    static func primeOnboarded(homeCurrency: String = "USD") {
         UserDefaults.standard.set(true, forKey: AppSettingsKeys.onboardingCompleted)
         UserDefaults.standard.set(true, forKey: AppSettingsKeys.featureTourSeen)
         UserDefaults.standard.set(homeCurrency, forKey: AppSettingsKeys.homeCurrency)

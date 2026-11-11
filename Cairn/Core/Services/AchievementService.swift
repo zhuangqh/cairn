@@ -2,16 +2,16 @@ import Foundation
 import SwiftData
 
 @MainActor
-public enum AchievementService {
-    public static let definitionVersion = 1
-    public static let timeMarkThresholds = [3, 6, 12, 24, 60]
+enum AchievementService {
+    static let definitionVersion = 1
+    static let timeMarkThresholds = [3, 6, 12, 24, 60]
     /// Wealth milestones run 100K → 200K → 500K → 1M → 2M → 5M → 10M and
     /// stop there; recomputation removes any stored stage beyond 10M.
-    public static let wealthStageCount = 7
+    static let wealthStageCount = 7
 
-    public struct EvaluationResult: Sendable {
-        public var created: [AchievementPresentation]
-        public var removedCount: Int
+    struct EvaluationResult: Sendable {
+        var created: [AchievementPresentation]
+        var removedCount: Int
     }
 
     private struct Candidate {
@@ -27,7 +27,7 @@ public enum AchievementService {
     /// Replays the complete explicit monthly history, preserving matching
     /// persisted events and removing events invalidated by factual edits.
     @discardableResult
-    public static func recompute(
+    static func recompute(
         in context: ModelContext,
         source: AchievementSource = .live,
         now: Date = .now
@@ -88,8 +88,8 @@ public enum AchievementService {
         return EvaluationResult(created: created, removedCount: removedCount)
     }
 
-    public static func allPresentations(in context: ModelContext) -> [AchievementPresentation] {
-        return ((try? context.fetch(FetchDescriptor<AchievementEvent>())) ?? [])
+    static func allPresentations(in context: ModelContext) -> [AchievementPresentation] {
+        ((try? context.fetch(FetchDescriptor<AchievementEvent>())) ?? [])
             .sorted {
                 if $0.logicalMonth == $1.logicalMonth { return $0.unlockedAt > $1.unlockedAt }
                 return $0.logicalMonth > $1.logicalMonth
@@ -98,24 +98,24 @@ public enum AchievementService {
     }
 
     /// The next stage after the highest earned one, or `nil` once 10M is earned.
-    public static func nextWealthStageIndex(afterEarned latest: Int?) -> Int? {
+    static func nextWealthStageIndex(afterEarned latest: Int?) -> Int? {
         let next = (latest ?? -1) + 1
         return next < wealthStageCount ? next : nil
     }
 
-    public static func wealthThreshold(at index: Int) -> Decimal {
+    static func wealthThreshold(at index: Int) -> Decimal {
         let bases = [1, 2, 5]
         let safeIndex = max(0, index)
         let exponent = 5 + (safeIndex / 3)
         return Decimal(bases[safeIndex % 3]) * powerOfTen(exponent)
     }
 
-    public static func wealthStageIndex(from stageKey: String) -> Int? {
+    static func wealthStageIndex(from stageKey: String) -> Int? {
         guard stageKey.hasPrefix("wealth-") else { return nil }
         return Int(stageKey.dropFirst("wealth-".count))
     }
 
-    public static func monthlyAscentMaterialIndex(for amount: Decimal) -> Int {
+    static func monthlyAscentMaterialIndex(for amount: Decimal) -> Int {
         guard amount > 0 else { return 0 }
         var result = 0
         for index in 0..<60 {

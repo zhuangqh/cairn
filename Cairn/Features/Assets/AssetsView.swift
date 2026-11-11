@@ -50,7 +50,7 @@ struct AssetsView: View {
     private var portfolioSnapshots: [PortfolioSnapshot]
 
     @State private var isUpdating: Bool = false
-    @State private var selectedYear: Int? = nil
+    @State private var selectedYear: Int?
     @State private var selectedTab: Tab = .financial
     @State private var possessionAddRequest: Int = 0
     @State private var isInspectingPossession = false

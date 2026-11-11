@@ -6,13 +6,13 @@ import SwiftUI
 /// The app ships `en` and `zh-Hans` at v1 (see PRD §5.5). When the override equals
 /// `.followSystem`, SwiftUI picks the best match from the system settings.
 @Observable
-public final class LocalizationService {
-    public enum LanguageOverride: String, CaseIterable, Sendable {
+final class LocalizationService {
+    enum LanguageOverride: String, CaseIterable, Sendable {
         case followSystem
         case english
         case simplifiedChinese
 
-        public var bcp47Code: String? {
+        var bcp47Code: String? {
             switch self {
             case .followSystem: return nil
             case .english: return "en"
@@ -20,7 +20,7 @@ public final class LocalizationService {
             }
         }
 
-        public var localizationKey: String {
+        var localizationKey: String {
             switch self {
             case .followSystem: return "settings.language.followSystem"
             case .english: return "settings.language.english"
@@ -31,13 +31,13 @@ public final class LocalizationService {
 
     private static let overrideKey = "cairn.languageOverride"
 
-    public var override: LanguageOverride {
+    var override: LanguageOverride {
         didSet {
             UserDefaults.standard.set(override.rawValue, forKey: Self.overrideKey)
         }
     }
 
-    public init() {
+    init() {
         if let raw = UserDefaults.standard.string(forKey: Self.overrideKey),
            let value = LanguageOverride(rawValue: raw) {
             self.override = value
@@ -47,7 +47,7 @@ public final class LocalizationService {
     }
 
     /// Locale to apply to the SwiftUI environment. `nil` means "use system".
-    public var effectiveLocale: Locale? {
+    var effectiveLocale: Locale? {
         guard let code = override.bcp47Code else { return nil }
         return Locale(identifier: code)
     }
@@ -63,7 +63,7 @@ public final class LocalizationService {
     /// `Bundle.main.preferredLocalizations`. Pass this bundle explicitly
     /// (e.g. `Text("key", bundle: localization.bundle)`) so the override
     /// also drives those surfaces without requiring an app restart.
-    public var bundle: Bundle {
+    var bundle: Bundle {
         guard let code = override.bcp47Code,
               let path = Bundle.main.path(forResource: code, ofType: "lproj"),
               let languageBundle = Bundle(path: path) else {

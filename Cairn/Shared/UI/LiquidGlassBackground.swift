@@ -4,16 +4,16 @@ import SwiftUI
 /// (e.g. the snapshot filter bar). Prefers Apple's native `.glassEffect`
 /// Liquid Glass API when available (iOS 26 / macOS 26+) and falls back
 /// to a hand-tuned material + highlight stroke composition on older OSes.
-public struct LiquidGlassBackground: ViewModifier {
-    public var cornerRadius: CGFloat
-    public var tint: Color?
+struct LiquidGlassBackground: ViewModifier {
+    var cornerRadius: CGFloat
+    var tint: Color?
 
-    public init(cornerRadius: CGFloat = 14, tint: Color? = nil) {
+    init(cornerRadius: CGFloat = 14, tint: Color? = nil) {
         self.cornerRadius = cornerRadius
         self.tint = tint
     }
 
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         if #available(iOS 26.0, macOS 26.0, *) {
             content
                 .glassEffect(
@@ -62,7 +62,7 @@ public struct LiquidGlassBackground: ViewModifier {
     }
 }
 
-public extension View {
+extension View {
     /// Wraps the view in a translucent Liquid-Glass-style surface.
     func liquidGlassBackground(cornerRadius: CGFloat = 14, tint: Color? = nil) -> some View {
         modifier(LiquidGlassBackground(cornerRadius: cornerRadius, tint: tint))

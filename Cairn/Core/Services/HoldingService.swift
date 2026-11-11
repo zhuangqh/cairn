@@ -3,12 +3,12 @@ import SwiftData
 
 /// Business rules for `Holding` that can't be expressed in the SwiftData model
 /// (because CloudKit sync forbids `@Attribute(.unique)`).
-public enum HoldingService {
+enum HoldingService {
     /// Creates and inserts a new Holding in the given context, enforcing that
     /// its `currency` is unique within the target Account.
     @MainActor
     @discardableResult
-    public static func create(
+    static func create(
         currency: String,
         label: String? = nil,
         in account: Account,
@@ -23,7 +23,7 @@ public enum HoldingService {
     /// Throws `.duplicateCurrencyInAccount` if `account` already has an active
     /// (non-archived) Holding with `currency`.
     @MainActor
-    public static func assertCurrencyIsAvailable(
+    static func assertCurrencyIsAvailable(
         _ currency: String,
         in account: Account
     ) throws {

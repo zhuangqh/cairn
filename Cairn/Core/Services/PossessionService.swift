@@ -7,61 +7,33 @@ import SwiftData
 /// "current" valuation is `currentValue ?? purchasePrice`, and sold possessions
 /// (`saleDate != nil`) are excluded from current-value reporting.
 @MainActor
-public enum PossessionService {
+enum PossessionService {
 
-    public struct CategoryTotal: Sendable, Equatable, Identifiable {
-        public let category: PossessionCategory
-        public let amount: Decimal
-        public var id: PossessionCategory { category }
+    struct CategoryTotal: Sendable, Equatable, Identifiable {
+        let category: PossessionCategory
+        let amount: Decimal
+        var id: PossessionCategory { category }
     }
 
-    public struct Totals: Sendable, Equatable {
-        public var amount: Decimal
+    struct Totals: Sendable, Equatable {
+        var amount: Decimal
         /// Purchase currencies encountered that could not be converted to the
         /// home currency. UI should prompt for an FX rate refresh.
-        public var missingCurrencies: [String]
+        var missingCurrencies: [String]
     }
 
     /// Bundle of every aggregate the Possessions / Dashboard screens need from
     /// one fetch + one FX cache pass — total in home currency, per-category
     /// breakdown, and the missing-currency warning list.
-    public struct Bundle: Sendable, Equatable {
-        public var totals: Totals
-        public var byCategory: [CategoryTotal]
+    struct Bundle: Sendable, Equatable {
+        var totals: Totals
+        var byCategory: [CategoryTotal]
     }
 
     // MARK: - CRUD
 
-    @discardableResult
-    public static func create(
-        name: String,
-        category: PossessionCategory,
-        purchasePrice: Decimal,
-        purchaseCurrency: String,
-        purchaseDate: Date,
-        member: Member,
-        note: String? = nil,
-        context: ModelContext
-    ) throws -> Possession {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            throw DomainError.missingRequiredField(fieldKey: "possession.form.name")
-        }
-        let possession = Possession(
-            name: trimmed,
-            category: category,
-            purchasePrice: purchasePrice,
-            purchaseCurrency: purchaseCurrency,
-            purchaseDate: purchaseDate,
-            note: note,
-            member: member
-        )
-        context.insert(possession)
-        return possession
-    }
-
     /// Stamp a new manual valuation in the possession's native currency.
-    public static func updateCurrentValue(
+    static func updateCurrentValue(
         _ possession: Possession,
         to value: Decimal?,
         at timestamp: Date = .now
@@ -71,7 +43,7 @@ public enum PossessionService {
     }
 
     /// Mark an possession as sold. Pass `nil` values to clear the sale state.
-    public static func markSold(
+    static func markSold(
         _ possession: Possession,
         on date: Date?,
         price: Decimal?
@@ -92,7 +64,7 @@ public enum PossessionService {
     /// `purchasePrice` (historical manual valuations are not stored per
     /// month, so purchase price is the best available proxy). Passing `nil`
     /// preserves the "today" semantics used everywhere else.
-    public static func total(
+    static func total(
         homeCurrency: String,
         asOf: Date? = nil,
         context: ModelContext
@@ -104,7 +76,7 @@ public enum PossessionService {
 
     /// Per-category totals, sorted by amount descending. See `total(...)`
     /// for the time-travel semantics when `asOf` is provided.
-    public static func totalsByCategory(
+    static func totalsByCategory(
         homeCurrency: String,
         asOf: Date? = nil,
         context: ModelContext
@@ -122,7 +94,7 @@ public enum PossessionService {
     /// Single-pass bundle. Useful when a view needs both the headline total
     /// and the per-category breakdown in the same render — avoids fetching
     /// `Possession` rows + the FX cache twice.
-    public static func bundle(
+    static func bundle(
         homeCurrency: String,
         asOf: Date? = nil,
         rateCache: FXService.RateCache? = nil,

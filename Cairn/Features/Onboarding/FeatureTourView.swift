@@ -206,7 +206,7 @@ private extension FeatureTourView {
         case highlight(Highlight)
         case homeCurrency
 
-        static let highlights: [Page] = Highlight.all.map(Page.highlight)
+        @MainActor static let highlights: [Page] = Highlight.all.map(Page.highlight)
     }
 
     struct Highlight {
@@ -216,7 +216,7 @@ private extension FeatureTourView {
         let bodyKey: LocalizedStringKey
         let bullets: [LocalizedStringKey]
 
-        static let all: [Highlight] = [
+        @MainActor static let all: [Highlight] = [
             Highlight(
                 symbol: "mountain.2.fill",
                 tint: .accent,

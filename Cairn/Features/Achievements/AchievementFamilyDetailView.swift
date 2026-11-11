@@ -23,14 +23,6 @@ struct AchievementFamilyDetailView: View {
     @State private var inspectionTask: Task<Void, Never>?
     @State private var inspectionSourceRevealed = false
 
-    private struct Stage: Identifiable {
-        let id: String
-        let stageKey: String
-        let title: String
-        let requirement: String
-        let earned: AchievementPresentation?
-    }
-
     private struct InspectionSelection: Identifiable {
         let id: String
         let matchedID: String
@@ -67,16 +59,14 @@ struct AchievementFamilyDetailView: View {
     }
 
     private var stages: [Stage] {
-        switch family {
-        case .wealthMilestone:
-            return wealthStages
-        case .monthlyAscent:
-            return ascentStages
-        case .timeMark:
-            return timeStages
-        case .prologue:
-            return []
-        }
+        StageBuilder(
+            presentations: familyPresentations,
+            homeCurrency: homeCurrency,
+            ascentCurrency: effectiveAscentCurrency,
+            locale: locale,
+            bundle: localization.bundle
+        )
+        .stages(for: family)
     }
 
     var body: some View {
@@ -334,82 +324,6 @@ struct AchievementFamilyDetailView: View {
         }
     }
 
-    private var wealthStages: [Stage] {
-        let byIndex = Dictionary(
-            uniqueKeysWithValues: familyPresentations.compactMap { presentation in
-                AchievementService.wealthStageIndex(from: presentation.stageKey).map { ($0, presentation) }
-            }
-        )
-        return (0..<AchievementService.wealthStageCount).map { index in
-            let stageKey = "wealth-\(index)"
-            let presentation = byIndex[index]
-            let currency = presentation?.currencyCode ?? homeCurrency
-            let threshold = AchievementService.wealthThreshold(at: index)
-            return Stage(
-                id: stageKey,
-                stageKey: stageKey,
-                title: localized(wealthTitleKey(index)),
-                requirement: threshold.formatted(
-                    .currency(code: currency).precision(.fractionLength(0)).locale(locale)
-                ),
-                earned: presentation
-            )
-        }
-    }
-
-    private var ascentStages: [Stage] {
-        let ordered = familyPresentations.sorted { $0.logicalMonth < $1.logicalMonth }
-        let record = ordered.compactMap(\.observedAmount).max() ?? 0
-        let highestMaterial = AchievementService.monthlyAscentMaterialIndex(for: record)
-        let upperBound = max(6, highestMaterial + 3)
-
-        return (0...upperBound).map { index in
-            let threshold = ascentThreshold(for: index)
-            let earned = ordered.first { presentation in
-                guard let amount = presentation.observedAmount else { return false }
-                return index == 0 ? amount > 0 : amount >= threshold
-            }
-            let title = index == 0
-                ? localized("achievement.detail.firstRecord")
-                : threshold.formatted(
-                    .currency(code: effectiveAscentCurrency)
-                        .precision(.fractionLength(0))
-                        .locale(locale)
-                )
-            let requirement = index == 0
-                ? localized("achievement.detail.firstRecord.requirement")
-                : localized("achievement.detail.ascentRequirement")
-            return Stage(
-                id: "ascent-tier-\(index)",
-                stageKey: "ascent-\(index)",
-                title: title,
-                requirement: requirement,
-                earned: earned
-            )
-        }
-    }
-
-    private var timeStages: [Stage] {
-        let byThreshold = Dictionary(
-            uniqueKeysWithValues: familyPresentations.compactMap { presentation -> (Int, AchievementPresentation)? in
-                guard let threshold = Int(presentation.stageKey.split(separator: "-").last ?? "") else { return nil }
-                return (threshold, presentation)
-            }
-        )
-        return AchievementService.timeMarkThresholds.map { threshold in
-            Stage(
-                id: "time-\(threshold)",
-                stageKey: "time-\(threshold)",
-                title: String(
-                    format: String(localized: "achievement.detail.timeStage", bundle: localization.bundle),
-                    threshold
-                ),
-                requirement: localized("achievement.detail.timeRequirement"),
-                earned: byThreshold[threshold]
-            )
-        }
-    }
-
     private var featuredPresentation: AchievementPresentation? {
         switch family {
         case .monthlyAscent:
@@ -443,24 +357,6 @@ struct AchievementFamilyDetailView: View {
         case .monthlyAscent: return "ascent-0"
         case .timeMark: return "time-3"
         case .prologue: return "first-stone"
-        }
-    }
-
-    private func ascentThreshold(for materialIndex: Int) -> Decimal {
-        guard materialIndex > 0 else { return 0 }
-        return AchievementService.wealthThreshold(at: materialIndex - 1) / 10
-    }
-
-    private func wealthTitleKey(_ index: Int) -> String {
-        switch index {
-        case 0: return "achievement.wealth.stage.100k"
-        case 1: return "achievement.wealth.stage.200k"
-        case 2: return "achievement.wealth.stage.500k"
-        case 3: return "achievement.wealth.stage.1m"
-        case 4: return "achievement.wealth.stage.2m"
-        case 5: return "achievement.wealth.stage.5m"
-        case 6: return "achievement.wealth.stage.10m"
-        default: return "achievement.wealth.stage.generic"
         }
     }
 
@@ -508,6 +404,14 @@ struct AchievementFamilyDetailView: View {
         }
     }
 
+    private func localized(_ key: String) -> String {
+        String(localized: String.LocalizationValue(key), bundle: localization.bundle)
+    }
+}
+
+// MARK: - Medal inspection
+
+extension AchievementFamilyDetailView {
     private func openInspection(_ selection: InspectionSelection) {
         guard inspectedMedal == nil, inspectionTask == nil else { return }
         guard let sourceFrame = sourceFrames[selection.matchedID] else { return }
@@ -522,7 +426,7 @@ struct AchievementFamilyDetailView: View {
 
     private func startInspection() {
         guard inspectedMedal != nil, inspectionTask == nil, inspectionProgress == 0 else { return }
-        inspectionTask = Task { @MainActor in
+        inspectionTask = Task {
             await Task.yield()
             guard !Task.isCancelled else { return }
             let duration = reduceMotion ? 0.25 : 0.78
@@ -541,7 +445,7 @@ struct AchievementFamilyDetailView: View {
     private func closeInspection() {
         guard inspectedMedal != nil, inspectionProgress == 1, inspectionTask == nil else { return }
 
-        inspectionTask = Task { @MainActor in
+        inspectionTask = Task {
             let duration = reduceMotion ? 0.25 : 0.72
             withAnimation(reduceMotion
                 ? .easeOut(duration: duration)
@@ -561,9 +465,5 @@ struct AchievementFamilyDetailView: View {
             }
             inspectionTask = nil
         }
-    }
-
-    private func localized(_ key: String) -> String {
-        String(localized: String.LocalizationValue(key), bundle: localization.bundle)
     }
 }

@@ -752,12 +752,11 @@ struct PortfolioSnapshotDetailView: View {
         guard explicitPrevious == nil, resolvedPrevious == nil else { return }
         let month = snapshot.periodMonth
         let currency = snapshot.homeCurrency
-        var descriptor = FetchDescriptor<PortfolioSnapshot>(
-            predicate: #Predicate { $0.periodMonth < month && $0.homeCurrency == currency },
-            sortBy: [SortDescriptor(\.periodMonth, order: .reverse)]
+        let descriptor = FetchDescriptor<PortfolioSnapshot>(
+            predicate: #Predicate { $0.periodMonth < month && $0.homeCurrency == currency }
         )
-        descriptor.fetchLimit = 1
-        resolvedPrevious = (try? context.fetch(descriptor))?.first
+        resolvedPrevious = (try? context.fetch(descriptor))?
+            .max { $0.periodMonth < $1.periodMonth }
     }
 
     /// Resolves each captured entry's holding to the live account's

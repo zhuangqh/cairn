@@ -1,28 +1,28 @@
 import Foundation
 
-public struct BackupPayload: Codable, Sendable {
-    public let version: Int
-    public let exportedAt: Date
-    public let members: [MemberDTO]
-    public let accounts: [AccountDTO]
-    public let holdings: [HoldingDTO]
-    public let snapshots: [SnapshotDTO]
-    public let fxRates: [FXRateDTO]
+struct BackupPayload: Codable, Sendable {
+    let version: Int
+    let exportedAt: Date
+    let members: [MemberDTO]
+    let accounts: [AccountDTO]
+    let holdings: [HoldingDTO]
+    let snapshots: [SnapshotDTO]
+    let fxRates: [FXRateDTO]
     /// Added in version 1.1; older backups omit this field entirely, so it
     /// is decoded as `nil` and treated as an empty collection.
-    public let portfolioSnapshots: [PortfolioSnapshotDTO]?
+    let portfolioSnapshots: [PortfolioSnapshotDTO]?
     /// Added in version 1.1 with physical-possession support. Older backups omit
     /// this field and decode as `nil`.
-    public let possessions: [PossessionDTO]?
+    let possessions: [PossessionDTO]?
     /// Added in version 4. Older backups are replayed from explicit monthly
     /// portfolio snapshots after restore.
-    public let achievements: [AchievementEventDTO]?
+    let achievements: [AchievementEventDTO]?
     /// The exporting device's home currency (ISO 4217). Optional and
     /// additive: older backups omit it, and older builds ignore it, so the
     /// format version is unchanged. Restore applies it only when valid.
-    public let homeCurrency: String?
+    let homeCurrency: String?
 
-    public init(
+    init(
         version: Int,
         exportedAt: Date,
         members: [MemberDTO],
@@ -49,18 +49,18 @@ public struct BackupPayload: Codable, Sendable {
     }
 }
 
-public struct AchievementEventDTO: Codable, Sendable {
-    public let id: UUID
-    public let eventKey: String
-    public let familyRawValue: String
-    public let stageKey: String
-    public let logicalMonth: Date
-    public let unlockedAt: Date
-    public let currencyCode: String?
-    public let observedAmount: Decimal?
-    public let sourceRawValue: String
-    public let sourceSnapshotIDs: [UUID]
-    public let definitionVersion: Int
+struct AchievementEventDTO: Codable, Sendable {
+    let id: UUID
+    let eventKey: String
+    let familyRawValue: String
+    let stageKey: String
+    let logicalMonth: Date
+    let unlockedAt: Date
+    let currencyCode: String?
+    let observedAmount: Decimal?
+    let sourceRawValue: String
+    let sourceSnapshotIDs: [UUID]
+    let definitionVersion: Int
 
     init(_ event: AchievementEvent) {
         self.id = event.id
@@ -77,13 +77,13 @@ public struct AchievementEventDTO: Codable, Sendable {
     }
 }
 
-public struct MemberDTO: Codable, Sendable {
-    public let id: UUID
-    public let name: String
-    public let createdAt: Date
+struct MemberDTO: Codable, Sendable {
+    let id: UUID
+    let name: String
+    let createdAt: Date
     /// Added in version 1.2; older backups omit this field entirely and
     /// are decoded with `nil`.
-    public let avatarData: Data?
+    let avatarData: Data?
 
     init(_ member: Member) {
         self.id = member.id
@@ -93,14 +93,14 @@ public struct MemberDTO: Codable, Sendable {
     }
 }
 
-public struct AccountDTO: Codable, Sendable {
-    public let id: UUID
-    public let name: String
-    public let kindRawValue: String
-    public let note: String?
-    public let isArchived: Bool
-    public let createdAt: Date
-    public let memberId: UUID?
+struct AccountDTO: Codable, Sendable {
+    let id: UUID
+    let name: String
+    let kindRawValue: String
+    let note: String?
+    let isArchived: Bool
+    let createdAt: Date
+    let memberId: UUID?
 
     init(_ account: Account) {
         self.id = account.id
@@ -113,13 +113,13 @@ public struct AccountDTO: Codable, Sendable {
     }
 }
 
-public struct HoldingDTO: Codable, Sendable {
-    public let id: UUID
-    public let currency: String
-    public let label: String?
-    public let isArchived: Bool
-    public let createdAt: Date
-    public let accountId: UUID?
+struct HoldingDTO: Codable, Sendable {
+    let id: UUID
+    let currency: String
+    let label: String?
+    let isArchived: Bool
+    let createdAt: Date
+    let accountId: UUID?
 
     init(_ holding: Holding) {
         self.id = holding.id
@@ -131,12 +131,12 @@ public struct HoldingDTO: Codable, Sendable {
     }
 }
 
-public struct SnapshotDTO: Codable, Sendable {
-    public let id: UUID
-    public let amount: Decimal
-    public let periodMonth: Date
-    public let recordedAt: Date
-    public let holdingId: UUID?
+struct SnapshotDTO: Codable, Sendable {
+    let id: UUID
+    let amount: Decimal
+    let periodMonth: Date
+    let recordedAt: Date
+    let holdingId: UUID?
 
     init(_ snapshot: Snapshot) {
         self.id = snapshot.id
@@ -147,12 +147,12 @@ public struct SnapshotDTO: Codable, Sendable {
     }
 }
 
-public struct FXRateDTO: Codable, Sendable {
-    public let id: UUID
-    public let base: String
-    public let quote: String
-    public let rate: Decimal
-    public let date: Date
+struct FXRateDTO: Codable, Sendable {
+    let id: UUID
+    let base: String
+    let quote: String
+    let rate: Decimal
+    let date: Date
 
     init(_ rate: FXRate) {
         self.id = rate.id
@@ -163,17 +163,17 @@ public struct FXRateDTO: Codable, Sendable {
     }
 }
 
-public struct PortfolioSnapshotDTO: Codable, Sendable {
-    public let id: UUID
-    public let periodMonth: Date
-    public let homeCurrency: String
-    public let totalAmount: Decimal
-    public let note: String?
-    public let recordedAt: Date
-    public let entries: [PortfolioSnapshot.Entry]
-    public let rates: [PortfolioSnapshot.Rate]
+struct PortfolioSnapshotDTO: Codable, Sendable {
+    let id: UUID
+    let periodMonth: Date
+    let homeCurrency: String
+    let totalAmount: Decimal
+    let note: String?
+    let recordedAt: Date
+    let entries: [PortfolioSnapshot.Entry]
+    let rates: [PortfolioSnapshot.Rate]
 
-    public init(
+    init(
         id: UUID,
         periodMonth: Date,
         homeCurrency: String,
@@ -205,23 +205,23 @@ public struct PortfolioSnapshotDTO: Codable, Sendable {
     }
 }
 
-public struct PossessionDTO: Codable, Sendable {
-    public let id: UUID
-    public let name: String
-    public let categoryRawValue: String
-    public let purchasePrice: Decimal
-    public let purchaseCurrency: String
-    public let purchaseDate: Date
-    public let currentValue: Decimal?
-    public let currentValueUpdatedAt: Date?
-    public let saleDate: Date?
-    public let salePrice: Decimal?
-    public let iconName: String?
+struct PossessionDTO: Codable, Sendable {
+    let id: UUID
+    let name: String
+    let categoryRawValue: String
+    let purchasePrice: Decimal
+    let purchaseCurrency: String
+    let purchaseDate: Date
+    let currentValue: Decimal?
+    let currentValueUpdatedAt: Date?
+    let saleDate: Date?
+    let salePrice: Decimal?
+    let iconName: String?
     /// Added in version 5; older backups omit this field and decode as `nil`.
-    public let photoData: Data?
-    public let note: String?
-    public let createdAt: Date
-    public let memberId: UUID?
+    let photoData: Data?
+    let note: String?
+    let createdAt: Date
+    let memberId: UUID?
 
     init(_ possession: Possession) {
         self.id = possession.id

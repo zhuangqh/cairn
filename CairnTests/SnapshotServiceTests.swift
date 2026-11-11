@@ -6,11 +6,11 @@ import SwiftData
 final class SnapshotServiceTests: XCTestCase {
     private var container: ModelContainer!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         container = try PersistenceController.makeContainer(.inMemory)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         container = nil
     }
 
