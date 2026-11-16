@@ -394,8 +394,7 @@ struct PossessionsView: View {
     }
 
     private func itemCountFootnote(count: Int) -> String {
-        let template = String(localized: "possession.section.itemCount", bundle: localization.bundle)
-        return template.replacingOccurrences(of: "{count}", with: String(count))
+        String(localized: "possession.section.itemCount \(count)", bundle: localization.bundle)
     }
 
     // MARK: - Actions

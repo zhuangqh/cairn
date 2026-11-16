@@ -257,16 +257,22 @@ struct BatchEntryView: View {
     /// member's holdings as entry rows.
     private func memberGroupCard(_ group: MemberGroup, rateCache: FXService.RateCache) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 10) {
+            // Avatar sits in the rows' glyph column so the name starts on
+            // the same text column as the account names below it.
+            HStack(spacing: 0) {
                 MemberAvatarView(
                     name: group.member.name,
                     avatarData: group.member.avatarData,
                     seed: group.member.id,
                     size: memberAvatarSize
                 )
+                .frame(width: BatchEntryRowView.glyphSize)
+                .padding(.trailing, BatchEntryRowView.textColumnInset - BatchEntryRowView.glyphSize)
                 Text(verbatim: group.member.name)
-                    .font(.title3.weight(.semibold))
+                    .font(.title3.bold())
+                    .tracking(-0.2)
                     .foregroundStyle(Color.ink)
+                    .accessibilityAddTraits(.isHeader)
                 Spacer()
             }
             .frame(minHeight: LedgerMetrics.rowHeight)

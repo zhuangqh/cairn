@@ -83,14 +83,13 @@ ACCOUNTS = [
     {"key": "alice.broker",   "name": "Fidelity Brokerage",  "kind": "stock",      "memberKey": "member.alice", "note": "Long-term ETFs"},
     {"key": "alice.hk",       "name": "HSBC HK",             "kind": "stock",      "memberKey": "member.alice", "note": "HK equities"},
 
-    # Bob — cash in CNY, stock brokerage, real-estate account
+    # Bob — cash in CNY, stock brokerage. The apartment is a possession, not
+    # an account, so it is counted once.
     {"key": "bob.cmb",        "name": "招商银行 一卡通",        "kind": "cash",       "memberKey": "member.bob",   "note": "工资卡"},
     {"key": "bob.futu",       "name": "Futu Securities",     "kind": "stock",      "memberKey": "member.bob",   "note": "美股账户"},
-    {"key": "bob.house",      "name": "Shanghai Apartment",  "kind": "realEstate", "memberKey": "member.bob",   "note": "Pudong 2BR"},
 
-    # Lily — cash in JPY, device account
+    # Lily — cash in JPY; her devices are possessions
     {"key": "lily.mufg",      "name": "MUFG 普通預金",         "kind": "cash",       "memberKey": "member.lily",  "note": "Salary account"},
-    {"key": "lily.devices",   "name": "Devices",             "kind": "device",     "memberKey": "member.lily",  "note": "Personal electronics"},
 ]
 
 # ---------------------------------------------------------------------------
@@ -109,12 +108,9 @@ HOLDINGS = [
     ("bob.cnyfd",          "bob.cmb",        "CNY", "Fixed deposit"),
     ("bob.futu.usd",       "bob.futu",       "USD", "美股持仓"),
     ("bob.futu.hkd",       "bob.futu",       "HKD", "港股持仓"),
-    ("bob.house.cny",      "bob.house",      "CNY", "Estimated value"),
 
     # Lily
     ("lily.jpy",           "lily.mufg",      "JPY", "普通"),
-    ("lily.device.mbp",    "lily.devices",   "JPY", "MacBook Air 13”"),
-    ("lily.device.iphone", "lily.devices",   "JPY", "iPhone 17 Pro"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -132,17 +128,13 @@ _BASES: list[tuple[str, float, list[float]]] = [
     ("alice.stock.voo",    48200.0,  [ 0.105,  0.128,  0.092,  0.118,  0.098, -0.045,  0.062,  0.038, -0.022,  0.071,  0.044]),
     ("alice.stock.cash",    1800.0,  [ 0.250, -0.120,  0.180,  0.090, -0.050,  0.120, -0.080,  0.060,  0.030, -0.040,  0.100]),
     ("alice.hk.tencent",   62000.0,  [-0.040,  0.085, -0.060,  0.135,  0.070, -0.055,  0.042,  0.090, -0.030,  0.064,  0.018]),
-    # Bob — salary cash up, fixed deposit flat, US stocks great, HK shaky,
-    # property rising in a hot tier-1 market, then cooling
+    # Bob — salary cash up, fixed deposit flat, US stocks great, HK shaky
     ("bob.cnycash",        38000.0,  [ 0.045, -0.020,  0.060,  0.030,  0.018,  0.040, -0.015,  0.035,  0.020,  0.050, -0.010]),
     ("bob.cnyfd",         120000.0,  [ 0.004] * 11),
     ("bob.futu.usd",        9800.0,  [ 0.135,  0.092, -0.040,  0.158,  0.110, -0.070,  0.085,  0.046, -0.035,  0.098,  0.052]),
     ("bob.futu.hkd",       54000.0,  [ 0.020, -0.085,  0.045, -0.030,  0.065,  0.012, -0.040,  0.075,  0.028, -0.018,  0.040]),
-    ("bob.house.cny",    3200000.0,  [ 0.030,  0.038,  0.025,  0.042,  0.034,  0.012,  0.008, -0.006,  0.004, -0.010,  0.006]),
-    # Lily — yen savings up, devices depreciate steadily
+    # Lily — yen savings up
     ("lily.jpy",         1850000.0,  [ 0.085,  0.062,  0.094,  0.078,  0.105,  0.040,  0.072, -0.020,  0.088,  0.056,  0.064]),
-    ("lily.device.mbp",   180000.0,  [-0.025, -0.025, -0.030, -0.025, -0.030, -0.020, -0.025, -0.020, -0.025, -0.020, -0.020]),
-    ("lily.device.iphone",180000.0,  [-0.030, -0.030, -0.040, -0.030, -0.035, -0.025, -0.030, -0.025, -0.030, -0.025, -0.030]),
 ]
 
 
@@ -153,9 +145,9 @@ def _build_trajectory() -> dict[str, list[str]]:
         series = [start]
         for r in rates:
             series.append(series[-1] * (1.0 + r))
-        # JPY holdings, the house, and the fixed deposit are whole units;
+        # JPY holdings and the fixed deposit are whole units;
         # others keep 2 decimals.
-        if key.startswith("lily.") or key == "bob.house.cny" or key == "bob.cnyfd":
+        if key.startswith("lily.") or key == "bob.cnyfd":
             out[key] = [f"{v:.0f}" for v in series]
         else:
             out[key] = [f"{v:.2f}" for v in series]
@@ -258,18 +250,19 @@ for key, amounts in TRAJECTORY.items():
             "holdingId": holding_id_by_key[key],
         })
 
-# FXRate cache entries (one per currency × month, base=USD, quote=foreign)
+# FXRate cache entries: the app keeps one row per (base, quote) pair, updated
+# in place on refresh, so emit only the latest month's rate. Monthly history
+# lives in the portfolio snapshots below.
 fx_out = []
+latest_month = MONTHS[-1]
 for ccy, rates in USD_PER_FOREIGN.items():
-    for idx, ym in enumerate(MONTHS):
-        captured = last_day_for_month[ym]
-        fx_out.append({
-            "id": uid(f"fx.USD.{ccy}.{ym[0]}-{ym[1]}"),
-            "base": "USD",
-            "quote": ccy,
-            "rate": float(rates[idx]),
-            "date": iso(captured),
-        })
+    fx_out.append({
+        "id": uid(f"fx.USD.{ccy}"),
+        "base": "USD",
+        "quote": ccy,
+        "rate": float(rates[-1]),
+        "date": iso(last_day_for_month[latest_month]),
+    })
 
 # Portfolio snapshots — one per month, summarising every holding in HOME currency.
 portfolio_out = []
@@ -314,9 +307,8 @@ for idx, ym in enumerate(MONTHS):
     })
 
 # Physical possessions — mixed categories, currencies, and owners. Photos are
-# stored the way the app does: a transparent PNG cutout, or the original JPEG
-# when the cutout isn't clean (the bike). One sold item has no photo so the
-# placeholder figure and sale fields are covered too.
+# stored the way the app does: a transparent PNG cutout. One sold item has no
+# photo so the placeholder figure and sale fields are covered too.
 def possession(
     key: str,
     name: str,
@@ -365,9 +357,6 @@ possessions_out = [
     possession("iphone", "iPhone 17 Pro", "electronics", 179800.00, "JPY", day(2025, 9, 25),
                132000.00, "member.lily", day(2025, 9, 26),
                icon="iphone", photo="iphone.png"),
-    possession("bike", "Steel road bike", "other", 2400.00, "USD", day(2022, 5, 14),
-               1500.00, "member.alice", day(2024, 2, 14),
-               icon="bicycle", photo="bike.jpg", note="Weekend rides"),
     possession("watch", "Steel dive watch", "other", 62000.00, "HKD", day(2021, 8, 10),
                78000.00, "member.alice", day(2024, 2, 15),
                icon="applewatch", photo="watch.png", note="Appreciating asset"),

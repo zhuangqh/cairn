@@ -152,23 +152,28 @@ extension BatchEntryView {
                 .foregroundStyle(Color.ink2)
                 .padding(.bottom, 10)
         } else {
-            VStack(spacing: 0) {
-                ForEach(Array(quotes.enumerated()), id: \.element) { index, quote in
-                    if index > 0 { LedgerHairline() }
-                    rateRow(for: quote)
+            // Rates are reference data, so they sit in a compact grid
+            // rather than taking a full ledger row each.
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 120), spacing: 8, alignment: .leading)],
+                alignment: .leading,
+                spacing: 8
+            ) {
+                ForEach(quotes, id: \.self) { quote in
+                    rateCell(for: quote)
                 }
             }
+            .padding(.bottom, 14)
         }
     }
 
-    /// `1 CNY → USD    0.1400` — quote → home, the direction users value
+    /// `CNY → USD / 0.1400` — quote → home, the direction users value
     /// foreign holdings in.
-    private func rateRow(for quote: String) -> some View {
-        HStack(spacing: 8) {
+    private func rateCell(for quote: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             Text(verbatim: "1 \(quote) → \(homeCurrency)")
-                .font(.callout)
-                .foregroundStyle(Color.ink2)
-            Spacer(minLength: 8)
+                .font(.caption)
+                .foregroundStyle(Color.ink3)
             if let inverted = inverseRate(for: quote) {
                 Text(
                     inverted,
@@ -182,7 +187,10 @@ extension BatchEntryView {
                     .foregroundStyle(Color.ink3)
             }
         }
-        .frame(minHeight: LedgerMetrics.rowHeight)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 

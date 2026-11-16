@@ -26,7 +26,7 @@ struct BatchEntryRowView: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: rowSpacing) {
-            GlyphBadge(systemName: accountKind.iconName, tint: accountKind.tint, size: glyphSize)
+            GlyphBadge(systemName: accountKind.iconName, tint: accountKind.tint, size: Self.glyphSize)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(verbatim: accountName)
@@ -239,7 +239,9 @@ struct BatchEntryRowView: View {
         #endif
     }
 
-    private var glyphSize: CGFloat {
+    /// Width of the leading glyph column; member headers center their
+    /// avatar in it so names share the rows' text column.
+    static var glyphSize: CGFloat {
         #if os(macOS)
         32
         #else
