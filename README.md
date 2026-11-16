@@ -5,8 +5,7 @@
 <h1 align="center">Cairn</h1>
 
 <p align="center">
-  <b>The quiet ledger for your family's wealth.</b><br>
-  Every member, account and currency in one calm statement — stored only on your devices.
+  A local-first app for tracking your family's net worth on Mac, iPhone and iPad.
 </p>
 
 <p align="center">
@@ -21,36 +20,47 @@
   <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-5F6862"></a>
 </p>
 
-<p align="center">
-  <img src="docs/assets/screens/mac-dashboard-en.png" alt="Cairn dashboard on Mac" width="820">
-</p>
-
-## Why Cairn
-
-- **A few minutes, once a month.** One sheet lists every holding with its last value
-  filled in. Change what moved and save it all at once.
-- **The whole family, in every currency.** See who holds what, converted to your home
-  currency with public ECB rates, and why each month changed.
-- **The things you own, on a shelf.** Homes, cars and devices sit beside your accounts,
-  with photos cut out on the device.
-- **Milestones worth marking.** A private journal of carved-stone medals. Share cards
-  never show an amount.
+Cairn keeps a record of what everyone in your family owns: bank accounts,
+brokerage holdings, homes, cars and devices, in any currency. Once a month you
+enter the latest balances, and Cairn converts everything into one home currency,
+shows how the total changed, and keeps the history. All data stays on your device.
 
 <table>
   <tr>
-    <td><img src="docs/assets/screens/mac-batch-en.png" alt="Batch entry"></td>
-    <td><img src="docs/assets/screens/mac-possessions-en.png" alt="Possessions showcase"></td>
-    <td><img src="docs/assets/screens/mac-journal-en.png" alt="Achievement journal"></td>
+    <td align="center"><img src="docs/assets/screens/ios-dashboard-en.png" alt="Dashboard" width="150"><br><sub>Dashboard</sub></td>
+    <td align="center"><img src="docs/assets/screens/ios-batch-en.png" alt="Monthly snapshot entry" width="150"><br><sub>Monthly snapshot</sub></td>
+    <td align="center"><img src="docs/assets/screens/ios-assets-en.png" alt="Assets by member and currency" width="150"><br><sub>Assets</sub></td>
+    <td align="center"><img src="docs/assets/screens/ios-possessions-en.png" alt="Possessions" width="150"><br><sub>Possessions</sub></td>
+    <td align="center"><img src="docs/assets/screens/ios-achievements-en.png" alt="Achievement journal" width="150"><br><sub>Achievement Journal</sub></td>
   </tr>
 </table>
 
+## Features
+
+- **Dashboard and history.** Total net worth, month-over-month change, a trend
+  chart, and breakdowns by member, currency and asset type.
+- **Monthly snapshots.** One sheet lists every holding, prefilled with last
+  month's values. Change what moved and save everything at once.
+- **Family members and accounts.** Add each member, their accounts, and the
+  holdings in each account. An account can hold several currencies.
+- **Multi-currency totals.** Balances are converted to your home currency with
+  public ECB exchange rates. Each month's rates are saved with its snapshot, so
+  past totals don't change.
+- **Possessions.** Record homes, cars, electronics and other items with their
+  purchase cost and a photo; the background is removed on the device.
+- **Achievement journal.** Medals for wealth milestones, your largest monthly
+  increase, and unbroken streaks of monthly records. Share cards never show an
+  amount.
+- **Backups.** Export and restore all data as a single `.cairn` file.
+- **English and Simplified Chinese.**
+
 ## Privacy
 
-Your data lives in a local store on your devices, with iCloud sync turned off. The
-only network request Cairn makes is for public exchange rates — no accounts, no
-analytics, no ads. Back up everything to a single `.cairn` file you keep yourself.
+Data is stored in a local SwiftData database with iCloud sync turned off. The
+only network request is for public exchange rates from
+[Frankfurter](https://frankfurter.dev). There are no accounts, analytics or ads.
 
-## Download
+## Install
 
 - **Mac** — download the latest `.dmg` from
   [Releases](https://github.com/zhuangqh/cairn/releases/latest) and drag Cairn to
@@ -67,13 +77,12 @@ Requires Xcode 26 or later, [XcodeGen](https://github.com/yonaskolb/XcodeGen) an
 brew install xcodegen swiftlint
 make gen     # generate Cairn.xcodeproj
 make build   # build for macOS
+make test    # run unit tests
 ```
 
-See the [development guide](docs/development.md) for tests, iOS builds, screenshots and
+See the [development guide](docs/development.md) for iOS builds, screenshots and
 releases, and [AGENTS.md](AGENTS.md) for contribution conventions.
 
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
-
-<sub>A cairn is a stack of stones hikers leave to mark the trail. Each snapshot adds one more.</sub>
