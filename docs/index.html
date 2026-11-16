@@ -1,248 +1,294 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Cairn — A monthly net-worth check-up for families</title>
-<meta name="description" content="Cairn is a private, Apple-native net-worth tracker for families. Multi-currency, offline, under 3 minutes a month. macOS · iPhone · iPad." />
-<meta name="theme-color" content="#0f3a2e" />
+<title>Cairn — The quiet ledger for your family's wealth</title>
+<meta name="description" content="Cairn is a private, open-source net-worth app for families on Mac, iPhone and iPad. Every member, account and currency in one calm ledger — stored only on your devices." />
+<meta name="theme-color" content="#F7F6F2" />
 
-<!-- Open Graph -->
-<meta property="og:title" content="Cairn — Family net worth, one stone at a time" />
-<meta property="og:description" content="Private by design. Multi-currency. Apple-native. Track your family's net worth in under 3 minutes a month." />
+<meta property="og:title" content="Cairn — The quiet ledger for your family's wealth" />
+<meta property="og:description" content="Every member, account and currency in one calm ledger — stored only on your devices." />
 <meta property="og:type" content="website" />
-<meta property="og:image" content="assets/page1.png" />
+<meta property="og:url" content="https://zhuangqh.github.io/cairn/" />
+<meta property="og:image" content="https://zhuangqh.github.io/cairn/assets/screens/mac-dashboard-en.png" />
+<meta name="twitter:card" content="summary_large_image" />
 
 <link rel="icon" type="image/png" href="assets/icon.png" />
 <link rel="apple-touch-icon" href="assets/icon.png" />
-
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
 <link rel="stylesheet" href="assets/css/site.css" />
+
+<script>
+  // Pick the language before first paint so the page never flashes the wrong copy.
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem("cairn.lang"); } catch (e) {}
+    var lang = saved || ((navigator.language || "").toLowerCase().indexOf("zh") === 0 ? "zh-Hans" : "en");
+    document.documentElement.setAttribute("data-lang", lang);
+    document.documentElement.setAttribute("lang", lang);
+  })();
+</script>
 </head>
 <body>
 
 <header class="nav">
-  <a class="brand" href="#top">
-    <img src="assets/icon.png" alt="" width="36" height="36" />
-    <span>Cairn</span>
-  </a>
-  <nav class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#privacy">Privacy</a>
-    <a href="#download">Download</a>
-    <a class="ghost" href="https://github.com/zhuangqh/cairn" target="_blank" rel="noopener">GitHub ↗</a>
-  </nav>
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <img src="assets/icon.png" alt="" width="28" height="28" />
+      <span>Cairn</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#privacy"><span lang="en">Privacy</span><span lang="zh-Hans">隐私</span></a>
+      <a href="https://github.com/zhuangqh/cairn" target="_blank" rel="noopener">GitHub</a>
+      <button class="lang-toggle" type="button" aria-label="Switch language / 切换语言">
+        <span lang="en">中文</span><span lang="zh-Hans">EN</span>
+      </button>
+      <a class="nav-cta" href="#download"><span lang="en">Download</span><span lang="zh-Hans">下载</span></a>
+    </nav>
+  </div>
 </header>
 
 <main id="top">
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-bg" aria-hidden="true">
-    <div class="ridge ridge-far"></div>
-    <div class="ridge ridge-mid"></div>
-    <div class="ridge ridge-near"></div>
-    <div class="path"></div>
-  </div>
-
-  <div class="hero-inner">
+  <!-- Hero -->
+  <section class="hero">
     <div class="hero-copy">
-      <div class="eyebrow">
-        <img src="assets/icon.png" alt="" width="28" height="28" />
-        <span>Cairn for Mac, iPhone &amp; iPad</span>
-      </div>
-      <h1>One stone a month.<br/>A whole family's trail.</h1>
+      <p class="eyebrow">
+        <span lang="en">For Mac, iPhone &amp; iPad · Free and open source</span>
+        <span lang="zh-Hans">适用于 Mac、iPhone 和 iPad · 免费开源</span>
+      </p>
+      <h1>
+        <span lang="en">The quiet ledger for your family's wealth.</span>
+        <span lang="zh-Hans">给全家的资产，<br />记一本安静的账。</span>
+      </h1>
       <p class="lede">
-        Cairn is a calm, private net-worth check-up for families. No transactions to
-        categorize, no API keys, no cloud account — just one screen a month, and a
-        beautiful trend you can actually trust.
+        <span lang="en">Every member, every account, every currency — gathered into one calm statement that lives only on your devices.</span>
+        <span lang="zh-Hans">每位家人、每个账户、每种货币，汇成一份平静的家庭报表，只存在你自己的设备上。</span>
       </p>
       <div class="cta-row">
-        <a class="btn primary" href="#download">
-          <span>Download for macOS</span>
-          <small>Free · Apache 2.0</small>
+        <a class="btn btn-primary" href="https://github.com/zhuangqh/cairn/releases/latest">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M8 1a.75.75 0 0 1 .75.75v6.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.22 2.22V1.75A.75.75 0 0 1 8 1ZM2.75 12.5a.75.75 0 0 0 0 1.5h10.5a.75.75 0 0 0 0-1.5H2.75Z"/></svg>
+          <span lang="en">Download for Mac</span><span lang="zh-Hans">下载 Mac 版</span>
         </a>
-        <a class="btn ghost" href="#features">See how it works</a>
+        <a class="btn btn-quiet" href="https://github.com/zhuangqh/cairn" target="_blank" rel="noopener">
+          <span lang="en">View source</span><span lang="zh-Hans">查看源码</span> <span aria-hidden="true">→</span>
+        </a>
       </div>
-      <div class="trust">
-        <span>🔒 Local-only storage</span>
-        <span>💱 Multi-currency</span>
-        <span>🇬🇧 EN · 🇨🇳 简体中文</span>
-      </div>
+      <p class="fine">
+        <span lang="en">macOS 14 or later</span><span lang="zh-Hans">需要 macOS 14 或更新版本</span>
+      </p>
     </div>
 
-    <div class="hero-card-stack" aria-hidden="true">
-      <img class="card card-back"  src="assets/page2.png" alt="" />
-      <img class="card card-front" src="assets/page1.png" alt="Cairn dashboard" />
+    <figure class="hero-stage">
+      <img class="shot shot-mac" data-shot="mac-dashboard" src="assets/screens/mac-dashboard-en.png"
+           width="2226" height="1784" alt="Cairn dashboard on Mac: total family wealth, asset trend and composition" />
+      <div class="phone">
+        <img class="shot" data-shot="ios-dashboard" src="assets/screens/ios-dashboard-en.png"
+             width="552" height="1200" alt="Cairn dashboard on iPhone" />
+      </div>
+    </figure>
+  </section>
+
+  <!-- 01 Routine -->
+  <section class="chapter reveal" id="routine">
+    <div class="chapter-copy">
+      <p class="index">01</p>
+      <h2>
+        <span lang="en">A few minutes, once a month.</span>
+        <span lang="zh-Hans">每月几分钟，就够了。</span>
+      </h2>
+      <p>
+        <span lang="en">One sheet lists every holding with its last value filled in. Change what moved, watch the household total update as you type, and save it all at once.</span>
+        <span lang="zh-Hans">一张表列出所有持仓，上次的数值已经填好。只改变动的几行，合计随手更新，一次全部保存。</span>
+      </p>
     </div>
-  </div>
-</section>
+    <figure class="chapter-media">
+      <img class="shot shot-mac" data-shot="mac-batch" src="assets/screens/mac-batch-en.png" loading="lazy"
+           width="2226" height="1784" alt="Batch entry sheet with every holding and a live total" />
+      <div class="phone"><img class="shot" data-shot="ios-batch" src="assets/screens/ios-batch-en.png" loading="lazy"
+           width="552" height="1200" alt="Batch entry on iPhone" /></div>
+    </figure>
+  </section>
 
-<!-- VALUE STRIP -->
-<section class="strip">
-  <div class="strip-item">
-    <div class="num">3 min</div>
-    <div class="lbl">Monthly check-up</div>
-  </div>
-  <div class="strip-item">
-    <div class="num">0</div>
-    <div class="lbl">Accounts to sign into</div>
-  </div>
-  <div class="strip-item">
-    <div class="num">∞</div>
-    <div class="lbl">Currencies per account</div>
-  </div>
-  <div class="strip-item">
-    <div class="num">100%</div>
-    <div class="lbl">Stays on your device</div>
-  </div>
-</section>
+  <!-- 02 Family & currencies -->
+  <section class="chapter reveal" id="family">
+    <div class="chapter-copy">
+      <p class="index">02</p>
+      <h2>
+        <span lang="en">The whole family, in every currency.</span>
+        <span lang="zh-Hans">全家的钱，每种货币，一目了然。</span>
+      </h2>
+      <p>
+        <span lang="en">See who holds what and in which currency, all converted to your home currency with public ECB rates. Open any month to see what changed — markets, exchange rates, or your own updates.</span>
+        <span lang="zh-Hans">谁持有什么、以哪种货币持有，都按欧洲央行的公开汇率折算成本位币。点开任意一个月，看清变化来自市场、汇率，还是你自己的调整。</span>
+      </p>
+    </div>
+    <figure class="chapter-media">
+      <img class="shot shot-mac" data-shot="mac-assets" src="assets/screens/mac-assets-en.png" loading="lazy"
+           width="2226" height="1784" alt="Assets by member and by currency, with monthly snapshots" />
+      <div class="phone"><img class="shot" data-shot="ios-assets" src="assets/screens/ios-assets-en.png" loading="lazy"
+           width="552" height="1200" alt="Assets by member and currency on iPhone" /></div>
+    </figure>
+  </section>
 
-<!-- PRODUCT TOUR (the four App Store style pages) -->
-<section id="features" class="tour">
-  <div class="tour-head">
-    <p class="kicker">The product tour</p>
-    <h2>Designed like the rest of your Apple devices.</h2>
-    <p class="sub">Four screens, four moments — from the dashboard to your monthly snapshot.</p>
-  </div>
+  <!-- 03 Possessions -->
+  <section class="chapter reveal" id="possessions">
+    <div class="chapter-copy">
+      <p class="index">03</p>
+      <h2>
+        <span lang="en">The things you own, on a shelf.</span>
+        <span lang="zh-Hans">家里的物件，摆上陈列柜。</span>
+      </h2>
+      <p>
+        <span lang="en">Homes, cars and devices sit beside your accounts. Add a photo and Cairn lifts the object from its background — on the device, never uploaded.</span>
+        <span lang="zh-Hans">房子、车和数码设备，和账户放在一起。拍张照片，Cairn 在本机把物件从背景里抠出来，不上传任何地方。</span>
+      </p>
+    </div>
+    <figure class="chapter-media">
+      <img class="shot shot-mac" data-shot="mac-possessions" src="assets/screens/mac-possessions-en.png" loading="lazy"
+           width="2226" height="1784" alt="Possessions showcase with cut-out photos of a home, car and devices" />
+      <div class="phone"><img class="shot" data-shot="ios-possessions" src="assets/screens/ios-possessions-en.png" loading="lazy"
+           width="552" height="1200" alt="Possessions showcase on iPhone" /></div>
+    </figure>
+  </section>
 
-  <div class="tour-grid">
-    <article class="tour-card">
-      <div class="tour-img"><img src="assets/page1.png" alt="Cairn dashboard with net-worth trend" /></div>
-      <div class="tour-text">
-        <h3>A dashboard your family CFO will love.</h3>
-        <p>Total net worth, monthly delta, and a Swift Charts curve over 6M / 12M / All time — broken down by account kind and member.</p>
-      </div>
-    </article>
+  <!-- 04 Journal -->
+  <section class="chapter reveal" id="journal">
+    <div class="chapter-copy">
+      <p class="index">04</p>
+      <h2>
+        <span lang="en">Milestones worth marking.</span>
+        <span lang="zh-Hans">值得纪念的里程碑。</span>
+      </h2>
+      <p>
+        <span lang="en">A private journal of carved-stone medals for steady habits and new summits. Share one if you like — the card never shows an amount.</span>
+        <span lang="zh-Hans">一本私人日志，用石刻奖章记下坚持与新的高度。想分享也可以，分享卡片上不会出现任何金额。</span>
+      </p>
+    </div>
+    <figure class="chapter-media">
+      <img class="shot shot-mac" data-shot="mac-journal" src="assets/screens/mac-journal-en.png" loading="lazy"
+           width="2226" height="1784" alt="Achievement journal with carved-stone medals" />
+      <div class="phone"><img class="shot" data-shot="ios-journal" src="assets/screens/ios-journal-en.png" loading="lazy"
+           width="552" height="1200" alt="Wealth Milestones on iPhone" /></div>
+    </figure>
+  </section>
 
-    <article class="tour-card alt">
-      <div class="tour-img"><img src="assets/page2.png" alt="Track progress over time across snapshots and members" /></div>
-      <div class="tour-text">
-        <h3>Track progress over time.</h3>
-        <p>Compare members side by side, scrub through monthly snapshots, and watch your trail of stones grow — one row, one month at a time.</p>
-      </div>
-    </article>
+  <!-- Privacy -->
+  <section class="privacy reveal" id="privacy">
+    <div class="privacy-inner">
+      <h2>
+        <span lang="en">Your numbers stay yours.</span>
+        <span lang="zh-Hans">你的数字，只属于你。</span>
+      </h2>
+      <ul class="ledger">
+        <li>
+          <strong><span lang="en">On your devices</span><span lang="zh-Hans">只在本机</span></strong>
+          <span lang="en">Everything is stored locally. No account to create, no cloud sync.</span>
+          <span lang="zh-Hans">所有数据都存在本地。不用注册账号，也不做云同步。</span>
+        </li>
+        <li>
+          <strong><span lang="en">One kind of request</span><span lang="zh-Hans">唯一的网络请求</span></strong>
+          <span lang="en">Cairn only fetches public exchange rates. Your balances and names are never sent.</span>
+          <span lang="zh-Hans">Cairn 只会获取公开汇率，余额和姓名永远不会发出去。</span>
+        </li>
+        <li>
+          <strong><span lang="en">No tracking</span><span lang="zh-Hans">没有追踪</span></strong>
+          <span lang="en">No analytics, no ads. Back up to a file you keep, and read every line of the source.</span>
+          <span lang="zh-Hans">没有统计，没有广告。备份是一个你自己保管的文件，源码每一行都可以查看。</span>
+        </li>
+      </ul>
+    </div>
+  </section>
 
-    <article class="tour-card">
-      <div class="tour-img"><img src="assets/page3.png" alt="Excel-style monthly batch entry" /></div>
-      <div class="tour-text">
-        <h3>Excel-style batch entry, in 3 minutes.</h3>
-        <p>One row per holding, last month's values pre-filled. <em>Fill from last</em> for unchanged rows, edit only what changed, <em>Save all</em> — atomic commit, done.</p>
-      </div>
-    </article>
-
-    <article class="tour-card alt">
-      <div class="tour-img"><img src="assets/page4.png" alt="Multi-currency holdings and physical assets" /></div>
-      <div class="tour-text">
-        <h3>Multi-currency, real-life portfolios.</h3>
-        <p>One account holds CNY, USD, HKD, AUD… at the same time. Live ECB rates convert everything to your home currency — and works offline with cached rates.</p>
-      </div>
-    </article>
-  </div>
-</section>
-
-<!-- FEATURE GRID -->
-<section class="features">
-  <div class="feature">
-    <div class="ico">👨‍👩‍👧</div>
-    <h4>Whole-family view</h4>
-    <p>Group accounts under each member, switch between per-member and aggregated views with a tap.</p>
-  </div>
-  <div class="feature">
-    <div class="ico">📈</div>
-    <h4>Net-worth trend</h4>
-    <p>Beautiful Swift Charts curves with breakdowns by account kind and member, plus monthly snapshot detail.</p>
-  </div>
-  <div class="feature">
-    <div class="ico">🏠</div>
-    <h4>Physical assets</h4>
-    <p>Real estate, vehicles, devices — tracked alongside financials with their own cumulative value chart.</p>
-  </div>
-  <div class="feature">
-    <div class="ico">🔔</div>
-    <h4>Gentle monthly reminder</h4>
-    <p>Optional local notification on the 1st. No push servers. No account required.</p>
-  </div>
-  <div class="feature">
-    <div class="ico">📦</div>
-    <h4>Portable backups</h4>
-    <p>Export your whole store as a single human-readable <code>.cairn</code> JSON, or snapshots as CSV.</p>
-  </div>
-  <div class="feature">
-    <div class="ico">🌐</div>
-    <h4>EN &amp; 简体中文</h4>
-    <p>Every string in Apple's String Catalog. Override the app language independently of the system.</p>
-  </div>
-</section>
-
-<!-- PRIVACY -->
-<section id="privacy" class="privacy">
-  <div class="privacy-inner">
-    <p class="kicker dark">Privacy by design</p>
-    <h2>Your money stays on your Mac.</h2>
-    <p class="sub light">
-      Cairn stores everything in a local-only SwiftData database inside the app sandbox.
-      The only network call is fetching public ECB exchange rates — no analytics, no ad SDKs,
-      no account system, no CloudKit. Ever.
+  <!-- Download -->
+  <section class="download reveal" id="download">
+    <img src="assets/icon.png" alt="" width="96" height="96" class="download-icon" />
+    <h2>
+      <span lang="en">Place the first stone.</span>
+      <span lang="zh-Hans">放下第一块石头。</span>
+    </h2>
+    <p class="download-lede">
+      <span lang="en">Free and open source under Apache 2.0. Requires macOS 14 or later.</span>
+      <span lang="zh-Hans">基于 Apache 2.0 免费开源，需要 macOS 14 或更新版本。</span>
     </p>
-    <ul class="bullets">
-      <li><b>Local-only.</b> CloudKit sync is intentionally off.</li>
-      <li><b>No accounts.</b> Nothing to sign up for, nothing to forget.</li>
-      <li><b>Open source.</b> Apache 2.0 — read the code, build it yourself.</li>
-    </ul>
-  </div>
-</section>
+    <a class="btn btn-primary btn-large" href="https://github.com/zhuangqh/cairn/releases/latest">
+      <span lang="en">Download for Mac</span><span lang="zh-Hans">下载 Mac 版</span>
+    </a>
 
-<!-- DOWNLOAD -->
-<section id="download" class="download">
-  <div class="dl-card">
-    <h2>Get Cairn</h2>
-    <p>macOS 14 Sonoma or iOS / iPadOS 17+. The macOS build is ad-hoc signed, so first launch needs <kbd>Control</kbd>-click → <kbd>Open</kbd>.</p>
-    <div class="dl-row">
-      <a class="btn primary" href="https://github.com/zhuangqh/cairn/releases" target="_blank" rel="noopener">
-        <span>Download .dmg</span>
-        <small>From GitHub Releases</small>
-      </a>
-      <a class="btn ghost" href="https://github.com/zhuangqh/cairn#-install" target="_blank" rel="noopener">
-        Build from source
-      </a>
-    </div>
-    <p class="fineprint">iOS / iPadOS: open the project in Xcode, sign with a free Personal Team, run from source.</p>
-  </div>
-</section>
+    <details class="first-launch">
+      <summary>
+        <span lang="en">Opening Cairn for the first time</span>
+        <span lang="zh-Hans">第一次打开 Cairn</span>
+      </summary>
+      <p>
+        <span lang="en">Cairn isn't notarized by Apple yet, so macOS asks before opening it. Drag Cairn to Applications, then Control-click it and choose <b>Open</b>. If macOS still blocks it, go to System Settings › Privacy &amp; Security and click <b>Open Anyway</b>.</span>
+        <span lang="zh-Hans">Cairn 暂未经过 Apple 公证，macOS 会在打开前拦一下。把 Cairn 拖进「应用程序」后，按住 Control 点按它并选择<b>打开</b>。如果仍被阻止，前往「系统设置 › 隐私与安全性」，点按<b>仍要打开</b>。</span>
+      </p>
+    </details>
+
+    <p class="fine">
+      <span lang="en">On iPhone or iPad? Build it from source with Xcode —</span>
+      <span lang="zh-Hans">在 iPhone 或 iPad 上使用？用 Xcode 从源码构建——</span>
+      <a href="https://github.com/zhuangqh/cairn/blob/main/docs/development.md"><span lang="en">see the guide</span><span lang="zh-Hans">查看指南</span></a>.
+    </p>
+  </section>
 
 </main>
 
-<footer class="foot">
-  <div class="foot-inner">
-    <div class="foot-brand">
-      <img src="assets/icon.png" alt="" width="32" height="32" />
-      <div>
-        <strong>Cairn</strong>
-        <span>A stone a month, on your family's financial trail.</span>
-      </div>
-    </div>
-    <div class="foot-links">
-      <a href="https://github.com/zhuangqh/cairn" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://github.com/zhuangqh/cairn/blob/main/PRD.md" target="_blank" rel="noopener">Product spec</a>
-      <a href="https://github.com/zhuangqh/cairn/blob/main/docs/development.md" target="_blank" rel="noopener">Development</a>
-      <a href="https://github.com/zhuangqh/cairn/blob/main/LICENSE" target="_blank" rel="noopener">Apache 2.0</a>
-    </div>
-  </div>
-  <p class="copy">© <span id="yr"></span> Cairn. Made with care, no tracking.</p>
+<footer class="footer">
+  <p>
+    <span lang="en">A cairn is a stack of stones hikers leave to mark the trail. Each snapshot adds one more.</span>
+    <span lang="zh-Hans">Cairn 是登山者堆在路边的石堆，用来标记路径。每记下一次快照，就多放一块石头。</span>
+  </p>
+  <p class="footer-meta">
+    © <span id="year">2026</span> Cairn · Apache 2.0 ·
+    <a href="https://github.com/zhuangqh/cairn">GitHub</a>
+  </p>
 </footer>
 
 <script>
-  document.getElementById('yr').textContent = new Date().getFullYear();
-  // Soft reveal on scroll
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.tour-card, .feature, .strip-item, .dl-card, .privacy-inner').forEach(el => io.observe(el));
-</script>
+  (function () {
+    var root = document.documentElement;
+    var titles = {
+      "en": "Cairn — The quiet ledger for your family's wealth",
+      "zh-Hans": "Cairn — 给全家的资产，记一本安静的账"
+    };
 
+    function apply(lang) {
+      root.setAttribute("data-lang", lang);
+      root.setAttribute("lang", lang);
+      document.title = titles[lang];
+      document.querySelectorAll("img[data-shot]").forEach(function (img) {
+        img.src = "assets/screens/" + img.dataset.shot + "-" + lang + ".png";
+      });
+    }
+
+    apply(root.getAttribute("data-lang"));
+
+    document.querySelector(".lang-toggle").addEventListener("click", function () {
+      var next = root.getAttribute("data-lang") === "en" ? "zh-Hans" : "en";
+      try { localStorage.setItem("cairn.lang", next); } catch (e) {}
+      apply(next);
+    });
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    var items = document.querySelectorAll(".reveal");
+    if (!("IntersectionObserver" in window)) {
+      items.forEach(function (el) { el.classList.add("in"); });
+      return;
+    }
+    root.classList.add("js-reveal");
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in");
+          io.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: "0px 0px -12% 0px" });
+    items.forEach(function (el) { io.observe(el); });
+  })();
+</script>
 </body>
 </html>

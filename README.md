@@ -1,131 +1,79 @@
-<h1 align="center">
-  <img src="docs/assets/icon.png" alt="Cairn" width="160" height="160"><br>
-  Cairn
-</h1>
+<p align="center">
+  <img src="docs/assets/icon.png" alt="" width="128" height="128">
+</p>
+
+<h1 align="center">Cairn</h1>
 
 <p align="center">
-  <b>A monthly net-worth check-up app for families — macOS-first, with iPhone and iPad builds from source.</b><br>
-  Private by design · Multi-currency · Apple-native
+  <b>The quiet ledger for your family's wealth.</b><br>
+  Every member, account and currency in one calm statement — stored only on your devices.
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"></a>
-  <img alt="Platform" src="https://img.shields.io/badge/platform-macOS%2014%2B%20%C2%B7%20iOS%2FiPadOS%2017%2B-lightgrey">
-  <img alt="Built with" src="https://img.shields.io/badge/SwiftUI%20%2B%20SwiftData-orange">
+  <a href="https://github.com/zhuangqh/cairn/releases/latest"><b>Download for Mac</b></a> ·
+  <a href="https://zhuangqh.github.io/cairn/">Website</a> ·
+  <a href="README.zh-Hans.md">简体中文</a>
 </p>
 
----
+<p align="center">
+  <img alt="macOS 14+ · iOS / iPadOS 17+" src="https://img.shields.io/badge/macOS%2014%2B%20%C2%B7%20iOS%2FiPadOS%2017%2B-2D5A47">
+  <img alt="SwiftUI + SwiftData" src="https://img.shields.io/badge/SwiftUI%20%2B%20SwiftData-A8834A">
+  <a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-5F6862"></a>
+</p>
 
-> The name comes from mountaineering — a **cairn** is a stack of stones left as a trail marker.
-> Each monthly snapshot in the app is one more stone on your family's financial trail.
+<p align="center">
+  <img src="docs/assets/screens/mac-dashboard-en.png" alt="Cairn dashboard on Mac" width="820">
+</p>
 
-<!-- Product gallery — horizontally scrollable on GitHub -->
+## Why Cairn
+
+- **A few minutes, once a month.** One sheet lists every holding with its last value
+  filled in. Change what moved and save it all at once.
+- **The whole family, in every currency.** See who holds what, converted to your home
+  currency with public ECB rates, and why each month changed.
+- **The things you own, on a shelf.** Homes, cars and devices sit beside your accounts,
+  with photos cut out on the device.
+- **Milestones worth marking.** A private journal of carved-stone medals. Share cards
+  never show an amount.
+
 <table>
   <tr>
-    <td><img src="docs/assets/page1.png" alt="Dashboard with net-worth trend" width="380"></td>
-    <td><img src="docs/assets/page2.png" alt="Track progress over time" width="380"></td>
-    <td><img src="docs/assets/page3.png" alt="Excel-style monthly batch entry" width="380"></td>
+    <td><img src="docs/assets/screens/mac-batch-en.png" alt="Batch entry"></td>
+    <td><img src="docs/assets/screens/mac-possessions-en.png" alt="Possessions showcase"></td>
+    <td><img src="docs/assets/screens/mac-journal-en.png" alt="Achievement journal"></td>
   </tr>
 </table>
 
-Cairn gives the family CFO a single, calm place to answer one question every month:
-**"What do we own, what is it worth, and how is it trending?"** No transactions to
-categorize, no API keys to configure, no cloud account to sign into.
+## Privacy
 
-## ✨ Features
+Your data lives in a local store on your devices, with iCloud sync turned off. The
+only network request Cairn makes is for public exchange rates — no accounts, no
+analytics, no ads. Back up everything to a single `.cairn` file you keep yourself.
 
-### 👨‍👩‍👧 Whole-family view, organized by member
-Create a profile for each family member — group their
-accounts under them, and switch between a per-member view and an aggregated
-"All family" view with a single tap.
+## Download
 
-### 💱 Multi-currency without the spreadsheet gymnastics
-One account can hold positions in **CNY, USD, HKD, AUD, …** at the same time. Cairn
-fetches live FX rates from the ECB (Frankfurter API, no API key) and converts everything
-to your chosen home currency on the fly. Works offline with cached rates.
+- **Mac** — download the latest `.dmg` from
+  [Releases](https://github.com/zhuangqh/cairn/releases/latest) and drag Cairn to
+  Applications. The build isn't notarized yet, so open it the first time with
+  Control-click › **Open**.
+- **iPhone and iPad** — build from source with Xcode and a free Personal Team.
 
-### 📅 Excel-style monthly batch entry
-The core workflow. One screen, one row per holding, last month's values pre-filled —
-edit only what changed, `Save all`, done. Designed to take **under 3 minutes a month**.
+## Build from source
 
-- Live running total in your home currency
-- `Fill from last` for unchanged holdings
-- Atomic save — all rows commit together or none do
-- Backfill or edit any past month
+Requires Xcode 26 or later, [XcodeGen](https://github.com/yonaskolb/XcodeGen) and
+[SwiftLint](https://github.com/realm/SwiftLint).
 
-### 📈 Net-worth trend, at a glance
-A Swift Charts curve of total family net worth over **6M / 12M / All time**, with
-breakdowns by **account kind** and **member**, plus captured monthly snapshot detail.
-The Dashboard can overlay cumulative physical-asset value on the same chart. Hover or
-long-press a captured point to inspect the month.
+```sh
+brew install xcodegen swiftlint
+make gen     # generate Cairn.xcodeproj
+make build   # build for macOS
+```
 
-### 🏦 Accounts & holdings that match reality
-Cash, brokerage, and similar financial accounts. An account is *not* pinned to a
-single currency — add as many single-currency **holdings** underneath as you need.
+See the [development guide](docs/development.md) for tests, iOS builds, screenshots and
+releases, and [AGENTS.md](AGENTS.md) for contribution conventions.
 
-### 🏠 Physical assets alongside the financial ones
-Track real estate, vehicles, devices, and other tangible assets in their own tab,
-with a cumulative value chart that lines up month-by-month with your financial
-trend so you can see total household value at a glance.
-
-### 🔔 Gentle monthly reminder
-Optional local notification on the 1st of each month: *"Time to update your assets."*
-No push servers, no account required.
-
-### 🌐 Ships in English and 简体中文
-Every string goes through Apple's String Catalog from day one, so currencies, dates, and
-pluralization all follow your locale. Override the app language independently of the
-system if you like.
-
-## 🔒 Privacy by design
-
-- **Your data never leaves your Mac.** Storage is a local-only SwiftData store in the
-  app sandbox. CloudKit sync is intentionally **off**.
-- **The only network call is fetching public FX rates** — no user data, no analytics,
-  no ad SDKs, no account system.
-- **Portable, human-readable backups.** Export your whole store to a single `.cairn`
-  JSON file from **Settings → Backup → Export**. You can also export captured monthly
-  snapshots as CSV. Drop either file in iCloud Drive, Dropbox, or a Git repo to carry
-  between Macs, or just to keep a personal archive.
-
-## 📦 Install
-
-Cairn is open-source and has no Apple Developer account behind it, so there are no
-signed App Store builds.
-
-- **macOS** — grab the latest `Cairn-x.y.z.dmg` from the
-  [Releases page](../../releases), drag it to `/Applications`. The first launch needs
-  `Control-click → Open` because the build is ad-hoc signed.
-- **iOS / iPadOS** — open the project in Xcode, sign it with your free Personal Team,
-  and run from source. Packaged releases are macOS-only for now. See the
-  [Development Guide](docs/development.md).
-- **Build from source** — see the [Development Guide](docs/development.md).
-
-System requirements: **macOS 14 Sonoma** or **iOS / iPadOS 17** or later.
-
-## 🗺 Status & Roadmap
-
-Cairn is early-stage. macOS is the primary distribution target; iOS / iPadOS are kept
-buildable from the same SwiftUI codebase but do not have packaged releases yet.
-
-- **v1** — Members (with avatars) · Accounts · Holdings · Monthly snapshots · FX ·
-  Trend chart · Physical assets · Backup/import · CSV snapshot export · iOS / iPadOS builds from source
-- **v1.1** — Face ID / Touch ID lock
-- **v2+** — Depreciation rules, quote API, Widgets, Siri Shortcuts
-
-Full spec: [PRD.md](PRD.md).
-
-## 📚 Documentation
-
-- [Product spec (PRD)](PRD.md)
-- [Development conventions](AGENTS.md) — guidance for contributors and coding agents
-- [Development guide](docs/development.md) — build, project structure, localization, contributing
-
-## 🤝 Contributing
-
-Pull requests welcome. Start with the [Development Guide](docs/development.md) for the
-build workflow, localization rules, and commit conventions.
-
-## 📄 License
+## License
 
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+<sub>A cairn is a stack of stones hikers leave to mark the trail. Each snapshot adds one more.</sub>
